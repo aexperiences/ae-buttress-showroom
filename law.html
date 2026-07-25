@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Law · Contracts · Buttress OS V2.0</title>
+<meta name="description" content="Buttress OS — the architecture practice operating system. Powered by Accelerated Experiences LLC.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="buttress.css">
+</head>
+<body>
+<script src="buttress.js"></script>
+<script>
+(function () {
+  var B = window.Buttress;
+  var c = B.mount({ active: "law.html", crumb: "Law · Contracts" });
+
+  var RISKS = ["High", "Medium", "Low"];
+  var STATES = ["Open", "With counsel", "Closed"];
+
+  /* Plain-English reading of the documents this docket already references. */
+  var DOCS = [
+    { ref: "B101", name: "Owner–Architect Agreement",
+      plain: "The agreement between the owner and the architect. It sets the scope of Basic Services, the phases, " +
+             "the fee, and — critically — what counts as an Additional Service. It is the document that says what " +
+             "you owe the owner and what the owner owes you.",
+      why: "The Additional Services trigger in it is the clause that makes scope creep billable. Strike that " +
+           "trigger and unlimited revisions become free work." },
+    { ref: "C401", name: "Architect–Consultant Agreement",
+      plain: "The agreement between the architect and a consultant — structural, MEP, civil, landscape. It flows " +
+             "the obligations of the owner agreement down to the consultant and sets their insurance.",
+      why: "Work happening before it is executed means the flow-down and the insurance are unconfirmed, and the " +
+           "architect is holding a risk it did not price." },
+    { ref: "G704", name: "Certificate of Substantial Completion",
+      plain: "The certificate that fixes the date the work is substantially complete — the date warranties " +
+             "start, the date responsibility for the building shifts, and the date the remaining punch work is " +
+             "listed against.",
+      why: "Phased occupancy means more than one certificate. Getting the dates wrong moves warranty start dates " +
+           "the owner will rely on." },
+    { ref: "Standard of care", name: "The professional yardstick",
+      plain: "Not a form — the measure your work is judged against if there is a claim. It is not perfection and " +
+             "it is not a guarantee. When a matter is filed against the standard of care rather than a clause, " +
+             "the exposure is professional judgment.",
+      why: "What it means in a given jurisdiction, and how a policy responds to it, are questions for counsel and " +
+           "the carrier — not for this room." }
+  ];
+
+  function bring(elm) {
+    if (elm && typeof elm.scrollIntoView === "function") {
+      elm.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }
+  function riskTag(r) { return B.tag(r, r === "High" ? "bad" : (r === "Medium" ? "watch" : "good")); }
+
+  var DEPT = B.SEATS.depts.filter(function (x) { return x.key === "law"; })[0];
+  /* Read the department's own verdict without routing it — no bus write. */
+  function preview() { return B.BRAIN.law.build(B.db(), ""); }
+
+  /* ------------------------------------------------------------- page head */
+  c.appendChild(B.page(
+    "Law · Contracts",
+    "The contract docket: B101, C401 and the G-series certificates, read against the work actually going on. " +
+    "This room is advisory. It is not a lawyer, it does not give legal advice, and it is built to hand a matter " +
+    "to a licensed attorney rather than answer it.",
+    '<button class="btn brass sm" id="consultBtn">Consult Law · Contracts</button>'
+  ));
+
+  c.appendChild(B.card(
+    '<div class="fence" style="border-left-color:var(--bad);background:var(--bad-w)">' +
+    '<b>This is not legal advice, and Barrow is not an attorney.</b> Everything on this page is an advisory read ' +
+    'of documents the practice has already signed or is about to sign. It exists to spot exposure early, put it in ' +
+    'plain English, and get it in front of a licensed attorney with the facts already assembled. Nothing here is a ' +
+    'legal opinion and nothing here should be relied on as one.</div>'
+  ));
+
+  c.appendChild(B.card('<div class="statrow" id="statrow"></div>'));
+
+  /* ------------------------------------------- the high bar, and why it holds */
+  c.appendChild(B.card(
+    '<h2>The bar is 85. The department comes in under it on purpose.</h2>' +
+    '<div class="card-sub">Every other department releases at 80. Law and Money sit at 85, and Law is the one ' +
+    'room where the honest answer to the docket in front of it is below its own bar.</div>' +
+    '<div id="gateBox"></div>' +
+    '<div class="divider"></div>' +
+    '<div class="fence"><b>A department that refuses to answer is the feature, not the failure.</b> Consulting ' +
+    'this room does not release a conclusion — it escalates, with the reasoning attached and the matter packaged ' +
+    'for counsel. A system willing to bluff a contract read is worth less than no system, because someone would ' +
+    'act on it. The bar being high is what makes the answers you <i>do</i> get from the other rooms worth ' +
+    'something.</div>'
+  ));
+
+  /* ----------------------------------------------------------- the docket */
+  c.appendChild(B.card(
+    '<h2>The docket</h2>' +
+    '<div class="card-sub">Every matter carries the document it turns on and a risk level you can change as facts ' +
+    'come in. Risk changes are written to this hub\'s record.</div>' +
+    '<div id="docket"></div>'
+  ));
+
+  /* --------------------------------------------------------- the explainer */
+  c.appendChild(B.card(
+    '<h2>What these documents actually are</h2>' +
+    '<div class="card-sub">Referenced by number all day and explained to no one. Plain English, so a principal ' +
+    'reading this docket at 7pm knows exactly what is at stake on each line.</div>' +
+    '<table><thead><tr><th>Reference</th><th>What it is</th><th>Why it shows up here</th></tr></thead><tbody>' +
+      DOCS.map(function (x) {
+        return '<tr><td>' + B.tag(x.ref, "mono") +
+          '<div class="t-sub">' + B.esc(x.name) + '</div></td>' +
+          '<td>' + B.esc(x.plain) + '</td>' +
+          '<td class="small muted">' + B.esc(x.why) + '</td></tr>';
+      }).join("") +
+    '</tbody></table>' +
+    '<div class="srcnote" style="font-style:normal">B101, C401 and G704 are AIA standard-form documents. The ' +
+    'descriptions above are plain-English summaries of what each document does in a project, not quotations from ' +
+    'them and not an interpretation of their terms. The executed document governs, and counsel reads it.</div>'
+  ));
+
+  /* -------------------------------------------------- route to outside counsel */
+  c.appendChild(B.card(
+    '<h2>Route a matter to outside counsel</h2>' +
+    '<div class="card-sub">The whole point of the room. File (the Law AE) packages the matter, the risk and the ' +
+    'reference so an attorney starts with the facts instead of a phone call.</div>' +
+    '<div class="grid g3" style="margin-bottom:12px">' +
+      '<div><label class="f" for="mSel">Matter</label><select id="mSel"></select></div>' +
+      '<div><label class="f" for="mAsk">The question for counsel</label>' +
+        '<input id="mAsk" placeholder="e.g. can we sign with this redline in place?"></div>' +
+      '<div><label class="f">&nbsp;</label>' +
+        '<div class="row"><button class="btn brass" id="mGo">Stage to the Approval Desk</button></div></div>' +
+    '</div>' +
+    '<div class="fence"><b>Engaging counsel is a spend and a send.</b> Both are fences. The packet is drafted and ' +
+    'staged for the principal — no attorney is contacted, no engagement is opened, nothing leaves this browser.</div>'
+  ));
+
+  /* ------------------------------------------------------------ consult law */
+  c.appendChild(B.card(
+    '<h2>Consult Law · Contracts</h2>' +
+    '<div class="card-sub">Barrow (DH) owns the contract read and is explicitly not a lawyer; File (AE) packages ' +
+    'the matter, the risk and the sources, and flags what needs a real attorney; Care (Pacemaker) holds an 85% bar ' +
+    'and routes anything with real exposure to a licensed attorney. Terms argues for getting to a clean signature; ' +
+    'Claim asks what claim could arise and whether the E&amp;O responds. Expect this one to escalate.</div>' +
+    '<div class="row" style="margin-bottom:12px">' +
+      '<input id="q" placeholder="e.g. Can we sign the Riverside redline as written?" style="flex:1;min-width:260px">' +
+      '<button class="btn brass" id="go">Route it</button>' +
+    '</div>' +
+    '<div class="row" style="gap:6px;margin-bottom:4px">' +
+      ['Can we sign the Riverside redline as written?',
+       'What is our exposure on the unexecuted C401?',
+       'How many G704 certificates does phased occupancy need?',
+       'Where are we outside the standard of care?'].map(function (s) {
+        return '<button class="btn ghost sm ex" data-q="' + B.esc(s) + '">' + B.esc(s) + '</button>';
+      }).join("") +
+    '</div>' +
+    '<div id="out"></div>'
+  ));
+
+  /* ---------------------------------------------------------------- render */
+  function renderStats(d) {
+    var m = d.matters || [];
+    var open = m.filter(function (x) { return x.state === "Open"; });
+    var high = m.filter(function (x) { return x.risk === "High"; });
+    var withCounsel = m.filter(function (x) { return x.state === "With counsel"; });
+    var v = preview();
+    document.getElementById("statrow").innerHTML =
+      B.stat("Matters on the docket", String(m.length), "Contract reads, not lawsuits") +
+      B.stat("Open", String(open.length), (m.length - open.length) + " closed or with counsel",
+             open.length ? "watch" : "good") +
+      B.stat("High risk", String(high.length), "Needs an attorney before signature", high.length ? "bad" : "good") +
+      B.stat("With counsel", String(withCounsel.length), "Handed off, out of the org's hands") +
+      B.stat("Department bar", DEPT.gate + "%", "Care holds the highest bar in the org with Money") +
+      B.stat("Read on this docket", v.conf + "%", "Under the bar — this room escalates", "bad");
+  }
+
+  function renderGate(d) {
+    var v = preview();
+    var passed = v.conf >= DEPT.gate;
+    document.getElementById("gateBox").innerHTML =
+      '<div class="conf">' +
+        '<span class="muted small">' + B.esc(DEPT.name) + ' · bar ' + DEPT.gate + '%</span>' +
+        '<span class="conf-bar"><i class="conf-fill ' + (passed ? "" : "under") + '" style="width:' +
+          Math.min(100, v.conf) + '%"></i>' +
+        '<span class="conf-gate" style="left:' + DEPT.gate + '%"></span></span>' +
+        '<span class="conf-n">' + v.conf + '%</span>' +
+      '</div>' +
+      '<div class="row" style="margin-top:11px;gap:7px">' +
+        B.tag("Confidence " + v.conf + "%", "bad") +
+        B.tag("Bar " + DEPT.gate + "%", "ghost") +
+        B.tag("Result: escalate to the principal and to counsel", "watch") +
+      '</div>';
+  }
+
+  function renderDocket(d) {
+    var rows = (d.matters || []).map(function (m) {
+      var riskSel = '<select class="riskSel" data-id="' + B.esc(m.id) + '" style="min-width:106px">' +
+        RISKS.map(function (r) {
+          return '<option value="' + r + '"' + (r === m.risk ? " selected" : "") + '>' + r + '</option>';
+        }).join("") + '</select>';
+      var stateSel = '<select class="stateSel" data-id="' + B.esc(m.id) + '" style="min-width:126px">' +
+        STATES.map(function (s) {
+          return '<option value="' + B.esc(s) + '"' + (s === m.state ? " selected" : "") + '>' + B.esc(s) + '</option>';
+        }).join("") + '</select>';
+      return '<tr>' +
+        '<td><div class="t-main">' + B.esc(m.title) + '</div>' +
+          '<div class="t-sub">' + B.esc(m.note) + '</div></td>' +
+        '<td>' + B.tag(m.ref, "mono") + '</td>' +
+        '<td>' + riskTag(m.risk) + '</td>' +
+        '<td>' + riskSel + '</td>' +
+        '<td>' + stateSel + '</td>' +
+      '</tr>';
+    }).join("") || '<tr><td colspan="5" class="empty">Nothing on the docket.</td></tr>';
+
+    document.getElementById("docket").innerHTML =
+      '<table><thead><tr><th>Matter</th><th>Turns on</th><th>Risk</th><th>Set risk</th><th>State</th>' +
+      '</tr></thead><tbody>' + rows + '</tbody></table>';
+
+    Array.prototype.forEach.call(document.querySelectorAll(".riskSel"), function (el) {
+      el.addEventListener("change", function () {
+        var id = this.getAttribute("data-id"), v = this.value, t = "";
+        B.save(function (x) {
+          (x.matters || []).forEach(function (m) { if (m.id === id) { m.risk = v; t = m.title; } });
+        });
+        render();
+        B.toast("Risk on “" + t + "” set to " + v + ". Advisory only.", "ok");
+      });
+    });
+    Array.prototype.forEach.call(document.querySelectorAll(".stateSel"), function (el) {
+      el.addEventListener("change", function () {
+        var id = this.getAttribute("data-id"), v = this.value, t = "";
+        B.save(function (x) {
+          (x.matters || []).forEach(function (m) { if (m.id === id) { m.state = v; t = m.title; } });
+        });
+        render();
+        B.toast("“" + t + "” marked " + v + ".", "ok");
+      });
+    });
+  }
+
+  function renderPicker(d) {
+    var sel = document.getElementById("mSel");
+    var keep = sel.value;
+    sel.innerHTML = (d.matters || []).map(function (m) {
+      return '<option value="' + B.esc(m.id) + '">' + B.esc(m.ref) + ' — ' + B.esc(m.title) + '</option>';
+    }).join("") || '<option value="">Nothing on the docket</option>';
+    if (keep) sel.value = keep;
+  }
+
+  function render() {
+    var d = B.db();
+    renderStats(d);
+    renderGate(d);
+    renderDocket(d);
+    renderPicker(d);
+  }
+
+  /* ------------------------------------------------- the output contract */
+  function renderAnswer(r) {
+    var out = document.getElementById("out");
+    var v = r.verdict, dept = r.dept, passed = r.passed;
+    var pctv = Math.min(100, v.conf);
+    var head = passed
+      ? dept.pace.name + " released it: " + v.stance
+      : "Held below the " + dept.gate + "% bar (" + v.conf + "%). Needs a human — not enough live data. " + v.stance;
+    out.innerHTML =
+      '<div class="divider"></div>' +
+      '<div class="' + (passed ? "busrow conclude" : "busrow reject") + '" style="display:block">' +
+        '<div class="bus-topic">' + (passed ? "law.pacemaker.released" : "escalation.below_bar") + '</div>' +
+        '<div class="bus-body" style="margin-top:5px">' + B.esc(head) + '</div>' +
+      '</div>' +
+      '<div class="conf">' +
+        '<span class="muted small">' + B.esc(dept.name) + ' · bar ' + dept.gate + '%</span>' +
+        '<span class="conf-bar"><i class="conf-fill ' + (passed ? "" : "under") + '" style="width:' + pctv + '%"></i>' +
+        '<span class="conf-gate" style="left:' + dept.gate + '%"></span></span>' +
+        '<span class="conf-n">' + v.conf + '%</span>' +
+      '</div>' +
+      '<ul class="reasons">' + v.reasons.map(function (x) {
+        return '<li><span class="rtag ' + B.esc(x.t) + '">' + B.esc(x.t.toUpperCase()) + '</span><span>' +
+          B.esc(x.s) + '</span></li>';
+      }).join("") + '</ul>' +
+      (passed ? "" :
+        '<div class="fence" style="margin-top:11px"><b>That escalation is the correct outcome.</b> Care did not ' +
+        'have the confidence to release a contract position, so the matter goes up with its reasons attached ' +
+        'instead of down as an answer. A licensed attorney owns the sign-off.</div>') +
+      '<div class="srcnote">Routed through ' + B.esc(dept.dh.name) + ' (DH) → ' + B.esc(dept.ae.name) +
+        ' (AE) → the bus → ' + B.esc(dept.pace.name) + ' (Pacemaker) → ' + B.esc(dept.lensA.name) +
+        ' / ' + B.esc(dept.lensB.name) + ' (opposing lenses). Advisory only — not legal advice. ' +
+        'Full trace on the Agent Org page.</div>';
+  }
+
+  function ask(q) {
+    if (!q) { B.toast("Type a question first.", ""); return; }
+    var r = B.consult("law", q);
+    if (!r) { B.toast("Law · Contracts is not in this build.", ""); return; }
+    renderAnswer(r);
+  }
+
+  /* ------------------------------------------------------------------ boot */
+  render();
+
+  setTimeout(function () {
+    document.getElementById("mGo").addEventListener("click", function () {
+      var id = document.getElementById("mSel").value;
+      var q = document.getElementById("mAsk").value.trim();
+      var m = (B.db().matters || []).filter(function (x) { return x.id === id; })[0];
+      if (!m) { B.toast("No matter selected.", ""); return; }
+      B.stage(
+        "legal",
+        "Outside counsel — " + m.title,
+        m.ref + " · risk " + m.risk + ". " + m.note + " Question for counsel: " + (q || "not stated") + ".",
+        "Engaging an attorney is a spend and reaches outside the office. Advisory reads never substitute for " +
+          "counsel, so this is packaged and staged, never sent.",
+        "File (Law AE)"
+      );
+      B.toast("Counsel packet staged to the Approval Desk. No attorney has been contacted.", "ok");
+    });
+
+    document.getElementById("go").addEventListener("click", function () {
+      ask(document.getElementById("q").value.trim());
+    });
+    document.getElementById("q").addEventListener("keydown", function (e) {
+      if (e.key === "Enter") ask(this.value.trim());
+    });
+    Array.prototype.forEach.call(document.querySelectorAll(".ex"), function (b) {
+      b.addEventListener("click", function () {
+        document.getElementById("q").value = this.dataset.q;
+        ask(this.dataset.q);
+      });
+    });
+    var cb = document.getElementById("consultBtn");
+    if (cb) cb.addEventListener("click", function () {
+      var q = document.getElementById("q"); bring(q); q.focus();
+    });
+  }, 0);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fee &amp; Proposal · Buttress OS V2.0</title>
+<meta name="description" content="Buttress OS — the architecture practice operating system. Powered by Accelerated Experiences LLC.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="buttress.css">
+</head>
+<body>
+<script src="buttress.js"></script>
+<script>
+(function () {
+  var B = window.Buttress;
+  var c = B.mount({ active: "proposal.html", crumb: "Fee & Proposal" });
+  var d = B.db();
+
+  var NM = B.BENCH.netMultiplier;          // target band + source, straight from the engine
+  var PD = B.PHASES.filter(function (p) { return p.k === "PD"; })[0];
+
+  /* the engine's own banding rule, applied to the implied multiplier */
+  function nmBand(v) {
+    if (v >= NM.target[0]) return "good";
+    if (v >= NM.target[0] * 0.9) return "watch";
+    return "bad";
+  }
+  function num(id) { var e = document.getElementById(id); return Number(e && e.value) || 0; }
+
+  /* ------------------------------------------------------------- page head */
+  c.appendChild(B.page(
+    "Fee & Proposal",
+    "The money spine. Set the fee off the owner's cost of the work or as a stipulated sum, split it across the AIA " +
+    "B101 phases, add reimbursables at the B101 standard, and check the implied net multiplier before anything " +
+    "goes near a client.",
+    '<button class="btn ghost sm" id="jump">Go to the proposal</button>'
+  ));
+
+  /* --------------------------------------------------------------- the desk */
+  var seedProject = d.commissions[0];
+  var seedInvoice = d.invoices[0];
+
+  var commOpts = d.commissions.map(function (x) {
+    return '<option value="' + B.esc(x.id) + '"' + (x.id === seedProject.id ? " selected" : "") + '>' +
+      B.esc(x.name) + ' — ' + B.esc(x.number) + '</option>';
+  }).join("");
+
+  c.appendChild(B.card(
+    '<h2>Fee calculator</h2>' +
+    '<div class="card-sub">Everything below recomputes as you type. Load a live commission to start from its real ' +
+    'numbers, or type your own — nothing here is saved until you stage it.</div>' +
+    '<div class="grid g3">' +
+      '<div class="field"><label class="f" for="proj">Start from a commission</label>' +
+        '<select id="proj">' + commOpts + '</select></div>' +
+      '<div class="field"><label class="f" for="basis">Fee basis</label>' +
+        '<select id="basis">' +
+          '<option value="pct" selected>Percentage of the cost of the work</option>' +
+          '<option value="sum">Stipulated sum</option>' +
+        '</select></div>' +
+      '<div class="field"><label class="f" for="cow">Cost of the work</label>' +
+        '<input id="cow" type="number" min="0" step="1000" value="' + Number(seedProject.construction) + '"></div>' +
+      '<div class="field"><label class="f" for="rate">Percentage of the cost of the work</label>' +
+        '<input id="rate" type="number" min="0" max="100" step="0.25" value="7.5"></div>' +
+      '<div class="field"><label class="f" for="sum">Stipulated sum</label>' +
+        '<input id="sum" type="number" min="0" step="1000" value="' + Number(seedProject.fee) + '"></div>' +
+      '<div class="field"><label class="f" for="labor">Estimated direct labor cost</label>' +
+        '<input id="labor" type="number" min="0" step="500" value="' + Number(seedProject.laborCost) + '"></div>' +
+    '</div>' +
+    '<div id="feeStats" class="statrow"></div>'
+  ));
+
+  /* -------------------------------------------------------- the phase split */
+  c.appendChild(B.card(
+    '<h2>AIA B101 phase split</h2>' +
+    '<div class="card-sub">Basic Services, phase by phase. Because the phase carries its own percentage of the fee, ' +
+    'percent-complete billing and phase profitability fall out of the record instead of being rebuilt at month end.</div>' +
+    '<table><thead><tr><th>Phase</th><th class="num">% of fee</th><th class="num">Amount</th>' +
+    '<th>Typical range</th></tr></thead><tbody id="phaseRows"></tbody></table>' +
+    '<div class="divider"></div>' +
+    '<div class="fence"><b>' + B.esc(PD.name) + ' is not in the split.</b> ' + B.esc(PD.note) + '</div>' +
+    B.srcNote("AIA “Defining the Architect’s Basic Services”; Monograph and Siana fee-by-phase guides " +
+              "(two independent sources agree on the split).")
+  ));
+
+  /* ---------------------------------------------- reimbursables + multiplier */
+  var grid = document.createElement("div"); grid.className = "grid g2";
+
+  grid.appendChild(B.card(
+    '<h2>Reimbursables</h2>' +
+    '<div class="card-sub">Expenses billed on top of the fee — printing, travel, permit fees, deliveries. ' +
+    'The B101 standard is cost plus ' + B.REIMB_MARKUP + '%, and it is a line item, not a rounding error.</div>' +
+    '<div class="field"><label class="f" for="reimb">Estimated reimbursable expenses, at cost</label>' +
+      '<input id="reimb" type="number" min="0" step="10" value="' + Number(seedInvoice.reimb) + '"></div>' +
+    '<div id="reimbOut" class="statrow"></div>' +
+    B.srcNote("AIA B101 standard: reimbursable expenses at cost plus " + B.REIMB_MARKUP + "%.")
+  ));
+
+  grid.appendChild(B.card(
+    '<h2>Net-multiplier sanity check</h2>' +
+    '<div class="card-sub">Fee divided by the direct labor cost you expect to spend on the job. ' +
+    'This is the one number that says whether the fee pays for the people who will draw it.</div>' +
+    '<div id="nmOut" class="statrow"></div>' +
+    '<div id="nmRead" class="fence" style="margin-top:12px"></div>' +
+    B.srcNote(NM.src)
+  ));
+  c.appendChild(grid);
+
+  /* ------------------------------------------------------------- the fence */
+  c.appendChild(B.card(
+    '<h2>Send this fee proposal <span class="tag watch mono">GHOST MODE</span></h2>' +
+    '<div class="card-sub">This button does not send. A fee that goes to a client is a price — one of the four real ' +
+    'fences — so it goes to the Approval Desk with the whole calculation attached, and a principal decides.</div>' +
+    '<div class="fence"><b>Nothing leaves this hub.</b> Staging writes the proposal to the Approval Desk in this ' +
+    'browser session only. No email, no portal, no client sees anything.</div>' +
+    '<div class="row" style="margin-top:13px">' +
+      '<button class="btn brass" id="send">Send this fee proposal</button>' +
+      '<a class="btn ghost" href="approvals.html">Open the Approval Desk →</a>' +
+    '</div>' +
+    '<div id="sendOut"></div>'
+  ));
+
+  /* ------------------------------------------------------------ computation */
+  function currentFee() {
+    var basis = document.getElementById("basis").value;
+    return basis === "pct" ? B.feeFromConstruction(num("cow"), num("rate")) : Math.round(num("sum"));
+  }
+
+  function recompute() {
+    var basis = document.getElementById("basis").value;
+    var byPct = basis === "pct";
+    var cow = num("cow"), rate = num("rate"), labor = num("labor");
+    var fee = currentFee();
+
+    /* dim the inputs that do not drive the fee right now */
+    document.getElementById("cow").disabled = !byPct;
+    document.getElementById("rate").disabled = !byPct;
+    document.getElementById("sum").disabled = byPct;
+
+    var impliedPct = cow ? (fee / cow) * 100 : 0;
+    var nm = labor ? fee / labor : 0;
+    var firmNm = B.netMultiplier();
+
+    document.getElementById("feeStats").innerHTML =
+      B.stat("Fee", B.money(fee),
+        byPct ? B.pct(rate, 2) + " of " + B.money(cow) : "Stipulated sum", "good") +
+      B.stat("Basis", byPct ? "% of cost" : "Stipulated",
+        byPct ? "Moves with the owner’s budget" : "Fixed regardless of the budget") +
+      B.stat("Implied % of cost", cow ? B.pct(impliedPct, 2) : "—",
+        cow ? "Against " + B.money(cow) + " of construction" : "Enter a cost of the work") +
+      B.stat("Implied net multiplier", labor ? nm.toFixed(2) + "x" : "—",
+        "Target " + NM.target[0] + "–" + NM.target[1] + NM.unit, labor ? nmBand(nm) : "");
+
+    document.getElementById("phaseRows").innerHTML =
+      B.feeByPhase(fee).map(function (p) {
+        return '<tr>' +
+          '<td class="k">' + B.esc(p.k) + '<div class="t-sub">' + B.esc(p.name) + '</div></td>' +
+          '<td class="num">' + p.pct + '%</td>' +
+          '<td class="num"><b>' + B.money(p.amount) + '</b></td>' +
+          '<td class="t-sub" style="margin:0">' + B.esc(p.note) + '</td>' +
+        '</tr>';
+      }).join("") +
+      '<tr><td class="t-main">Total</td><td class="num t-main">100%</td>' +
+        '<td class="num t-main">' + B.money(fee) + '</td>' +
+        '<td class="t-sub" style="margin:0">Basic Services. Additional Services are billed on top.</td></tr>';
+
+    var rc = num("reimb"), rb = B.reimbursable(rc);
+    document.getElementById("reimbOut").innerHTML =
+      B.stat("At cost", B.money(rc), "What the expense actually costs the firm") +
+      B.stat("Billed to the owner", B.money(rb), "Cost plus " + B.REIMB_MARKUP + "% per B101", "good") +
+      B.stat("Markup recovered", B.money(rb - rc), "Administering the expense is work too");
+
+    document.getElementById("nmOut").innerHTML =
+      B.stat("Implied on this fee", labor ? nm.toFixed(2) + "x" : "—",
+        B.money(fee) + " ÷ " + B.money(labor) + " labor", labor ? nmBand(nm) : "") +
+      B.stat("Target band", NM.target[0] + "–" + NM.target[1] + NM.unit,
+        "Industry median " + NM.median + NM.unit) +
+      B.stat("The firm today", firmNm.toFixed(2) + "x",
+        "Computed from live commissions", nmBand(firmNm));
+
+    var read;
+    if (!labor) {
+      read = "Enter an estimated direct labor cost and this fee gets checked against the " +
+             NM.target[0] + "–" + NM.target[1] + NM.unit + " target band.";
+    } else if (nm >= NM.target[0]) {
+      read = "At " + nm.toFixed(2) + "x this fee clears the " + NM.target[0] + "–" + NM.target[1] + NM.unit +
+             " target band. It pays for the labor, the overhead on that labor, and a margin.";
+    } else if (nm >= NM.target[0] * 0.9) {
+      read = "At " + nm.toFixed(2) + "x this fee sits just under the " + NM.target[0] + NM.unit +
+             " floor. Workable, but there is no room for a re-design or a long CA phase.";
+    } else {
+      read = "At " + nm.toFixed(2) + "x this fee is below the target band. Overhead eats it — either the fee moves, " +
+             "the scope shrinks, or the job is a loss taken on purpose.";
+    }
+    document.getElementById("nmRead").innerHTML = '<b>Read:</b> ' + B.esc(read);
+  }
+
+  /* --------------------------------------------------------------- controls */
+  setTimeout(function () {
+    ["cow", "rate", "sum", "labor", "reimb"].forEach(function (id) {
+      document.getElementById(id).addEventListener("input", recompute);
+    });
+    document.getElementById("basis").addEventListener("change", recompute);
+
+    document.getElementById("proj").addEventListener("change", function () {
+      var id = this.value;
+      var p = B.db().commissions.filter(function (x) { return x.id === id; })[0];
+      if (!p) return;
+      document.getElementById("cow").value = p.construction;
+      document.getElementById("sum").value = p.fee;
+      document.getElementById("labor").value = p.laborCost;
+      recompute();
+      B.toast("Loaded " + p.name + " — " + p.feeBasis + ".", "ok");
+    });
+
+    document.getElementById("jump").addEventListener("click", function () {
+      var s = document.getElementById("send");
+      s.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+
+    document.getElementById("send").addEventListener("click", function () {
+      var basis = document.getElementById("basis").value;
+      var fee = currentFee();
+      var labor = num("labor"), cow = num("cow"), rate = num("rate");
+      var proj = B.db().commissions.filter(function (x) {
+        return x.id === document.getElementById("proj").value;
+      })[0];
+      var split = B.feeByPhase(fee).map(function (p) {
+        return (p.k === "BID" ? "Bid" : p.k) + " " + p.pct;
+      }).join(" / ");
+      var basisText = basis === "pct"
+        ? B.money(fee) + " (" + B.pct(rate, 2) + " of a " + B.money(cow) + " cost of the work)"
+        : B.money(fee) + " stipulated sum";
+      var nm = labor ? (fee / labor).toFixed(2) + "x implied net multiplier" : "no labor estimate attached";
+      var item = B.stage(
+        "pricing",
+        "Fee proposal — " + (proj ? proj.name : "New commission"),
+        "Submit at " + basisText + ", phased " + split + ". Reimbursables at cost plus " + B.REIMB_MARKUP +
+          "% per B101. " + nm + " against a " + NM.target[0] + "–" + NM.target[1] + NM.unit + " target band.",
+        "Setting a fee that goes to a client is the principal’s call.",
+        "Wren (Pursuits AE)"
+      );
+      B.toast("Staged to the Approval Desk — nothing was sent.", "ok");
+      document.getElementById("sendOut").innerHTML =
+        '<div class="divider"></div>' +
+        '<div class="busrow conclude" style="display:block">' +
+          '<div class="bus-topic">approvals.staged · pricing</div>' +
+          '<div class="bus-body" style="margin-top:5px">' + B.esc(item.title) + ' — ' + B.esc(item.summary) + '</div>' +
+          '<div class="bus-from" style="margin-top:5px">Filed by <b>' + B.esc(item.by) + '</b> · ' +
+            B.esc(item.state) + ' on the Approval Desk. ' + B.esc(item.why) + '</div>' +
+        '</div>';
+    });
+
+    recompute();
+  }, 0);
+})();
+</script>
+</body>
+</html>

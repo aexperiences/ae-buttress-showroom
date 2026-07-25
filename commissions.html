@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Commissions · Buttress OS V2.0</title>
+<meta name="description" content="Buttress OS — the architecture practice operating system. Powered by Accelerated Experiences LLC.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="buttress.css">
+</head>
+<body>
+<script src="buttress.js"></script>
+<script>
+(function () {
+  var B = window.Buttress;
+  var c = B.mount({ active: "commissions.html", crumb: "Commissions" });
+
+  /* ------------------------------------------------------------- page head */
+  c.appendChild(B.page(
+    "Commissions",
+    "The project spine. Every commission carries its AIA B101 phase and that phase's share of the fee, " +
+    "so percent-complete billing, earned revenue and phase profitability fall out of the record instead of " +
+    "being reconstructed at month end.",
+    '<button class="btn brass sm" id="consultBtn">Consult Studio</button>'
+  ));
+
+  /* ------------------------------------------------------------ containers */
+  var boardCard = B.card(
+    '<h2>The book of work</h2>' +
+    '<div class="card-sub">Contracted fee, what has actually been earned against it, and what is earned but ' +
+    'not yet invoiced. Computed from the commissions below — nothing typed in.</div>' +
+    '<div class="statrow" id="statrow"></div>' +
+    B.srcNote("Backlog band: Deltek Clarity (arch, 2023). Earned and ready-to-bill are computed live from " +
+              "each commission's fee and percent complete.")
+  );
+  c.appendChild(boardCard);
+
+  var masterCard = B.card(
+    '<h2>Master list</h2>' +
+    '<div class="card-sub">Click any commission to open it. Phase, percent complete, earned to date and ready ' +
+    'to bill are one record — not a drawing log in one place and a fee spreadsheet in another.</div>' +
+    '<div id="master"></div>'
+  );
+  c.appendChild(masterCard);
+
+  var detailWrap = document.createElement("div");
+  detailWrap.id = "detailWrap";
+  c.appendChild(detailWrap);
+
+  var selId = (B.db().commissions[0] || {}).id;
+
+  /* ---------------------------------------------------------------- helpers */
+  function bring(elm) {
+    if (elm && typeof elm.scrollIntoView === "function") {
+      elm.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }
+  function commission(d, id) {
+    return d.commissions.filter(function (x) { return x.id === id; })[0];
+  }
+  function phaseOf(k) {
+    return B.PHASES.filter(function (p) { return p.k === k; })[0];
+  }
+  function permitBand(s) {
+    return s === "Issued" ? "good" : (s === "In review" ? "watch" : "ghost");
+  }
+
+  /* ----------------------------------------------------------------- stats */
+  function renderStats(d) {
+    var contracted = d.commissions.reduce(function (s, x) { return s + (Number(x.fee) || 0); }, 0);
+    var earned = d.commissions.reduce(function (s, x) { return s + B.earnedToDate(x); }, 0);
+    var ks = B.kpis();
+    var wipK = ks.filter(function (k) { return k.k === "wip"; })[0];
+    var blK  = ks.filter(function (k) { return k.k === "backlog"; })[0];
+
+    var html =
+      B.stat("Commissions", String(d.commissions.length),
+             d.commissions.filter(function (x) { return x.phase === "CA"; }).length + " in Construction Administration") +
+      B.stat("Contracted fee", B.money(contracted), "Across every open commission") +
+      B.stat("Earned to date", B.money(earned), B.pct(contracted ? earned / contracted * 100 : 0) + " of contracted fee") +
+      B.stat("Ready to bill", B.money(wipK.value), "Earned, not yet invoiced", wipK.band) +
+      B.stat("Backlog", blK.value.toFixed(1) + " mo",
+             "Target " + B.BENCH.backlog.target[0] + "–" + B.BENCH.backlog.target[1] + B.BENCH.backlog.unit, blK.band);
+    document.getElementById("statrow").innerHTML = html;
+  }
+
+  /* ------------------------------------------------------------ master list */
+  function renderMaster(d) {
+    var rows = d.commissions.map(function (x) {
+      var ph = phaseOf(x.phase);
+      var earned = B.earnedToDate(x), ready = B.readyToBill(x);
+      return '<tr data-id="' + B.esc(x.id) + '" class="commrow" style="cursor:pointer' +
+          (x.id === selId ? ';background:var(--brass-wash)' : '') + '">' +
+        '<td class="k">' + B.esc(x.number) + '</td>' +
+        '<td><div class="t-main">' + B.esc(x.name) + '</div>' +
+          '<div class="t-sub">' + B.esc(x.client) + '</div></td>' +
+        '<td>' + B.tag(x.type, "ghost") + '</td>' +
+        '<td>' + B.tag(x.phase, x.phase === "CA" ? "watch" : "") +
+          '<div class="t-sub">' + (ph ? B.esc(ph.name) + " · " + ph.pct + "% of fee" : "—") + '</div></td>' +
+        '<td class="num">' + (x.fee ? B.money(x.fee) : "—") + '</td>' +
+        '<td class="num">' + x.pctComplete + '%' +
+          '<div class="bar" style="margin-top:5px;min-width:64px"><i style="width:' +
+          Math.max(0, Math.min(100, Number(x.pctComplete) || 0)) + '%"></i></div></td>' +
+        '<td class="num">' + (x.fee ? B.money(earned) : "—") + '</td>' +
+        '<td class="num">' + (ready > 0 ? '<b style="color:var(--brass-2)">' + B.money(ready) + '</b>' : "—") + '</td>' +
+        '<td>' + B.esc(x.lead) + '</td>' +
+        '<td class="k">' + B.esc(x.target) + '</td>' +
+        '<td>' + B.tag(x.permit, permitBand(x.permit)) + '</td>' +
+      '</tr>';
+    }).join("");
+
+    document.getElementById("master").innerHTML =
+      '<table><thead><tr>' +
+        '<th>No.</th><th>Commission</th><th>Type</th><th>Phase</th><th class="num">Fee</th>' +
+        '<th class="num">% complete</th><th class="num">Earned</th><th class="num">Ready to bill</th>' +
+        '<th>Lead</th><th>Target</th><th>Permit</th>' +
+      '</tr></thead><tbody>' + rows + '</tbody></table>';
+
+    Array.prototype.forEach.call(document.querySelectorAll(".commrow"), function (tr) {
+      tr.addEventListener("click", function () {
+        selId = this.getAttribute("data-id");
+        render();
+        bring(detailWrap);
+      });
+    });
+  }
+
+  /* ----------------------------------------------------------- detail view */
+  function renderDetail(d) {
+    detailWrap.innerHTML = "";
+    var x = commission(d, selId);
+    if (!x) {
+      detailWrap.appendChild(B.card('<div class="empty">Pick a commission above to open it.</div>'));
+      return;
+    }
+    var ph = phaseOf(x.phase);
+    var earned = B.earnedToDate(x), ready = B.readyToBill(x);
+
+    /* --- the control head: phase + percent complete, both persisting --- */
+    var phaseOpts = B.PHASES.map(function (p) {
+      return '<option value="' + B.esc(p.k) + '"' + (p.k === x.phase ? " selected" : "") + '>' +
+        B.esc(p.k + " · " + p.name) + '</option>';
+    }).join("");
+
+    var head = B.card(
+      '<div class="between" style="align-items:flex-start">' +
+        '<div><h2>' + B.esc(x.name) + ' <span class="tag mono">' + B.esc(x.number) + '</span></h2>' +
+        '<div class="card-sub">' + B.esc(x.client) + ' · ' + B.esc(x.type) + ' · lead ' + B.esc(x.lead) +
+          ' · target ' + B.esc(x.target) + '</div></div>' +
+        '<div class="row">' + B.tag(x.phase, "watch") + B.tag(x.permit, permitBand(x.permit)) + '</div>' +
+      '</div>' +
+      '<div class="grid g3" style="margin-bottom:14px">' +
+        '<div><label class="f" for="phaseSel">Current phase</label>' +
+          '<select id="phaseSel">' + phaseOpts + '</select>' +
+          '<div class="srcnote" style="font-style:normal">' +
+            (ph ? B.esc(ph.name) + " carries " + ph.pct + "% of the fee. " + B.esc(ph.note) : "") + '</div></div>' +
+        '<div><label class="f" for="pctRange">Percent complete</label>' +
+          '<div class="row" style="flex-wrap:nowrap">' +
+            '<input type="range" id="pctRange" min="0" max="100" step="1" value="' + (Number(x.pctComplete) || 0) + '">' +
+            '<input type="number" id="pctNum" min="0" max="100" step="1" style="width:78px;flex:none" value="' +
+              (Number(x.pctComplete) || 0) + '">' +
+          '</div>' +
+          '<div class="srcnote" style="font-style:normal">Drag or type. Earned and ready-to-bill recompute as you move it.</div></div>' +
+        '<div><label class="f">Fee basis</label>' +
+          '<div class="mono" style="font-size:12.5px">' + B.esc(x.feeBasis) + '</div>' +
+          '<div class="srcnote" style="font-style:normal">Cost of the Work ' + B.money(x.construction) +
+            ' · contracted fee ' + (x.fee ? B.money(x.fee) : "not set") + '</div></div>' +
+      '</div>' +
+      '<div class="statrow">' +
+        B.stat("Contracted fee", x.fee ? B.money(x.fee) : "—", B.esc(x.feeBasis)) +
+        B.stat("Percent complete", '<span id="livePct">' + (Number(x.pctComplete) || 0) + '%</span>',
+               "Set on this commission") +
+        B.stat("Earned to date", '<span id="liveEarned">' + B.money(earned) + '</span>', "Fee × percent complete") +
+        B.stat("Billed", B.money(x.billed), "Invoiced against this commission") +
+        B.stat("Ready to bill", '<span id="liveReady">' + B.money(ready) + '</span>',
+               "Earned minus billed", ready > 0 ? "watch" : "good") +
+      '</div>' +
+      '<div class="divider"></div>' +
+      '<div class="row">' +
+        '<button class="btn ghost sm" id="advPhase">Advance to the next phase</button>' +
+        '<button class="btn ghost sm" id="stageInv">Stage a percent-complete invoice</button>' +
+        '<span class="muted small">' + B.esc(x.note) + '</span>' +
+      '</div>'
+    );
+    detailWrap.appendChild(head);
+
+    /* --- the AIA phase ladder, with this commission's dollars in it --- */
+    var byPhase = {};
+    B.feeByPhase(x.fee).forEach(function (p) { byPhase[p.k] = p; });
+    var ladderRows = B.PHASES.map(function (p) {
+      var line = byPhase[p.k];
+      var here = p.k === x.phase;
+      return '<tr' + (here ? ' style="background:var(--brass-wash)"' : '') + '>' +
+        '<td class="k">' + B.esc(p.k) + (here ? ' ' + B.tag("current", "watch") : '') + '</td>' +
+        '<td><div class="t-main">' + B.esc(p.name) + '</div>' +
+          '<div class="t-sub">' + B.esc(p.note) + '</div></td>' +
+        '<td class="num">' + p.pct + '%</td>' +
+        '<td class="num">' + (line && x.fee ? B.money(line.amount) : "—") + '</td>' +
+      '</tr>';
+    }).join("");
+
+    var ladder = B.card(
+      '<h2>AIA B101 phase ladder</h2>' +
+      '<div class="card-sub">Basic Services phases and this commission\'s fee split across them. ' +
+      'Pre-Design carries no Basic Services percentage — programming is normally an Additional Service.</div>' +
+      '<table><thead><tr><th>Phase</th><th>Name</th><th class="num">% of fee</th>' +
+      '<th class="num">This commission</th></tr></thead><tbody>' + ladderRows + '</tbody></table>' +
+      B.srcNote("AIA “Defining the Architect’s Basic Services”; Monograph and Siana fee-by-phase guides " +
+                "(two independent sources agree on the split).")
+    );
+    detailWrap.appendChild(ladder);
+
+    /* --- consultants + the open CA log for this project --- */
+    var grid = document.createElement("div"); grid.className = "grid g2";
+
+    var kRows = (x.consultants || []).map(function (name) {
+      var k = d.consultants.filter(function (y) { return y.name === name; })[0];
+      if (!k) return '<tr><td>' + B.esc(name) + '</td><td colspan="2" class="muted small">Not in the consultant register</td></tr>';
+      return '<tr><td><div class="t-main">' + B.esc(k.name) + '</div>' +
+        '<div class="t-sub">' + B.esc(k.disc) + ' · ' + B.esc(k.contact) + '</div></td>' +
+        '<td>' + B.tag(k.agreement, k.agreement.indexOf("pending") >= 0 ? "bad" : "good") +
+          '<div class="t-sub">' + B.esc(k.nextDue) + '</div></td>' +
+        '<td class="num">' + B.money(k.fee) + '<div class="t-sub">' + B.money(k.paid) + ' paid</div></td></tr>';
+    }).join("") || '<tr><td colspan="3" class="empty">No consultants engaged on this commission yet.</td></tr>';
+
+    grid.appendChild(B.card(
+      '<h2>Consultants on this commission</h2>' +
+      '<div class="card-sub">Held under AIA C401. The agreement, the next deliverable and the fee drawn to date ' +
+      'sit with the commission, not in a separate folder.</div>' +
+      '<table><thead><tr><th>Consultant</th><th>Agreement</th><th class="num">Fee</th></tr></thead>' +
+      '<tbody>' + kRows + '</tbody></table>'
+    ));
+
+    var items = d.ca.filter(function (t) { return t.project === x.name && t.status !== "Closed"; });
+    var caRows = items.map(function (t) {
+      var ct = B.CA_TYPES.filter(function (y) { return y.k === t.type; })[0];
+      return '<tr><td class="k">' + B.esc(t.num) +
+          '<div class="t-sub">' + (ct ? B.esc(ct.label + " · " + ct.form) : "—") + '</div></td>' +
+        '<td><div class="t-main">' + B.esc(t.subject) + '</div>' +
+          '<div class="t-sub">Spec ' + B.esc(t.spec) + '</div></td>' +
+        '<td>' + B.tag(t.ball, t.ball === "Architect" ? "watch" : "ghost") +
+          '<div class="t-sub">' + B.esc(t.status) + '</div></td>' +
+        '<td class="num">' + (t.days > 10 ? '<b style="color:var(--bad)">' + t.days + ' d</b>' : t.days + " d") + '</td></tr>';
+    }).join("") || '<tr><td colspan="4" class="empty">Nothing open in the CA log for this commission.</td></tr>';
+
+    grid.appendChild(B.card(
+      '<h2>Open CA items</h2>' +
+      '<div class="card-sub">Pulled from the one CA log by project. Every item maps to its real AIA form — ' +
+      'work the full desk on the CA page.</div>' +
+      '<table><thead><tr><th>No.</th><th>Item</th><th>Ball in court</th><th class="num">Age</th></tr></thead>' +
+      '<tbody>' + caRows + '</tbody></table>' +
+      '<div class="divider"></div>' +
+      '<a class="btn ghost sm" href="ca.html">Open the CA desk →</a>'
+    ));
+    detailWrap.appendChild(grid);
+
+    bindDetail();
+  }
+
+  /* ------------------------------------------------------- detail controls */
+  function updateLive(v) {
+    var d = B.db(), x = commission(d, selId);
+    if (!x) return;
+    var e = document.getElementById("liveEarned"),
+        r = document.getElementById("liveReady"),
+        p = document.getElementById("livePct");
+    if (p) p.textContent = (v === undefined ? x.pctComplete : v) + "%";
+    if (e) e.textContent = B.money(B.earnedToDate(x));
+    if (r) r.textContent = B.money(B.readyToBill(x));
+  }
+
+  function setPct(v) {
+    v = Math.max(0, Math.min(100, Math.round(Number(v) || 0)));
+    B.save(function (d) {
+      d.commissions.forEach(function (k) { if (k.id === selId) k.pctComplete = v; });
+    });
+    return v;
+  }
+
+  function bindDetail() {
+    var sel = document.getElementById("phaseSel");
+    if (sel) sel.addEventListener("change", function () {
+      var k = this.value;
+      B.save(function (d) { d.commissions.forEach(function (y) { if (y.id === selId) y.phase = k; }); });
+      var p = phaseOf(k);
+      B.toast("Phase set to " + (p ? p.name : k) + " — " + (p ? p.pct : 0) + "% of fee.", "ok");
+      render();
+    });
+
+    var range = document.getElementById("pctRange");
+    var num = document.getElementById("pctNum");
+    if (range) {
+      range.addEventListener("input", function () {
+        var v = setPct(this.value);
+        if (num) num.value = v;
+        updateLive(v);
+      });
+      range.addEventListener("change", function () {
+        B.toast("Percent complete saved at " + setPct(this.value) + "%.", "ok");
+        render();
+      });
+    }
+    if (num) num.addEventListener("change", function () {
+      var v = setPct(this.value);
+      this.value = v;
+      B.toast("Percent complete saved at " + v + "%.", "ok");
+      render();
+    });
+
+    var adv = document.getElementById("advPhase");
+    if (adv) adv.addEventListener("click", function () {
+      var d = B.db(), x = commission(d, selId);
+      if (!x) return;
+      var i = B.PHASES.map(function (p) { return p.k; }).indexOf(x.phase);
+      if (i < 0 || i >= B.PHASES.length - 1) {
+        B.toast("Already in Construction Administration — the last Basic Services phase.", "");
+        return;
+      }
+      var next = B.PHASES[i + 1];
+      B.save(function (y) { y.commissions.forEach(function (k) { if (k.id === selId) k.phase = next.k; }); });
+      B.toast("Advanced to " + next.name + " — " + next.pct + "% of fee.", "ok");
+      render();
+    });
+
+    var stg = document.getElementById("stageInv");
+    if (stg) stg.addEventListener("click", function () {
+      var d = B.db(), x = commission(d, selId);
+      if (!x) return;
+      var ready = B.readyToBill(x);
+      if (ready <= 0) {
+        B.toast("Nothing earned beyond what is already billed on this commission.", "");
+        return;
+      }
+      B.stage(
+        "external",
+        "Percent-complete invoice — " + x.name + " (" + x.number + ")",
+        B.money(ready) + " on a " + B.money(x.fee) + " fee at " + x.pctComplete + "% complete, phase " +
+          x.phase + ". " + B.money(B.earnedToDate(x)) + " earned to date less " + B.money(x.billed) + " already billed.",
+        "An invoice reaches the client and asks for money. It is drafted here and staged — never sent.",
+        "Marin (Money AE)"
+      );
+      B.toast("Staged to the Approval Desk. Nothing has been sent.", "ok");
+    });
+  }
+
+  function render() {
+    var d = B.db();
+    renderStats(d);
+    renderMaster(d);
+    renderDetail(d);
+  }
+
+  /* ------------------------------------------------------- Consult Studio */
+  var consultCard = B.card(
+    '<h2>Consult Studio — the design production chain</h2>' +
+    '<div class="card-sub">Marek (DH) owns what goes out the door; Pell (AE) packages it; Trueline (Pacemaker) is the ' +
+    'only voice out of the triad and holds anything under the 80% bar. Parti and Bearing argue opposite sides and ' +
+    'never confer.</div>' +
+    '<div class="row" style="margin-bottom:12px">' +
+      '<input id="q" placeholder="e.g. Which phase should the studio protect this month?" style="flex:1;min-width:260px">' +
+      '<button class="btn brass" id="go">Route it</button>' +
+    '</div>' +
+    '<div class="row" style="gap:6px;margin-bottom:4px">' +
+      ['Which phase should the studio protect this month?',
+       'Are we staffed for the CD set?',
+       'What is the deliverable risk on the schedule?'].map(function (s) {
+        return '<button class="btn ghost sm ex" data-q="' + B.esc(s) + '">' + B.esc(s) + '</button>';
+      }).join("") +
+    '</div>' +
+    '<div id="out"></div>'
+  );
+  c.appendChild(consultCard);
+
+  function renderAnswer(r) {
+    var out = document.getElementById("out");
+    var v = r.verdict, dept = r.dept, passed = r.passed;
+    var pctv = Math.min(100, v.conf);
+    var head = passed
+      ? dept.pace.name + " released it: " + v.stance
+      : "Held below the " + dept.gate + "% bar (" + v.conf + "%). Needs a human — not enough live data. " + v.stance;
+    out.innerHTML =
+      '<div class="divider"></div>' +
+      '<div class="' + (passed ? "busrow conclude" : "busrow reject") + '" style="display:block">' +
+        '<div class="bus-topic">' + (passed ? "studio.pacemaker.released" : "escalation.below_bar") + '</div>' +
+        '<div class="bus-body" style="margin-top:5px">' + B.esc(head) + '</div>' +
+      '</div>' +
+      '<div class="conf">' +
+        '<span class="muted small">' + B.esc(dept.name) + ' · bar ' + dept.gate + '%</span>' +
+        '<span class="conf-bar"><i class="conf-fill ' + (passed ? "" : "under") + '" style="width:' + pctv + '%"></i>' +
+        '<span class="conf-gate" style="left:' + dept.gate + '%"></span></span>' +
+        '<span class="conf-n">' + v.conf + '%</span>' +
+      '</div>' +
+      '<ul class="reasons">' + v.reasons.map(function (x) {
+        return '<li><span class="rtag ' + B.esc(x.t) + '">' + B.esc(x.t.toUpperCase()) + '</span><span>' +
+          B.esc(x.s) + '</span></li>';
+      }).join("") + '</ul>' +
+      '<div class="srcnote">Routed through ' + B.esc(dept.dh.name) + ' (DH) → ' + B.esc(dept.ae.name) +
+        ' (AE) → the bus → ' + B.esc(dept.pace.name) + ' (Pacemaker) → ' + B.esc(dept.lensA.name) +
+        ' / ' + B.esc(dept.lensB.name) + ' (opposing lenses). Full trace on the Agent Org page.</div>';
+  }
+
+  function ask(q) {
+    if (!q) { B.toast("Type a question first.", ""); return; }
+    var r = B.consult("studio", q);
+    if (!r) { B.toast("Studio is not in this build.", ""); return; }
+    renderAnswer(r);
+  }
+
+  /* ------------------------------------------------------------------ boot */
+  render();
+
+  setTimeout(function () {
+    document.getElementById("go").addEventListener("click", function () {
+      ask(document.getElementById("q").value.trim());
+    });
+    document.getElementById("q").addEventListener("keydown", function (e) {
+      if (e.key === "Enter") ask(this.value.trim());
+    });
+    Array.prototype.forEach.call(document.querySelectorAll(".ex"), function (b) {
+      b.addEventListener("click", function () {
+        document.getElementById("q").value = this.dataset.q;
+        ask(this.dataset.q);
+      });
+    });
+    var cb = document.getElementById("consultBtn");
+    if (cb) cb.addEventListener("click", function () {
+      var q = document.getElementById("q");
+      bring(q); q.focus();
+    });
+  }, 0);
+})();
+</script>
+</body>
+</html>

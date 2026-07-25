@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CA Desk · Buttress OS V2.0</title>
+<meta name="description" content="Buttress OS — the architecture practice operating system. Powered by Accelerated Experiences LLC.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="buttress.css">
+</head>
+<body>
+<script src="buttress.js"></script>
+<script>
+(function () {
+  var B = window.Buttress;
+  var c = B.mount({ active: "ca.html", crumb: "CA Desk" });
+
+  /* ------------------------------------------------------------- page head */
+  c.appendChild(B.page(
+    "CA Desk",
+    "One log for the whole field: RFIs, submittals, ASIs, proposal requests, construction change directives, " +
+    "change orders, field reports and transmittals — each mapped to its real AIA form, with ball-in-court and " +
+    "aging on every line. This is the room that replaces Newforma at this firm size.",
+    '<button class="btn brass sm" id="consultBtn">Consult Construction Administration</button>'
+  ));
+
+  /* ---------------------------------------------------------------- boards */
+  var boardCard = B.card(
+    '<h2>The log, at a glance</h2>' +
+    '<div class="card-sub">Aging in <i>our</i> court is the one CA metric an owner will point at in a claim. ' +
+    'Anything past ten days reads red on this desk.</div>' +
+    '<div class="statrow" id="statrow"></div>'
+  );
+  c.appendChild(boardCard);
+
+  /* -------------------------------------------------- the vocabulary cards */
+  var vocab = document.createElement("div"); vocab.className = "grid g2";
+
+  var typeRows = B.CA_TYPES.map(function (t) {
+    return '<tr><td><div class="t-main">' + B.esc(t.label) + '</div>' +
+      '<div class="t-sub">' + B.esc(t.desc) + '</div></td>' +
+      '<td class="k">' + (t.form === "—" ? '<span class="muted">—</span>' : B.tag(t.form, "mono")) + '</td></tr>';
+  }).join("");
+
+  vocab.appendChild(B.card(
+    '<h2>The G-series, and what each one is for</h2>' +
+    '<div class="card-sub">Every artifact on this desk maps to a real AIA form. The form number travels with the ' +
+    'item so the record reads the same to the owner, the contractor and a claims adjuster.</div>' +
+    '<table><thead><tr><th>Item</th><th>AIA form</th></tr></thead><tbody>' + typeRows + '</tbody></table>'
+  ));
+
+  vocab.appendChild(B.card(
+    '<h2>ASI, Proposal Request, Change Order — the distinction that matters</h2>' +
+    '<div class="card-sub">Mislabel these and you have either given away work for free or directed a change with ' +
+    'no paper behind it. The rule is simple and it is absolute.</div>' +
+    '<div class="fence"><b>An ASI (G710) carries no cost and no time change.</b> It is a clarification or a minor ' +
+    'instruction consistent with the contract documents. The moment it moves the contract sum or the contract ' +
+    'time it is not an ASI any more.</div>' +
+    '<div class="divider"></div>' +
+    '<div class="row" style="gap:7px">' +
+      B.tag("ASI · G710", "ghost") + '<span class="muted">→ cost or time moves →</span>' +
+      B.tag("Proposal Request · G709", "watch") + '<span class="muted">→ priced →</span>' +
+      B.tag("Change Order · G701", "good") +
+    '</div>' +
+    '<div class="srcnote" style="font-style:normal;margin-top:10px">A Proposal Request asks the contractor to ' +
+    'price a proposed change; once the price and time are agreed and executed it becomes a Change Order. When the ' +
+    'work has to start before the price is settled, a Construction Change Directive (G714) directs it and the ' +
+    'Change Order follows.</div>' +
+    '<div class="divider"></div>' +
+    '<div class="fence"><b>Addenda are pre-award; bulletins and ASIs are post-award.</b> An Addendum modifies the ' +
+    'bid documents before the contract is signed and goes to every planholder. After award the contract documents ' +
+    'are modified by bulletin, ASI, or change order — never by another addendum.</div>' +
+    '<div class="row" style="gap:6px;margin-top:11px">' +
+      B.ISSUE_SETS.map(function (s) {
+        var post = s === "Bulletin" || s === "Construction Set" || s === "Record Set";
+        return B.tag(s + (s === "Addendum" ? " · pre-award" : (post ? " · post-award" : "")),
+          s === "Addendum" ? "watch" : (post ? "good" : "ghost"));
+      }).join("") +
+    '</div>'
+  ));
+  c.appendChild(vocab);
+
+  /* ------------------------------------------------------------ the filters */
+  function opts(list, cur, allLabel) {
+    return '<option value="ALL"' + (cur === "ALL" ? " selected" : "") + '>' + B.esc(allLabel) + '</option>' +
+      list.map(function (o) {
+        var v = typeof o === "string" ? o : o.k;
+        var l = typeof o === "string" ? o : (o.label + " · " + o.form);
+        return '<option value="' + B.esc(v) + '"' + (v === cur ? " selected" : "") + '>' + B.esc(l) + '</option>';
+      }).join("");
+  }
+
+  var f = { type: "ALL", status: "ALL", ball: "ALL" };
+
+  var logCard = B.card(
+    '<h2>Unified CA log</h2>' +
+    '<div class="card-sub">One table, every type. Change ball-in-court or status inline, and set a review action ' +
+    'on a submittal — every change is written to this hub\'s record.</div>' +
+    '<div class="grid g4" style="margin-bottom:14px">' +
+      '<div><label class="f" for="fType">Type</label><select id="fType"></select></div>' +
+      '<div><label class="f" for="fStatus">Status</label><select id="fStatus"></select></div>' +
+      '<div><label class="f" for="fBall">Ball in court</label><select id="fBall"></select></div>' +
+      '<div><label class="f">&nbsp;</label>' +
+        '<div class="row"><button class="btn ghost sm" id="clearF">Clear filters</button>' +
+        '<span class="muted small" id="fCount"></span></div></div>' +
+    '</div>' +
+    '<div id="log"></div>' +
+    '<div class="divider"></div>' +
+    '<div class="row">' +
+      '<button class="btn ghost sm" id="stageTx">Stage a transmittal for the filtered set</button>' +
+      '<span class="muted small">Ghost Mode — a transmittal is drafted and staged to the Approval Desk. ' +
+      'Nothing leaves this browser.</span>' +
+    '</div>'
+  );
+  c.appendChild(logCard);
+
+  /* ---------------------------------------------------------------- render */
+  function bring(elm) {
+    if (elm && typeof elm.scrollIntoView === "function") {
+      elm.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }
+  function typeOf(k) { return B.CA_TYPES.filter(function (t) { return t.k === k; })[0]; }
+
+  function filtered(d) {
+    return d.ca.filter(function (x) {
+      return (f.type === "ALL" || x.type === f.type) &&
+             (f.status === "ALL" || x.status === f.status) &&
+             (f.ball === "ALL" || x.ball === f.ball);
+    });
+  }
+
+  function renderStats(d) {
+    var open = d.ca.filter(function (x) { return x.status === "Open" || x.status === "In Review"; });
+    var ours = open.filter(function (x) { return x.ball === "Architect"; });
+    var aged = open.filter(function (x) { return x.days > 10; });
+    var cost = d.ca.filter(function (x) { return x.costImpact || x.timeImpact; });
+    var subs = d.ca.filter(function (x) { return x.type === "SUBMITTAL"; });
+    document.getElementById("statrow").innerHTML =
+      B.stat("Items in the log", String(d.ca.length), "All types, one record") +
+      B.stat("Open + in review", String(open.length), d.ca.length - open.length + " answered or closed") +
+      B.stat("In the Architect's court", String(ours.length), "Ours to clear", ours.length ? "watch" : "good") +
+      B.stat("Past 10 days", String(aged.length), "Open items aging", aged.length ? "bad" : "good") +
+      B.stat("Carrying cost or time", String(cost.length), "Not RFI answers — proposal requests", cost.length ? "watch" : "good") +
+      B.stat("Submittals", String(subs.length),
+             subs.filter(function (x) { return !x.action; }).length + " with no review action set");
+  }
+
+  function renderLog(d) {
+    var list = filtered(d);
+    var rows = list.map(function (x) {
+      var t = typeOf(x.type);
+      var ballSel = '<select class="ballSel" data-id="' + B.esc(x.id) + '" style="min-width:112px">' +
+        B.BALL.map(function (b) {
+          return '<option value="' + B.esc(b) + '"' + (b === x.ball ? " selected" : "") + '>' + B.esc(b) + '</option>';
+        }).join("") + '</select>';
+      var statSel = '<select class="statSel" data-id="' + B.esc(x.id) + '" style="min-width:106px">' +
+        B.CA_STATUS.map(function (s) {
+          return '<option value="' + B.esc(s) + '"' + (s === x.status ? " selected" : "") + '>' + B.esc(s) + '</option>';
+        }).join("") + '</select>';
+      var actCell = x.type === "SUBMITTAL"
+        ? '<select class="actSel" data-id="' + B.esc(x.id) + '" style="min-width:150px">' +
+            '<option value=""' + (!x.action ? " selected" : "") + '>Not actioned</option>' +
+            B.SUBMITTAL_ACTIONS.map(function (a) {
+              return '<option value="' + B.esc(a) + '"' + (a === x.action ? " selected" : "") + '>' + B.esc(a) + '</option>';
+            }).join("") + '</select>'
+        : '<span class="muted small">—</span>';
+
+      return '<tr>' +
+        '<td class="k">' + B.esc(x.num) + '</td>' +
+        '<td><div class="t-main">' + B.esc(t ? t.label : x.type) + '</div>' +
+          '<div class="t-sub">' + (t ? (t.form === "—" ? "no AIA form" : "AIA " + B.esc(t.form)) : "—") + '</div></td>' +
+        '<td><div class="t-main">' + B.esc(x.subject) + '</div>' +
+          '<div class="t-sub">' + B.esc(x.note) + '</div></td>' +
+        '<td>' + B.esc(x.project) + '<div class="t-sub">from ' + B.esc(x.from) + '</div>' +
+          ((x.costImpact || x.timeImpact)
+            ? '<div style="margin-top:4px">' + B.tag((x.costImpact ? "cost impact" : "") +
+                (x.costImpact && x.timeImpact ? " · " : "") + (x.timeImpact ? "time impact" : ""), "watch") + '</div>'
+            : '') + '</td>' +
+        '<td class="k">' + B.esc(x.spec) + '</td>' +
+        '<td>' + ballSel + '</td>' +
+        '<td>' + statSel + '</td>' +
+        '<td>' + actCell + '</td>' +
+        '<td class="num">' + (x.days > 10 ? '<b style="color:var(--bad)">' + x.days + ' d</b>' : x.days + " d") +
+          '<div class="t-sub">due ' + B.esc(x.due) + '</div></td>' +
+      '</tr>';
+    }).join("") || '<tr><td colspan="9" class="empty">Nothing in the log matches these filters.</td></tr>';
+
+    document.getElementById("log").innerHTML =
+      '<table><thead><tr>' +
+        '<th>No.</th><th>Type · form</th><th>Subject</th><th>Project</th><th>Spec section</th>' +
+        '<th>Ball in court</th><th>Status</th><th>Review action</th><th class="num">Age</th>' +
+      '</tr></thead><tbody>' + rows + '</tbody></table>';
+
+    document.getElementById("fCount").textContent =
+      list.length + " of " + d.ca.length + " items shown";
+
+    Array.prototype.forEach.call(document.querySelectorAll(".ballSel"), function (s) {
+      s.addEventListener("change", function () {
+        var id = this.getAttribute("data-id"), v = this.value;
+        B.save(function (x) { x.ca.forEach(function (t) { if (t.id === id) t.ball = v; }); });
+        B.toast("Ball in court set to " + v + ".", "ok");
+        render();
+      });
+    });
+    Array.prototype.forEach.call(document.querySelectorAll(".statSel"), function (s) {
+      s.addEventListener("change", function () {
+        var id = this.getAttribute("data-id"), v = this.value;
+        B.save(function (x) { x.ca.forEach(function (t) { if (t.id === id) t.status = v; }); });
+        B.toast("Status set to " + v + ".", "ok");
+        render();
+      });
+    });
+    Array.prototype.forEach.call(document.querySelectorAll(".actSel"), function (s) {
+      s.addEventListener("change", function () {
+        var id = this.getAttribute("data-id"), v = this.value;
+        B.save(function (x) { x.ca.forEach(function (t) { if (t.id === id) t.action = v; }); });
+        B.toast(v ? "Submittal action: " + v + "." : "Submittal review action cleared.", "ok");
+        render();
+      });
+    });
+  }
+
+  function renderFilters() {
+    document.getElementById("fType").innerHTML = opts(B.CA_TYPES, f.type, "All types");
+    document.getElementById("fStatus").innerHTML = opts(B.CA_STATUS, f.status, "All statuses");
+    document.getElementById("fBall").innerHTML = opts(B.BALL, f.ball, "Anyone's court");
+  }
+
+  function render() {
+    var d = B.db();
+    renderStats(d);
+    renderLog(d);
+  }
+
+  /* -------------------------------------------------- Consult CA (the chain) */
+  var consultCard = B.card(
+    '<h2>Consult Construction Administration</h2>' +
+    '<div class="card-sub">Wescott (DH) owns the field; Quill (AE) keeps ball-in-court honest; Plumb (Pacemaker) ' +
+    'is the only voice out of the triad and routes anything life-safety to the Architect of Record. Unblock argues ' +
+    'for the trade waiting on site; Scope asks whether this moves cost or time.</div>' +
+    '<div class="row" style="margin-bottom:12px">' +
+      '<input id="q" placeholder="e.g. What is sitting in our court right now?" style="flex:1;min-width:260px">' +
+      '<button class="btn brass" id="go">Route it</button>' +
+    '</div>' +
+    '<div class="row" style="gap:6px;margin-bottom:4px">' +
+      ['What is sitting in our court right now?',
+       'Which submittals are aging past the review window?',
+       'Is PR-002 an RFI answer or a change order?'].map(function (s) {
+        return '<button class="btn ghost sm ex" data-q="' + B.esc(s) + '">' + B.esc(s) + '</button>';
+      }).join("") +
+    '</div>' +
+    '<div id="out"></div>'
+  );
+  c.appendChild(consultCard);
+
+  function renderAnswer(r) {
+    var out = document.getElementById("out");
+    var v = r.verdict, dept = r.dept, passed = r.passed;
+    var pctv = Math.min(100, v.conf);
+    var head = passed
+      ? dept.pace.name + " released it: " + v.stance
+      : "Held below the " + dept.gate + "% bar (" + v.conf + "%). Needs a human — not enough live data. " + v.stance;
+    out.innerHTML =
+      '<div class="divider"></div>' +
+      '<div class="' + (passed ? "busrow conclude" : "busrow reject") + '" style="display:block">' +
+        '<div class="bus-topic">' + (passed ? "ca.pacemaker.released" : "escalation.below_bar") + '</div>' +
+        '<div class="bus-body" style="margin-top:5px">' + B.esc(head) + '</div>' +
+      '</div>' +
+      '<div class="conf">' +
+        '<span class="muted small">' + B.esc(dept.name) + ' · bar ' + dept.gate + '%</span>' +
+        '<span class="conf-bar"><i class="conf-fill ' + (passed ? "" : "under") + '" style="width:' + pctv + '%"></i>' +
+        '<span class="conf-gate" style="left:' + dept.gate + '%"></span></span>' +
+        '<span class="conf-n">' + v.conf + '%</span>' +
+      '</div>' +
+      '<ul class="reasons">' + v.reasons.map(function (x) {
+        return '<li><span class="rtag ' + B.esc(x.t) + '">' + B.esc(x.t.toUpperCase()) + '</span><span>' +
+          B.esc(x.s) + '</span></li>';
+      }).join("") + '</ul>' +
+      '<div class="srcnote">Routed through ' + B.esc(dept.dh.name) + ' (DH) → ' + B.esc(dept.ae.name) +
+        ' (AE) → the bus → ' + B.esc(dept.pace.name) + ' (Pacemaker) → ' + B.esc(dept.lensA.name) +
+        ' / ' + B.esc(dept.lensB.name) + ' (opposing lenses). Full trace on the Agent Org page.</div>';
+  }
+
+  function ask(q) {
+    if (!q) { B.toast("Type a question first.", ""); return; }
+    var r = B.consult("ca", q);
+    if (!r) { B.toast("The CA desk is not in this build.", ""); return; }
+    renderAnswer(r);
+  }
+
+  /* ------------------------------------------------------------------ boot */
+  renderFilters();
+  render();
+
+  setTimeout(function () {
+    document.getElementById("fType").addEventListener("change", function () { f.type = this.value; render(); });
+    document.getElementById("fStatus").addEventListener("change", function () { f.status = this.value; render(); });
+    document.getElementById("fBall").addEventListener("change", function () { f.ball = this.value; render(); });
+    document.getElementById("clearF").addEventListener("click", function () {
+      f.type = "ALL"; f.status = "ALL"; f.ball = "ALL";
+      renderFilters(); render();
+      B.toast("Filters cleared — the whole log is showing.", "ok");
+    });
+
+    document.getElementById("stageTx").addEventListener("click", function () {
+      var list = filtered(B.db());
+      if (!list.length) { B.toast("Nothing in the filtered set to transmit.", ""); return; }
+      B.stage(
+        "external",
+        "Transmittal — " + list.length + " CA item" + (list.length > 1 ? "s" : ""),
+        list.map(function (x) { return x.num; }).join(", ") + ". Ball in court and status as recorded on the CA desk.",
+        "A transmittal leaves the office and becomes the liability paper trail. It is drafted here and staged — never sent.",
+        "Quill (CA AE)"
+      );
+      B.toast("Transmittal staged to the Approval Desk. Nothing has been sent.", "ok");
+    });
+
+    document.getElementById("go").addEventListener("click", function () {
+      ask(document.getElementById("q").value.trim());
+    });
+    document.getElementById("q").addEventListener("keydown", function (e) {
+      if (e.key === "Enter") ask(this.value.trim());
+    });
+    Array.prototype.forEach.call(document.querySelectorAll(".ex"), function (b) {
+      b.addEventListener("click", function () {
+        document.getElementById("q").value = this.dataset.q;
+        ask(this.dataset.q);
+      });
+    });
+    var cb = document.getElementById("consultBtn");
+    if (cb) cb.addEventListener("click", function () {
+      var q = document.getElementById("q");
+      bring(q); q.focus();
+    });
+  }, 0);
+})();
+</script>
+</body>
+</html>

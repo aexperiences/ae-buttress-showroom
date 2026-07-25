@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Agent Org · Event Bus · Buttress OS V2.0</title>
+<meta name="description" content="Buttress OS — the architecture practice operating system. Powered by Accelerated Experiences LLC.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="buttress.css">
+</head>
+<body>
+<script src="buttress.js"></script>
+<script>
+(function () {
+  var B = window.Buttress;
+  var c = B.mount({ active: "org.html", crumb: "Agent Org · Event Bus" });
+
+  var COO   = B.SEATS.coo;
+  var DEPTS = B.SEATS.depts;
+
+  function byKey(k) {
+    return DEPTS.filter(function (x) { return x.key === k; })[0];
+  }
+
+  /* ------------------------------------------------------------- page head */
+  c.appendChild(B.page(
+    "Agent Org · Event Bus",
+    "Ten departments, each one a five-seat chain, all of it visible. Nora routes and gates at the top. " +
+    "Every hop underneath her is published to the bus in the open — including the ones that get held back.",
+    '<button class="btn brass sm" id="toNora">Ask Nora</button>'
+  ));
+
+  /* ------------------------------------------------- the honest note, up top */
+  c.appendChild(B.card(
+    '<h2>What is actually running on this page</h2>' +
+    '<div class="card-sub">Said plainly, before anything below it.</div>' +
+    '<div class="fence"><b>The brain on this page is a deterministic local stand-in.</b> ' +
+    'This showroom is browser-only: there is no server behind it, no API key, and no model call. ' +
+    'Every stance, confidence figure and reason you see is computed by fixed code from this tab\'s own seeded ' +
+    'data, so the same question always returns the same answer.<br><br>' +
+    '<b>The real engine runs server-side on DeepSeek.</b> Same chain, same seats, same confidence gates, ' +
+    'same Output Contract — with a language model in the seats instead of a stand-in. What the showroom is ' +
+    'faithful about is the <i>structure</i>: who talks to whom, what gets held back, and what a released ' +
+    'conclusion has to carry with it.</div>' +
+    '<div class="divider"></div>' +
+    '<div class="row">' +
+      B.tag("local stand-in brain", "ghost") +
+      B.tag("server-side engine: DeepSeek", "ghost") +
+      B.tag("deterministic — no randomness", "ghost") +
+      B.tag("session-only, resets when you leave", "ghost") +
+      B.tag("Ghost Mode: nothing sends, spends or publishes", "watch") +
+    '</div>'
+  ));
+
+  /* -------------------------------------------------------- Nora, the COO seat */
+  var noraSamples = [
+    "Which pursuits should we actually chase?",
+    "What is sitting in our court on the CA desk?",
+    "Are we billing everything we have earned?",
+    "Is anyone's license about to lapse?",
+    "Which contract matters need a real attorney?"
+  ];
+
+  c.appendChild(B.card(
+    '<div class="between"><div>' +
+      '<h2>' + B.esc(COO.name) + ' · ' + B.esc(COO.role) + '</h2>' +
+      '<div class="card-sub">' + B.esc(COO.line) + '</div>' +
+    '</div><div class="row">' + B.tag(COO.tier, "watch") + B.tag(COO.dept, "ghost") + '</div></div>' +
+    '<div class="grid g2">' +
+      '<div><table><thead><tr><th>Nora does</th></tr></thead><tbody>' +
+        '<tr><td>Takes the ask off the principal\'s desk and reads it.</td></tr>' +
+        '<tr><td>Routes it to exactly one department chain — never two at once.</td></tr>' +
+        '<tr><td>Lets that chain work under <i>its own</i> confidence bar.</td></tr>' +
+        '<tr><td>Packages one clean answer back up, reasons attached.</td></tr>' +
+        '<tr><td>Sets the follow-up when something is held.</td></tr>' +
+      '</tbody></table></div>' +
+      '<div><table><thead><tr><th>Nora does not</th></tr></thead><tbody>' +
+        '<tr><td>Do the department\'s work. She never drafts, prices or reads the contract herself.</td></tr>' +
+        '<tr><td>Overrule a Pacemaker. If the chain held it, it stays held.</td></tr>' +
+        '<tr><td>Invent a number. An unsourced figure gets tagged as an assumption or dropped.</td></tr>' +
+        '<tr><td>Send, spend or publish. Those are Fences — they go to the Approval Desk.</td></tr>' +
+        '<tr><td>Reach the principal for anything the org can honestly clear itself.</td></tr>' +
+      '</tbody></table></div>' +
+    '</div>' +
+    '<div class="divider"></div>' +
+    '<div class="row" style="margin-bottom:12px">' +
+      '<input id="qnora" placeholder="Ask the COO anything — she routes it to the right chain." style="flex:1;min-width:260px">' +
+      '<button class="btn brass" id="gonora">Route it</button>' +
+    '</div>' +
+    '<div class="row" style="gap:6px;margin-bottom:4px">' +
+      noraSamples.map(function (s) {
+        return '<button class="btn ghost sm exq" data-q="' + B.esc(s) + '">' + B.esc(s) + '</button>';
+      }).join("") +
+    '</div>' +
+    '<div id="outnora"></div>'
+  ));
+
+  /* ------------------------------------------------------ the hierarchy rules */
+  var LADDER = [
+    { rung:"Principal", seat:"Dana Whitfield · human · Architect of Record",
+      rule:"The only seat that signs, seals, spends or sends. The org exists to keep this desk clear, not to fill it." },
+    { rung:"COO", seat:B.esc(COO.name) + " · apex of the org",
+      rule:"Single gate between the department heads and the principal. Routes, gates, packages. Defers upward only behind a Fence." },
+    { rung:"DH", seat:"Department Head · one per department",
+      rule:"Owns the “so what” for the department. Called to the Source of Truth and reads it before acting." },
+    { rung:"AE", seat:"Administrative Executive · one per department",
+      rule:"Packages the ask, files it, sets the follow-up. Coordinates laterally with the AE of another department — same position only. Cross-position always routes back through the chain." },
+    { rung:"Event Bus", seat:"The open channel",
+      rule:"Every hop is published here. Nothing moves off-bus, so a conclusion can always be traced back to the seat that made it." },
+    { rung:"Pacemaker", seat:"One per department",
+      rule:"The only voice out of the triad. Releases at or above the department bar; below it, holds with reasons and routes the hold upward." },
+    { rung:"Triad", seat:"Pacemaker + two opposing lenses",
+      rule:"The two lenses argue opposite sides and never confer with each other. Each answers to the Pacemaker alone — that is what keeps the disagreement real." }
+  ];
+
+  var seatCount = DEPTS.length * 5 + 1;
+  var g80 = DEPTS.filter(function (d) { return d.gate === 80; });
+  var g85 = DEPTS.filter(function (d) { return d.gate === 85; });
+
+  c.appendChild(B.card(
+    '<div class="between"><div>' +
+      '<h2>The chain, top to bottom</h2>' +
+      '<div class="card-sub">Principal → COO → DH → AE → Event Bus → Pacemaker → Triad. ' +
+      'The order is the point: a conclusion cannot skip a rung, and every rung leaves a record.</div>' +
+    '</div><div>' + B.tag(B.money(B.ROOMS.org.mo) + "/mo · " + B.money(B.ROOMS.org.build) + " build · draft", "ghost") + '</div></div>' +
+    '<div class="statrow" style="margin-bottom:14px">' +
+      B.stat("Departments", DEPTS.length, "Each one a full five-seat chain") +
+      B.stat("Seats in the org", seatCount, "50 department seats + the COO") +
+      B.stat("Bar at 80%", g80.length, "The standard release gate") +
+      B.stat("Bar at 85%", g85.length, g85.map(function (d) { return B.esc(d.name.split(" · ")[0]); }).join(" and ") + " — a bluffed number is worse than an honest “unsure”", "watch") +
+    '</div>' +
+    '<table><thead><tr><th>Rung</th><th>Seat</th><th>The rule</th></tr></thead><tbody>' +
+    LADDER.map(function (r) {
+      return '<tr><td class="k">' + B.esc(r.rung) + '</td>' +
+        '<td><div class="t-main">' + r.seat + '</div></td>' +
+        '<td>' + r.rule + '</td></tr>';
+    }).join("") +
+    '</tbody></table>' +
+    '<div class="divider"></div>' +
+    '<div class="fence"><b>The gate is the whole trick.</b> A department releases only when its Pacemaker clears ' +
+    'the bar — ' + g80.length + ' departments at 80%, and ' +
+    g85.map(function (d) { return B.esc(d.name); }).join(" and ") + ' at 85%, because a wrong number and a wrong ' +
+    'contract read both pollute everything downstream. Under the bar, the answer still comes out — as a hold, ' +
+    'with its reasons, routed to a human.</div>'
+  ));
+
+  /* --------------------------------------------------- the ten departments */
+  var SAMPLE = {
+    pursuits:  "Which pursuits are worth a principal's week this month?",
+    studio:    "What has to go out the door first?",
+    ca:        "What is sitting in our court on the CA desk?",
+    money:     "Are we billing everything we have earned?",
+    standards: "Which spec sections are holding up the submittal log?",
+    coord:     "Where are we with the AHJ comments and the consultants?",
+    hr:        "Is anyone's license about to lapse?",
+    it:        "Is anything on the system watch list?",
+    law:       "Which matters need a real attorney before anyone signs?",
+    ops:       "Where is the bottleneck in the office right now?"
+  };
+
+  function seatRows(dp) {
+    var seats = [
+      { k:"DH",        n:dp.dh.name,    l:dp.dh.line },
+      { k:"AE",        n:dp.ae.name,    l:dp.ae.line },
+      { k:"Pacemaker", n:dp.pace.name,  l:dp.pace.line },
+      { k:"Lens A",    n:dp.lensA.name, l:dp.lensA.line },
+      { k:"Lens B",    n:dp.lensB.name, l:dp.lensB.line }
+    ];
+    return seats.map(function (s) {
+      return '<tr><td class="k">' + B.esc(s.k) + '</td>' +
+        '<td><div class="t-main">' + B.esc(s.n) + '</div>' +
+        '<div class="t-sub">' + B.esc(s.l) + '</div></td></tr>';
+    }).join("");
+  }
+
+  var deptGrid = document.createElement("div");
+  deptGrid.className = "grid g2";
+
+  DEPTS.forEach(function (dp) {
+    var inner =
+      '<div class="between"><div>' +
+        '<h2>' + B.esc(dp.name) + '</h2>' +
+        '<div class="card-sub">' + B.esc(dp.dh.name) + ' → ' + B.esc(dp.ae.name) + ' → the bus → ' +
+        B.esc(dp.pace.name) + ' → ' + B.esc(dp.lensA.name) + ' / ' + B.esc(dp.lensB.name) + '</div>' +
+      '</div><div>' + B.tag("bar " + dp.gate + "%", dp.gate > 80 ? "watch" : "ghost") + '</div></div>' +
+      '<table><thead><tr><th>Seat</th><th>Who, and what they own</th></tr></thead><tbody>' +
+      seatRows(dp) + '</tbody></table>' +
+      '<div class="divider"></div>' +
+      '<div class="row">' +
+        '<input id="q_' + dp.key + '" placeholder="' + B.esc(SAMPLE[dp.key] || "Ask this department") +
+          '" style="flex:1;min-width:200px">' +
+        '<button class="btn sm" data-consult="' + B.esc(dp.key) + '">Consult</button>' +
+      '</div>' +
+      '<div id="out_' + dp.key + '"></div>';
+
+    var cardEl = B.card(inner);
+    cardEl.style.borderLeft = "3px solid var(--a-" + dp.accent + ")";
+    deptGrid.appendChild(cardEl);
+  });
+  c.appendChild(deptGrid);
+
+  /* ------------------------------------------------------- the live event bus */
+  c.appendChild(B.card(
+    '<div class="between"><div>' +
+      '<h2>Live event bus</h2>' +
+      '<div class="card-sub">Every hop of every consult on this page, newest last. Read it top to bottom and you ' +
+      'can see the SSOT get read, the AE package the ask, both lenses argue, and the Pacemaker either release ' +
+      'or hold. Nothing moves off this bus.</div>' +
+    '</div><div class="row" style="flex:none;flex-wrap:nowrap">' +
+      '<button class="btn ghost sm" id="busRefresh">Refresh</button>' +
+      '<button class="btn ghost sm" id="busClear">Clear the bus</button>' +
+    '</div></div>' +
+    '<div id="busbox" class="bus" style="max-height:520px;overflow-y:auto"></div>' +
+    '<div class="divider"></div>' +
+    '<div class="fence"><b>Ghost Mode.</b> A released conclusion is a conclusion, not an action. ' +
+    'Nothing on this page has sent, spent or published anything — anything that would goes to the ' +
+    'Approval Desk as a staged item for the principal. <a href="approvals.html">Open the desk →</a></div>'
+  ));
+
+  /* ---------------------------------------------------------------- renderers */
+  function contractHTML(dp, verdict, passed, headline, topic, routedBy) {
+    var pctv = Math.max(0, Math.min(100, Number(verdict.conf) || 0));
+    return '<div class="divider"></div>' +
+      '<div class="' + (passed ? "busrow conclude" : "busrow reject") + '" style="display:block">' +
+        '<div class="bus-topic">' + B.esc(topic) + '</div>' +
+        '<div class="bus-from"><b>' + B.esc(dp.pace.name) + '</b> (Pacemaker) → ' +
+          B.esc(passed ? dp.ae.name + " (AE) → " + COO.name + " (COO)" : COO.name + " (COO) → the Principal") + '</div>' +
+        '<div class="bus-body" style="margin-top:5px">' + B.esc(headline) + '</div>' +
+      '</div>' +
+      '<div class="conf">' +
+        '<span class="muted small">' + B.esc(dp.name) + ' · bar ' + dp.gate + '%</span>' +
+        '<span class="conf-bar"><i class="conf-fill ' + (passed ? "" : "under") + '" style="width:' + pctv + '%"></i>' +
+        '<span class="conf-gate" style="left:' + dp.gate + '%"></span></span>' +
+        '<span class="conf-n">' + B.esc(verdict.conf) + '%</span>' +
+        '<span class="muted small">' + (passed ? "released" : "held — needs a human") + '</span>' +
+      '</div>' +
+      '<ul class="reasons">' + verdict.reasons.map(function (x) {
+        return '<li><span class="rtag ' + B.esc(x.t) + '">' + B.esc(x.t.toUpperCase()) + '</span>' +
+               '<span>' + B.esc(x.s) + '</span></li>';
+      }).join("") + '</ul>' +
+      '<div class="srcnote">' + B.esc(routedBy) + ' Routed through ' + B.esc(dp.dh.name) + ' (DH) → ' +
+        B.esc(dp.ae.name) + ' (AE) → the bus → ' + B.esc(dp.pace.name) + ' (Pacemaker) → ' +
+        B.esc(dp.lensA.name) + ' / ' + B.esc(dp.lensB.name) +
+        ' (opposing lenses, which never confer). Full trace on the bus below.</div>' +
+      '<div class="row" style="margin-top:11px">' +
+        '<button class="btn ghost sm" data-stage="1">Stage this to the Approval Desk</button>' +
+        '<span class="muted small">Staging files it for the principal. It does not send, spend or publish anything.</span>' +
+      '</div>';
+  }
+
+  function wireStage(host, dp, verdict, passed) {
+    var btn = host.querySelector("[data-stage]");
+    if (!btn) return;
+    btn.addEventListener("click", function () {
+      B.stage(
+        passed ? "general" : "escalation",
+        dp.name + " — " + (passed ? "released conclusion" : "held below the " + dp.gate + "% bar"),
+        verdict.stance,
+        passed
+          ? "Ghost Mode: the showroom never sends, spends or publishes. Filed for the principal to act on."
+          : "Came in at " + verdict.conf + "% against a " + dp.gate + "% bar. Needs a human.",
+        dp.pace.name + " (Pacemaker · " + dp.name + ")"
+      );
+      btn.disabled = true;
+      btn.textContent = "Staged to the Approval Desk ✓";
+      B.toast("Staged to the Approval Desk — nothing was sent, spent or published.", "ok");
+    });
+  }
+
+  function busRowHTML(e) {
+    var cls = e.kind === "conclude" ? "busrow conclude" : (e.kind === "reject" ? "busrow reject" : "busrow");
+    var meter = "";
+    if (e.verdict && e.gate) {
+      var passed = e.kind !== "reject";
+      var pctv = Math.max(0, Math.min(100, Number(e.verdict.conf) || 0));
+      meter = '<div class="conf">' +
+        '<span class="muted small">bar ' + B.esc(e.gate) + '%</span>' +
+        '<span class="conf-bar"><i class="conf-fill ' + (passed ? "" : "under") + '" style="width:' + pctv + '%"></i>' +
+        '<span class="conf-gate" style="left:' + B.esc(e.gate) + '%"></span></span>' +
+        '<span class="conf-n">' + B.esc(e.verdict.conf) + '%</span></div>';
+    }
+    return '<div class="' + cls + '">' +
+      '<div class="bus-t">' + B.esc(e.stamp || "") + '</div>' +
+      '<div>' +
+        '<div class="bus-topic">' + B.esc(e.topic) + '</div>' +
+        '<div class="bus-from"><b>' + B.esc(e.from) + '</b> → ' + B.esc(e.to) + '</div>' +
+        '<div class="bus-body">' + B.esc(e.body) + '</div>' + meter +
+      '</div></div>';
+  }
+
+  function renderBus() {
+    var box = document.getElementById("busbox");
+    if (!box) return;
+    var bus = B.db().bus || [];
+    if (!bus.length) {
+      box.innerHTML = '<div class="empty">The bus is quiet. Ask Nora above, or consult a department — ' +
+        'every hop lands here, oldest first, newest last.</div>';
+      return;
+    }
+    box.innerHTML = bus.map(busRowHTML).join("");
+    box.scrollTop = box.scrollHeight;
+  }
+
+  /* ------------------------------------------------------------------ wiring */
+  function runConsult(key) {
+    var dp = byKey(key);
+    if (!dp) return;
+    var input = document.getElementById("q_" + key);
+    var q = (input && input.value.trim()) || SAMPLE[key] || "Department review";
+    if (input) input.value = q;
+
+    var r = B.consult(key, q);
+    if (!r) { B.toast("That department is not wired in this build.", ""); return; }
+
+    var head = r.passed
+      ? r.verdict.stance
+      : "Held below the " + dp.gate + "% bar at " + r.verdict.conf + "%. " + COO.name +
+        " routes it up with the reasons attached rather than bluffing it. " + r.verdict.stance;
+
+    var out = document.getElementById("out_" + key);
+    out.innerHTML = contractHTML(
+      dp, r.verdict, r.passed, head,
+      r.passed ? (key + ".pacemaker.released") : "escalation.below_bar",
+      "Consulted directly, without going through the COO."
+    );
+    wireStage(out, dp, r.verdict, r.passed);
+    renderBus();
+    B.toast(r.passed
+      ? dp.pace.name + " released at " + r.verdict.conf + "% — " + r.events.length + " events on the bus."
+      : dp.pace.name + " held it at " + r.verdict.conf + "% — escalated on the bus.", "ok");
+  }
+
+  function askNora(q) {
+    if (!q) { B.toast("Type a question first.", ""); return; }
+    var a = B.askNora(q);
+    var dp = a.dept;
+    var out = document.getElementById("outnora");
+    out.innerHTML = contractHTML(
+      dp, a.result.verdict, a.result.passed, a.packaged,
+      a.result.passed ? "coo.released" : "escalation.below_bar",
+      COO.name + " read the ask and routed it to " + dp.name + " herself."
+    );
+    wireStage(out, dp, a.result.verdict, a.result.passed);
+    renderBus();
+    B.toast(COO.name + " routed it to " + dp.name + ".", "ok");
+  }
+
+  setTimeout(function () {
+    var q = document.getElementById("qnora");
+
+    document.getElementById("gonora").addEventListener("click", function () {
+      askNora(q.value.trim());
+    });
+    q.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") askNora(this.value.trim());
+    });
+    Array.prototype.forEach.call(document.querySelectorAll(".exq"), function (b) {
+      b.addEventListener("click", function () {
+        q.value = this.dataset.q;
+        askNora(this.dataset.q);
+      });
+    });
+    Array.prototype.forEach.call(document.querySelectorAll("[data-consult]"), function (b) {
+      b.addEventListener("click", function () { runConsult(this.dataset.consult); });
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('[id^="q_"]'), function (i) {
+      i.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") runConsult(this.id.slice(2));
+      });
+    });
+
+    document.getElementById("busRefresh").addEventListener("click", function () {
+      renderBus();
+      B.toast((B.db().bus || []).length + " events on the bus.", "ok");
+    });
+    document.getElementById("busClear").addEventListener("click", function () {
+      B.save(function (d) { d.bus = []; });
+      renderBus();
+      B.toast("Bus cleared. Nothing else was touched.", "ok");
+    });
+
+    var t = document.getElementById("toNora");
+    if (t) t.addEventListener("click", function () {
+      if (q.scrollIntoView) q.scrollIntoView({ behavior: "smooth", block: "center" });
+      q.focus();
+    });
+
+    renderBus();
+  }, 0);
+})();
+</script>
+</body>
+</html>

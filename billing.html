@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Billing · Buttress OS V2.0</title>
+<meta name="description" content="Buttress OS — the architecture practice operating system. Powered by Accelerated Experiences LLC.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="buttress.css">
+</head>
+<body>
+<script src="buttress.js"></script>
+<script>
+(function () {
+  var B = window.Buttress;
+  var c = B.mount({ active: "billing.html", crumb: "Billing" });
+
+  var COLL = B.BENCH.collection;          // target band + the conflicting sources, from the engine
+  var RED_DAYS = 60;                      // an open invoice past 60 days reads red on this desk
+
+  function num(id) { var e = document.getElementById(id); return Math.max(0, Number(e && e.value) || 0); }
+  function today() { return new Date().toISOString().slice(0, 10); }
+  function bring(elm) {
+    if (elm && typeof elm.scrollIntoView === "function") elm.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+  function invTotal(i) {
+    return (Number(i.amount) || 0) + (Number(i.reimb) || 0) + (Number(i.consultant) || 0);
+  }
+  function commById(id) {
+    return B.db().commissions.filter(function (x) { return x.id === id; })[0];
+  }
+
+  /* ------------------------------------------------------------- page head */
+  c.appendChild(B.page(
+    "Billing",
+    "Percent-complete invoicing by phase, reimbursables at the B101 standard, consultant pass-throughs, and the AR " +
+    "aging that decides whether any of it turns into cash. Everything below is computed from the commission record " +
+    "— the invoice is a read of the work, not a retyping of it.",
+    '<button class="btn brass sm" id="toBuilder">Build an invoice</button>'
+  ));
+
+  /* ---------------------------------------------------------------- boards */
+  c.appendChild(B.card(
+    '<h2>The desk, at a glance</h2>' +
+    '<div class="card-sub">Open AR is what has been invoiced and not collected. WIP is what has been earned and not ' +
+    'yet invoiced — the second number is the one that surprises principals, because it is work already paid for in ' +
+    'salary.</div>' +
+    '<div class="statrow" id="statrow"></div>'
+  ));
+
+  /* -------------------------------------------------------- the invoice list */
+  c.appendChild(B.card(
+    '<h2>Invoices</h2>' +
+    '<div class="card-sub">Fee amount, reimbursables and consultant pass-through are separate lines on every ' +
+    'invoice, because they are separate arguments if the owner questions one of them. Any open invoice past ' +
+    RED_DAYS + ' days renders red.</div>' +
+    '<div id="invoices"></div>' +
+    '<div class="srcnote" style="font-style:normal" id="ageNote"></div>'
+  ));
+
+  /* ---------------------------------------------------- percent-complete builder */
+  var d0 = B.db();
+  var commOpts = d0.commissions.map(function (x) {
+    return '<option value="' + B.esc(x.id) + '">' + B.esc(x.name) + ' — ' + B.esc(x.number) +
+      ' · ' + B.esc(x.phase) + '</option>';
+  }).join("");
+
+  c.appendChild(B.card(
+    '<h2>Percent-complete invoice builder</h2>' +
+    '<div class="card-sub">Pick a commission. The fee line is earned-to-date minus what has already been billed — ' +
+    'nothing to reconstruct, because the phase carries its own percentage of the fee. Reimbursables come in at cost ' +
+    'plus the B101 ' + B.REIMB_MARKUP + '%, and the consultant pass-through is its own line.</div>' +
+    '<div class="grid g3">' +
+      '<div class="field"><label class="f" for="bProj">Commission</label>' +
+        '<select id="bProj">' + commOpts + '</select></div>' +
+      '<div class="field"><label class="f" for="bReimb">Reimbursable expenses, at cost</label>' +
+        '<input id="bReimb" type="number" min="0" step="10" value="0"></div>' +
+      '<div class="field"><label class="f" for="bConsult">Consultant pass-through</label>' +
+        '<input id="bConsult" type="number" min="0" step="100" value="0"></div>' +
+    '</div>' +
+    '<div class="statrow" id="bStats"></div>' +
+    '<div class="divider"></div>' +
+    '<table><thead><tr><th>Line</th><th>Basis</th><th class="num">Amount</th></tr></thead>' +
+      '<tbody id="bLines"></tbody></table>' +
+    '<div class="divider"></div>' +
+    '<div class="row">' +
+      '<button class="btn brass" id="bCreate">Create the invoice</button>' +
+      '<span class="muted small">Creating writes the invoice to this hub’s record and adds the fee line to the ' +
+      'commission’s billed-to-date. It does not send anything.</span>' +
+    '</div>' +
+    B.srcNote("AIA B101: reimbursable expenses at cost plus " + B.REIMB_MARKUP + "%. " +
+              "Fee line = fee × percent complete, less amounts already billed.")
+  ));
+
+  /* --------------------------------------------------------- AR aging + WIP */
+  var arGrid = document.createElement("div"); arGrid.className = "grid g2";
+
+  arGrid.appendChild(B.card(
+    '<h2>AR aging</h2>' +
+    '<div class="card-sub">Weighted average days outstanding across open invoices, weighted by amount — not a ' +
+    'simple average, because a large old invoice is a different problem from a small one.</div>' +
+    '<div class="statrow" id="arStats"></div>' +
+    '<div class="divider"></div>' +
+    '<table><thead><tr><th>Bucket</th><th class="num">Invoices</th><th class="num">Fee amount</th></tr></thead>' +
+      '<tbody id="arBuckets"></tbody></table>' +
+    '<div class="divider"></div>' +
+    '<div class="fence"><b>The two published sources for collection days do not agree, and we are not going to ' +
+    'pick the flattering one.</b> The engine ships this benchmark with the disagreement written into it, verbatim ' +
+    'below. Target band is ' + COLL.target[0] + '–' + COLL.target[1] + COLL.unit + '; the two industry figures sit ' +
+    'on either side of it, which is exactly why a firm should measure its own rather than quote either.</div>' +
+    B.srcNote(COLL.src)
+  ));
+
+  arGrid.appendChild(B.card(
+    '<h2>WIP — earned and not yet invoiced</h2>' +
+    '<div class="card-sub">Per commission: fee, percent complete, earned to date, billed to date, and the ' +
+    'difference. The difference is work the firm has already paid salary for.</div>' +
+    '<table><thead><tr><th>Commission</th><th class="num">Earned</th><th class="num">Billed</th>' +
+      '<th class="num">Ready to bill</th></tr></thead><tbody id="wipRows"></tbody></table>' +
+    '<div class="divider"></div>' +
+    '<div class="fence" id="wipFence"></div>'
+  ));
+  c.appendChild(arGrid);
+
+  /* ------------------------------------------------------------- the fence */
+  c.appendChild(B.card(
+    '<h2>Issue this invoice <span class="tag watch mono">GHOST MODE</span></h2>' +
+    '<div class="card-sub">This button does not send. An invoice reaches a client outside the office, so it is one ' +
+    'of the real fences — it goes to the Approval Desk with the whole calculation attached and a principal ' +
+    'decides.</div>' +
+    '<div class="grid g3">' +
+      '<div class="field" style="grid-column:span 2"><label class="f" for="issueSel">Open invoice</label>' +
+        '<select id="issueSel"></select></div>' +
+      '<div class="field"><label class="f">&nbsp;</label>' +
+        '<button class="btn brass" id="issueBtn">Issue this invoice</button></div>' +
+    '</div>' +
+    '<div class="fence"><b>Nothing leaves this hub.</b> Staging writes the invoice to the Approval Desk in this ' +
+    'browser session only. No email, no portal, no client sees anything, and no money moves.</div>' +
+    '<div class="row" style="margin-top:12px">' +
+      '<a class="btn ghost sm" href="approvals.html">Open the Approval Desk →</a>' +
+    '</div>'
+  ));
+
+  /* ------------------------------------------------- G702/G703, said plainly */
+  c.appendChild(B.card(
+    '<h2>G702 / G703 is not how the architect bills its own fee</h2>' +
+    '<div class="card-sub">Vendors blur this constantly, usually because one billing screen is cheaper to build ' +
+    'than two. They are two different transactions with two different payers.</div>' +
+    '<div class="grid g2">' +
+      '<div>' +
+        '<div class="row" style="margin-bottom:8px">' + B.tag("AIA G702 / G703", "mono") + B.tag("Construction Administration", "watch") + '</div>' +
+        '<div class="fence"><b>The contractor applies for payment; the architect certifies it.</b> ' +
+        'G702 is the Application and Certificate for Payment and G703 is its continuation sheet — the schedule of ' +
+        'values, line by line, showing work completed and materials stored. The architect reviews it against what ' +
+        'was actually observed in the field and certifies an amount to the owner. That is a ' +
+        'construction-administration duty performed on the contractor’s money.</div>' +
+      '</div>' +
+      '<div>' +
+        '<div class="row" style="margin-bottom:8px">' + B.tag("Percent complete by phase", "mono") + B.tag("Billing", "good") + '</div>' +
+        '<div class="fence"><b>The architect’s own fee is billed percent-complete by phase.</b> ' +
+        'The fee is split across the B101 phases, each phase carries its own percentage, and the invoice bills the ' +
+        'percentage of that phase actually complete — plus reimbursables at cost plus ' + B.REIMB_MARKUP + '% and ' +
+        'any consultant pass-through. It has nothing to do with the contractor’s schedule of values.</div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="divider"></div>' +
+    '<div class="row" style="gap:7px">' +
+      B.tag("Contractor’s pay app · G702/G703", "ghost") + '<span class="muted">architect certifies →</span>' +
+      B.tag("Owner pays the contractor", "ghost") +
+      '<span class="muted" style="margin:0 6px">|</span>' +
+      B.tag("Architect’s fee · % complete by phase", "good") + '<span class="muted">invoiced →</span>' +
+      B.tag("Owner pays the architect", "good") +
+    '</div>' +
+    '<div class="srcnote" style="font-style:normal;margin-top:10px">If a tool offers you one screen for both, it ' +
+    'is either asking the architect to certify its own fee or asking it to bill the contractor’s schedule of ' +
+    'values. Neither is the job.</div>' +
+    '<div class="divider"></div>' +
+    '<div class="row">' +
+      B.PHASES.map(function (p) {
+        return B.tag(p.k + (p.pct ? " · " + p.pct + "%" : " · not in Basic"), p.pct ? "ghost" : "watch");
+      }).join("") +
+    '</div>' +
+    B.srcNote("AIA “Defining the Architect’s Basic Services”; Monograph and Siana fee-by-phase guides " +
+              "(two independent sources agree on the split).")
+  ));
+
+  /* ------------------------------------------------------------- rendering */
+  function renderStats(d) {
+    var open = d.invoices.filter(function (i) { return i.status === "Open"; });
+    var openFee = open.reduce(function (s, i) { return s + (Number(i.amount) || 0); }, 0);
+    var openAll = open.reduce(function (s, i) { return s + invTotal(i); }, 0);
+    var over = open.filter(function (i) { return (Number(i.age) || 0) > RED_DAYS; });
+    var oldest = open.reduce(function (m, i) { return Math.max(m, Number(i.age) || 0); }, 0);
+    var ar = B.arDays(d), w = B.wip(d);
+
+    document.getElementById("statrow").innerHTML =
+      B.stat("Open AR · fee lines", B.money(openFee), open.length + " open invoice" + (open.length === 1 ? "" : "s")) +
+      B.stat("Open AR · all lines", B.money(openAll), "Fee + reimbursables + pass-through") +
+      B.stat("WIP — unbilled", B.money(w), "Earned, not yet invoiced", w > 60000 ? "watch" : "good") +
+      B.stat("AR aging", Math.round(ar) + " d",
+             "Target " + COLL.target[0] + "–" + COLL.target[1] + COLL.unit,
+             ar <= COLL.target[1] ? "good" : "bad") +
+      B.stat("Oldest open invoice", oldest + " d",
+             oldest > RED_DAYS ? "Past the " + RED_DAYS + "-day line" : (RED_DAYS - oldest) + " days from red",
+             oldest > RED_DAYS ? "bad" : "watch") +
+      B.stat("Past " + RED_DAYS + " days", String(over.length),
+             over.length ? "Chase these first" : "Nothing over the line yet", over.length ? "bad" : "good");
+  }
+
+  function renderInvoices(d) {
+    var rows = d.invoices.map(function (i) {
+      var old = i.status === "Open" && (Number(i.age) || 0) > RED_DAYS;
+      var stBand = i.status === "Paid" ? "good" : (old ? "bad" : "watch");
+      return '<tr>' +
+        '<td class="k">' + B.esc(i.num) + '</td>' +
+        '<td><div class="t-main">' + B.esc(i.project) + '</div></td>' +
+        '<td>' + B.tag(i.phase, "ghost") + '</td>' +
+        '<td class="num">' + B.money(i.amount) + '</td>' +
+        '<td class="num">' + (i.reimb ? B.money(i.reimb) : "—") + '</td>' +
+        '<td class="num">' + (i.consultant ? B.money(i.consultant) : "—") + '</td>' +
+        '<td class="num"><b>' + B.money(invTotal(i)) + '</b></td>' +
+        '<td class="k">' + B.esc(i.issued) + '</td>' +
+        '<td>' + B.tag(i.status, stBand) + '</td>' +
+        '<td class="num">' + (i.status === "Paid" ? '<span class="muted">—</span>'
+          : (old ? '<b style="color:var(--bad)">' + i.age + ' d</b>' : i.age + " d")) + '</td>' +
+      '</tr>';
+    }).join("") || '<tr><td colspan="10" class="empty">No invoices on the record yet.</td></tr>';
+
+    document.getElementById("invoices").innerHTML =
+      '<table><thead><tr><th>No.</th><th>Project</th><th>Phase</th><th class="num">Fee amount</th>' +
+      '<th class="num">Reimbursables</th><th class="num">Consultant</th><th class="num">Total</th>' +
+      '<th>Issued</th><th>Status</th><th class="num">Age</th></tr></thead>' +
+      '<tbody>' + rows + '</tbody></table>';
+
+    var open = d.invoices.filter(function (i) { return i.status === "Open"; });
+    var over = open.filter(function (i) { return (Number(i.age) || 0) > RED_DAYS; });
+    var oldest = open.reduce(function (m, i) { return Math.max(m, Number(i.age) || 0); }, 0);
+    document.getElementById("ageNote").innerHTML = over.length
+      ? B.esc(over.length + " open invoice(s) are past " + RED_DAYS + " days and read red above.")
+      : B.esc("Nothing is past " + RED_DAYS + " days yet — the oldest open invoice is " + oldest +
+              " days out, " + Math.max(0, RED_DAYS - oldest) + " days from turning red.");
+  }
+
+  function renderAr(d) {
+    var open = d.invoices.filter(function (i) { return i.status === "Open"; });
+    var ar = B.arDays(d);
+    var buckets = [
+      { label:"0–30 days", lo:0,  hi:30 },
+      { label:"31–60 days", lo:31, hi:60 },
+      { label:"61–90 days", lo:61, hi:90 },
+      { label:"Over 90 days", lo:91, hi:1e9 }
+    ];
+    document.getElementById("arStats").innerHTML =
+      B.stat("Weighted days outstanding", Math.round(ar) + " d",
+             "Target " + COLL.target[0] + "–" + COLL.target[1] + COLL.unit,
+             ar <= COLL.target[1] ? "good" : "bad") +
+      B.stat("Open invoices", String(open.length), "Carrying " +
+             B.money(open.reduce(function (s, i) { return s + (Number(i.amount) || 0); }, 0)) + " of fee");
+
+    document.getElementById("arBuckets").innerHTML = buckets.map(function (b) {
+      var set = open.filter(function (i) { var a = Number(i.age) || 0; return a >= b.lo && a <= b.hi; });
+      var amt = set.reduce(function (s, i) { return s + (Number(i.amount) || 0); }, 0);
+      var band = b.lo > RED_DAYS && set.length ? ' style="color:var(--bad)"' : "";
+      return '<tr><td' + band + '>' + B.esc(b.label) + '</td>' +
+        '<td class="num">' + set.length + '</td>' +
+        '<td class="num">' + (amt ? B.money(amt) : "—") + '</td></tr>';
+    }).join("");
+  }
+
+  function renderWip(d) {
+    document.getElementById("wipRows").innerHTML = d.commissions.map(function (x) {
+      var e = B.earnedToDate(x), r = B.readyToBill(x);
+      return '<tr>' +
+        '<td><div class="t-main">' + B.esc(x.name) + '</div>' +
+          '<div class="t-sub">' + B.esc(x.number) + ' · ' + B.esc(x.phase) + ' · ' + x.pctComplete + '% complete</div></td>' +
+        '<td class="num">' + B.money(e) + '</td>' +
+        '<td class="num">' + B.money(x.billed) + '</td>' +
+        '<td class="num">' + (r > 0 ? '<b style="color:var(--brass-2)">' + B.money(r) + '</b>' : "—") + '</td>' +
+      '</tr>';
+    }).join("");
+    document.getElementById("wipFence").innerHTML =
+      '<b>' + B.money(B.wip(d)) + ' is earned and not yet invoiced.</b> That is salary already spent. The builder ' +
+      'above turns any line of it into an invoice; the issue itself stays behind the Approval Desk.';
+  }
+
+  function renderIssueSelect(d) {
+    var sel = document.getElementById("issueSel");
+    var keep = sel.value;
+    var open = d.invoices.filter(function (i) { return i.status === "Open"; });
+    sel.innerHTML = open.length
+      ? open.map(function (i) {
+          return '<option value="' + B.esc(i.id) + '">' + B.esc(i.num) + " — " + B.esc(i.project) +
+            " · " + B.money(invTotal(i)) + " · " + i.age + " d</option>";
+        }).join("")
+      : '<option value="">No open invoices on the record</option>';
+    if (keep) sel.value = keep;
+  }
+
+  /* --------------------------------------------------------- the builder math */
+  function builderState() {
+    var x = commById(document.getElementById("bProj").value);
+    if (!x) return null;
+    var earned = B.earnedToDate(x);
+    var billed = Number(x.billed) || 0;
+    var feeLine = B.readyToBill(x);
+    var reimbCost = num("bReimb");
+    var reimbLine = B.reimbursable(reimbCost);
+    var passThrough = num("bConsult");
+    return {
+      comm:x, earned:earned, billed:billed, feeLine:feeLine,
+      reimbCost:reimbCost, reimbLine:reimbLine, markup:reimbLine - reimbCost,
+      passThrough:passThrough, total:feeLine + reimbLine + passThrough
+    };
+  }
+
+  function renderBuilder() {
+    var s = builderState();
+    if (!s) return;
+    var x = s.comm;
+    var ph = B.PHASES.filter(function (p) { return p.k === x.phase; })[0];
+
+    document.getElementById("bStats").innerHTML =
+      B.stat("Contract fee", x.fee ? B.money(x.fee) : "—", B.esc(x.feeBasis)) +
+      B.stat("Percent complete", B.pct(x.pctComplete), ph ? B.esc(ph.name) + " · " + ph.pct + "% of fee" : "Pre-design") +
+      B.stat("Earned to date", B.money(s.earned), "Fee × percent complete") +
+      B.stat("Already billed", B.money(s.billed), "Invoiced on this commission") +
+      B.stat("Fee line this invoice", B.money(s.feeLine), "Earned less billed", s.feeLine > 0 ? "good" : "") +
+      B.stat("Invoice total", B.money(s.total), "All three lines", s.total > 0 ? "good" : "");
+
+    document.getElementById("bLines").innerHTML =
+      '<tr><td class="t-main">Fee — ' + B.esc(x.phase) + ' percent complete</td>' +
+        '<td class="t-sub" style="margin:0">' + B.money(s.earned) + ' earned at ' + x.pctComplete +
+          '% less ' + B.money(s.billed) + ' already billed</td>' +
+        '<td class="num"><b>' + B.money(s.feeLine) + '</b></td></tr>' +
+      '<tr><td class="t-main">Reimbursable expenses</td>' +
+        '<td class="t-sub" style="margin:0">' + B.money(s.reimbCost) + ' at cost plus the B101 ' +
+          B.REIMB_MARKUP + '% (' + B.money(s.markup) + ')</td>' +
+        '<td class="num">' + B.money(s.reimbLine) + '</td></tr>' +
+      '<tr><td class="t-main">Consultant pass-through</td>' +
+        '<td class="t-sub" style="margin:0">Consultant fee billed through to the owner, no markup applied</td>' +
+        '<td class="num">' + B.money(s.passThrough) + '</td></tr>' +
+      '<tr><td class="t-main">Invoice total</td><td></td>' +
+        '<td class="num"><b style="color:var(--brass-2)">' + B.money(s.total) + '</b></td></tr>';
+  }
+
+  /* Invoice numbers continue the commission's own sequence: 24-018-07 → 24-018-08. */
+  function nextNumber(d, x) {
+    var top = 0;
+    d.invoices.forEach(function (i) {
+      if (i.project !== x.name) return;
+      var m = String(i.num).match(/-(\d+)$/);
+      if (m) top = Math.max(top, Number(m[1]) || 0);
+    });
+    var n = top + 1;
+    return x.number + "-" + (n < 10 ? "0" + n : String(n));
+  }
+
+  function render() {
+    var d = B.db();
+    renderStats(d);
+    renderInvoices(d);
+    renderAr(d);
+    renderWip(d);
+    renderIssueSelect(d);
+    renderBuilder();
+  }
+
+  /* ------------------------------------------------------------------ boot */
+  render();
+
+  setTimeout(function () {
+    ["bProj", "bReimb", "bConsult"].forEach(function (id) {
+      var e = document.getElementById(id);
+      e.addEventListener("input", renderBuilder);
+      e.addEventListener("change", renderBuilder);
+    });
+
+    document.getElementById("bCreate").addEventListener("click", function () {
+      var s = builderState();
+      if (!s) { B.toast("Pick a commission first.", ""); return; }
+      if (s.total <= 0) {
+        B.toast("Nothing to invoice — this commission has no earned-but-unbilled fee and no expenses entered.", "");
+        return;
+      }
+      var d = B.db();
+      var numStr = nextNumber(d, s.comm);
+      B.save(function (x) {
+        x.invoices.push({
+          id: "inv" + Date.now(),
+          num: numStr,
+          project: s.comm.name,
+          phase: s.comm.phase,
+          amount: s.feeLine,
+          reimb: s.reimbLine,
+          consultant: s.passThrough,
+          issued: today(),
+          status: "Open",
+          age: 0
+        });
+        x.commissions.forEach(function (cm) {
+          if (cm.id === s.comm.id) cm.billed = (Number(cm.billed) || 0) + s.feeLine;
+        });
+      });
+      B.toast("Invoice " + numStr + " created — " + B.money(s.total) +
+        ". It is on the record and open. Nothing has been sent.", "ok");
+      document.getElementById("bReimb").value = "0";
+      document.getElementById("bConsult").value = "0";
+      render();
+    });
+
+    document.getElementById("issueBtn").addEventListener("click", function () {
+      var id = document.getElementById("issueSel").value;
+      var inv = B.db().invoices.filter(function (i) { return i.id === id; })[0];
+      if (!inv) { B.toast("No open invoice selected.", ""); return; }
+      B.stage(
+        "external",
+        "Issue invoice " + inv.num + " — " + inv.project,
+        B.money(inv.amount) + " fee (" + inv.phase + ", percent complete), " + B.money(inv.reimb) +
+          " reimbursables at cost plus " + B.REIMB_MARKUP + "%, " + B.money(inv.consultant) +
+          " consultant pass-through. Total " + B.money(invTotal(inv)) + ", issued " + inv.issued + ".",
+        "An invoice reaches a client outside the office and asks for money. It is drafted and staged — never sent.",
+        "Marin (Money AE)"
+      );
+      B.toast("Invoice " + inv.num + " staged to the Approval Desk. Nothing has been sent.", "ok");
+    });
+
+    var tb = document.getElementById("toBuilder");
+    if (tb) tb.addEventListener("click", function () { bring(document.getElementById("bProj")); });
+  }, 0);
+})();
+</script>
+</body>
+</html>

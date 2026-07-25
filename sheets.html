@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sheet Sets &amp; Issuance · Buttress OS V2.0</title>
+<meta name="description" content="Buttress OS — the architecture practice operating system. Powered by Accelerated Experiences LLC.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="buttress.css">
+</head>
+<body>
+<script src="buttress.js"></script>
+<script>
+(function () {
+  var B = window.Buttress;
+  var c = B.mount({ active: "sheets.html", crumb: "Sheet Sets & Issuance" });
+
+  /* Which issue sets actually LEAVE the office. Everything here stages at the
+     Approval Desk — the showroom never claims to have sent anything. */
+  var OUTWARD = {
+    "Permit Set":       "the Authority Having Jurisdiction",
+    "Bid Set":          "every planholder",
+    "Addendum":         "every planholder",
+    "Construction Set": "the contractor and the owner",
+    "Bulletin":         "the contractor",
+    "Record Set":       "the owner"
+  };
+
+  function today() {
+    var t = new Date();
+    return t.getFullYear() + "-" + ("0" + (t.getMonth() + 1)).slice(-2) + "-" + ("0" + t.getDate()).slice(-2);
+  }
+  function pad2(n) { return ("0" + Math.max(1, Math.min(99, Number(n) || 1))).slice(-2); }
+  function discName(k) {
+    var x = B.DISCIPLINES.filter(function (dd) { return dd.k === k; })[0];
+    return x ? x.name : k;
+  }
+  function typeName(dg) {
+    var x = B.SHEET_TYPES.filter(function (t) { return t.d === Number(dg); })[0];
+    return x ? x.name : "—";
+  }
+  function typeDigit(num) {
+    var tail = String(num || "").split("-")[1];
+    return tail ? tail.charAt(0) : "";
+  }
+  /* Issue history. Seeded from each sheet's own last recorded issue — derived
+     from the record, never invented. Every issue below appends to it. */
+  function hist(s) {
+    return (s.history && s.history.length) ? s.history : [{ set: s.issued, rev: s.rev, date: s.date }];
+  }
+  function lastIn(s, set) {
+    var found = null;
+    hist(s).forEach(function (h) { if (h.set === set) found = h; });
+    return found;
+  }
+
+  /* ------------------------------------------------------------- page head */
+  c.appendChild(B.page(
+    "Sheet Sets & Issuance",
+    "The sheet index, the revision history, and the issue set each sheet last went out in — under US National CAD Standard numbering. " +
+    "Issuing a set here bumps the revision on the record. Anything that leaves the office stages at the Approval Desk instead of being sent.",
+    '<button class="btn brass sm" id="jumpDecode">Decode a sheet number</button>'
+  ));
+
+  /* ----------------------------------------------------------------- stats */
+  var statCard = B.card(
+    '<h2>The set, at a glance</h2>' +
+    '<div class="card-sub">Counted off this hub\'s own sheet index — not a report someone rebuilt at the end of the phase.</div>' +
+    '<div class="statrow" id="statRow"></div>'
+  );
+  c.appendChild(statCard);
+
+  function renderStats() {
+    var d = B.db();
+    var projects = {}, revs = 0, outward = 0, last = "";
+    d.sheets.forEach(function (s) {
+      projects[s.project] = 1;
+      revs += Number(s.rev) || 0;
+      if (OUTWARD[s.issued]) outward++;
+      if (s.date > last) last = s.date;
+    });
+    statCard.querySelector("#statRow").innerHTML =
+      B.stat("Sheets indexed", d.sheets.length, "Across every live commission") +
+      B.stat("Projects", Object.keys(projects).length, "Each set numbered on its own sequence") +
+      B.stat("Revisions logged", revs, "Sum of every sheet's revision number") +
+      B.stat("Out of the office", outward, "Sheets last issued in an outward-facing set",
+             outward ? "watch" : "good") +
+      B.stat("Last issue", last || "—", "Most recent issue date on the index");
+  }
+
+  /* ------------------------------------------------------- the NCS decoder */
+  var discOpts = B.DISCIPLINES.map(function (x) {
+    return '<option value="' + B.esc(x.k) + '"' + (x.k === "A" ? " selected" : "") + '>' +
+           B.esc(x.k) + " — " + B.esc(x.name) + '</option>';
+  }).join("");
+  var typeOpts = B.SHEET_TYPES.map(function (t) {
+    return '<option value="' + t.d + '"' + (t.d === 5 ? " selected" : "") + '>' +
+           t.d + " — " + B.esc(t.name) + '</option>';
+  }).join("");
+
+  /* the worked example, composed from the engine so it can never drift */
+  var exT = B.SHEET_TYPES.filter(function (t) { return t.d === 5; })[0];
+  var decCard = B.card(
+    '<h2>US National CAD Standard sheet numbering — decoder</h2>' +
+    '<div class="card-sub">One discipline designator, one sheet-type digit, one two-digit sequence. ' +
+    'Read left to right, <span class="mono">A-501</span> is ' + B.esc(discName("A")) + ' · ' + B.esc(exT.name) +
+    ' · sheet 01. Pick the parts below and the number composes itself, in plain language, and the index tells you whether that sheet already exists. ' +
+    'This is the convention a consultant, a plan reviewer and a contractor all read the same way.</div>' +
+    '<div class="row" style="gap:5px;margin-bottom:9px">' +
+      '<span class="muted small" style="width:100%">Discipline designators</span>' +
+      B.DISCIPLINES.map(function (x) { return B.tag(x.k + " · " + x.name, "ghost"); }).join(" ") +
+    '</div>' +
+    '<div class="row" style="gap:5px;margin-bottom:14px">' +
+      '<span class="muted small" style="width:100%">Sheet-type digits</span>' +
+      B.SHEET_TYPES.map(function (t) { return B.tag(t.d + " · " + t.name, "ghost"); }).join(" ") +
+    '</div>' +
+    '<div class="grid g3">' +
+      '<div class="field"><label class="f">Discipline designator</label><select id="dDisc">' + discOpts + '</select></div>' +
+      '<div class="field"><label class="f">Sheet type digit</label><select id="dType">' + typeOpts + '</select></div>' +
+      '<div class="field"><label class="f">Sequence 01–99</label><input id="dSeq" type="number" min="1" max="99" value="1"></div>' +
+    '</div>' +
+    '<div id="decOut"></div>' +
+    B.srcNote("US National CAD Standard sheet identification — discipline designators and sheet-type digits as carried in this hub's engine (B.DISCIPLINES, B.SHEET_TYPES).")
+  );
+  c.appendChild(decCard);
+
+  function renderDecode() {
+    var dk = decCard.querySelector("#dDisc").value;
+    var tg = decCard.querySelector("#dType").value;
+    var sq = pad2(decCard.querySelector("#dSeq").value);
+    var num = dk + "-" + tg + sq;
+    var match = B.db().sheets.filter(function (s) { return s.num === num; })[0];
+
+    decCard.querySelector("#decOut").innerHTML =
+      '<div class="divider"></div>' +
+      '<div class="row" style="align-items:flex-start;gap:18px">' +
+        '<div class="mono" style="font-size:38px;font-weight:700;letter-spacing:-.03em;line-height:1">' + B.esc(num) + '</div>' +
+        '<div class="stack" style="flex:1;min-width:240px;gap:6px">' +
+          '<div><span class="tag mono">' + B.esc(dk) + '</span> <span class="muted">discipline designator</span> — ' + B.esc(discName(dk)) + '</div>' +
+          '<div><span class="tag mono">' + B.esc(tg) + '</span> <span class="muted">sheet type</span> — ' + B.esc(typeName(tg)) + '</div>' +
+          '<div><span class="tag mono">' + B.esc(sq) + '</span> <span class="muted">sequence</span> — sheet ' + B.esc(String(Number(sq))) + ' of that type</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="divider"></div>' +
+      (match
+        ? '<div class="fence"><b>' + B.esc(num) + ' is already in the index.</b> ' + B.esc(match.title) +
+          ' · ' + B.esc(match.project) + ' · revision ' + match.rev + ', last issued in the ' + B.esc(match.issued) +
+          ' on ' + B.esc(match.date) + '.</div>'
+        : '<div class="fence"><b>' + B.esc(num) + ' is not in the index yet.</b> ' +
+          'The number is well-formed under the standard — it just has not been drawn on this project. ' +
+          'That is the point of a numbering convention: the gap is visible before a consultant finds it.</div>');
+  }
+
+  /* ------------------------------------------------- the index + issuance */
+  var indexCard = B.card(
+    '<h2>Sheet index & issuance</h2>' +
+    '<div class="card-sub">Grouped by project, numbered by the standard. Tick the sheets going out, pick the set, and issue — ' +
+    'every selected sheet takes a revision bump and the set becomes its last-issued record. ' +
+    'Nothing is sent from here; the sets that leave the office stage for the principal.</div>' +
+    '<div id="indexBody"></div>'
+  );
+  c.appendChild(indexCard);
+
+  function byNum(a, b) { return a.num < b.num ? -1 : (a.num > b.num ? 1 : 0); }
+
+  function renderIndex() {
+    var d = B.db();
+    var groups = [];
+    d.sheets.forEach(function (s) {
+      var g = groups.filter(function (x) { return x.p === s.project; })[0];
+      if (!g) { g = { p: s.project, rows: [] }; groups.push(g); }
+      g.rows.push(s);
+    });
+
+    var body = groups.map(function (g) {
+      return '<tr><td colspan="5" style="background:var(--sunk);font-weight:640">' + B.esc(g.p) +
+        ' <span class="muted small">· ' + g.rows.length + ' sheet' + (g.rows.length === 1 ? "" : "s") + '</span></td></tr>' +
+        g.rows.sort(byNum).map(function (s) {
+          return '<tr>' +
+            '<td><input type="checkbox" class="pick" value="' + B.esc(s.id) + '" style="width:auto" aria-label="Select ' + B.esc(s.num) + '"></td>' +
+            '<td class="k">' + B.esc(s.num) +
+              '<div class="t-sub">' + B.esc(typeName(typeDigit(s.num))) + '</div></td>' +
+            '<td><div class="t-main">' + B.esc(s.title) + '</div>' +
+              '<div class="t-sub">' + B.esc(discName(s.disc)) + '</div></td>' +
+            '<td class="num">' + B.tag("Rev " + s.rev, s.rev >= 4 ? "watch" : "ghost") +
+              '<div class="t-sub">' + hist(s).length + ' issue' + (hist(s).length === 1 ? "" : "s") + ' logged</div></td>' +
+            '<td>' + B.tag(s.issued, OUTWARD[s.issued] ? "watch" : "ghost") +
+              '<div class="t-sub">' + B.esc(s.date) + '</div></td>' +
+          '</tr>';
+        }).join("");
+    }).join("");
+
+    var setOpts = B.ISSUE_SETS.map(function (k) {
+      return '<option value="' + B.esc(k) + '"' + (k === "Bid Set" ? " selected" : "") + '>' + B.esc(k) + '</option>';
+    }).join("");
+
+    indexCard.querySelector("#indexBody").innerHTML =
+      '<table><thead><tr><th style="width:30px"></th><th>Sheet</th><th>Title</th>' +
+      '<th class="num">Revision</th><th>Last issued in</th></tr></thead><tbody>' + body + '</tbody></table>' +
+      '<div class="divider"></div>' +
+      '<div class="row" style="align-items:flex-end">' +
+        '<div style="min-width:190px"><label class="f">Issue set</label><select id="issSet">' + setOpts + '</select></div>' +
+        '<div style="min-width:170px"><label class="f">Issue date</label><input type="date" id="issDate" value="' + today() + '"></div>' +
+        '<button class="btn ghost sm" id="selAll">Select all</button>' +
+        '<button class="btn ghost sm" id="selNone">Clear</button>' +
+        '<button class="btn brass" id="issueBtn">Issue the set</button>' +
+      '</div>' +
+      '<div class="fence" style="margin-top:13px" id="issNote"></div>';
+
+    var setSel = indexCard.querySelector("#issSet");
+    function noteFor() {
+      var k = setSel.value;
+      indexCard.querySelector("#issNote").innerHTML = OUTWARD[k]
+        ? '<b>' + B.esc(k) + ' leaves the office.</b> It reaches ' + B.esc(OUTWARD[k]) +
+          ', so issuing it stages a request at the Approval Desk with the sheet list attached. ' +
+          'Buttress stages it. It does not send it, and it will never tell you it did.'
+        : '<b>' + B.esc(k) + ' is an internal progress milestone.</b> It updates the record and the revision history here, ' +
+          'with no fence to clear — nothing about it reaches a party outside the office.';
+    }
+    setSel.addEventListener("change", noteFor);
+    noteFor();
+
+    indexCard.querySelector("#selAll").addEventListener("click", function () {
+      Array.prototype.forEach.call(indexCard.querySelectorAll(".pick"), function (x) { x.checked = true; });
+    });
+    indexCard.querySelector("#selNone").addEventListener("click", function () {
+      Array.prototype.forEach.call(indexCard.querySelectorAll(".pick"), function (x) { x.checked = false; });
+    });
+    indexCard.querySelector("#issueBtn").addEventListener("click", issueSet);
+  }
+
+  function issueSet() {
+    var picked = [];
+    Array.prototype.forEach.call(indexCard.querySelectorAll(".pick"), function (x) {
+      if (x.checked) picked.push(x.value);
+    });
+    if (!picked.length) { B.toast("Tick at least one sheet before issuing a set.", ""); return; }
+
+    var set  = indexCard.querySelector("#issSet").value;
+    var date = indexCard.querySelector("#issDate").value || today();
+    var issued = [], projects = {};
+
+    B.save(function (d) {
+      d.sheets.forEach(function (s) {
+        if (picked.indexOf(s.id) < 0) return;
+        s.history = hist(s).slice();
+        s.rev = (Number(s.rev) || 0) + 1;
+        s.issued = set;
+        s.date = date;
+        s.history.push({ set: set, rev: s.rev, date: date });
+        issued.push(s.num + " (rev " + s.rev + ")");
+        projects[s.project] = 1;
+      });
+    });
+
+    B.toast(issued.length + " sheet" + (issued.length === 1 ? "" : "s") + " issued in the " + set +
+            " — each one revision higher on the record.", "ok");
+
+    if (OUTWARD[set]) {
+      B.stage(
+        "external",
+        "Issue " + set + " — " + Object.keys(projects).join(", "),
+        issued.length + " sheet(s) dated " + date + ": " + issued.join(", ") + ". Reaches " + OUTWARD[set] + ".",
+        "This set reaches a party outside the office and changes what they are building or bidding from. That is the principal's signature, not the org's.",
+        "Pell (Studio AE)"
+      );
+      B.toast("Staged at the Approval Desk. Nothing has been sent.", "ok");
+    }
+
+    renderStats();
+    renderIndex();
+    renderCompare();
+  }
+
+  /* --------------------------------------------------- set-versus-set diff */
+  var setOptsA = B.ISSUE_SETS.map(function (k) {
+    return '<option value="' + B.esc(k) + '"' + (k === "Permit Set" ? " selected" : "") + '>' + B.esc(k) + '</option>';
+  }).join("");
+  var setOptsB = B.ISSUE_SETS.map(function (k) {
+    return '<option value="' + B.esc(k) + '"' + (k === "Bid Set" ? " selected" : "") + '>' + B.esc(k) + '</option>';
+  }).join("");
+
+  var cmpCard = B.card(
+    '<h2>What was in the permit set versus the bid set</h2>' +
+    '<div class="card-sub">Pick any two issue sets. The table reads the issue history on each sheet and answers the question outright — ' +
+    'what carried, what was revised between the two, and what never made it into the second set.</div>' +
+    '<div class="row" style="align-items:flex-end;margin-bottom:13px">' +
+      '<div style="min-width:180px"><label class="f">Set A</label><select id="cmpA">' + setOptsA + '</select></div>' +
+      '<div style="min-width:180px"><label class="f">Set B</label><select id="cmpB">' + setOptsB + '</select></div>' +
+    '</div>' +
+    '<div id="cmpOut"></div>' +
+    '<div class="srcnote">The comparison reads only what the issue log records. A sheet that was never issued in either set does not appear — ' +
+    'the honest answer to a question about the record is the record.</div>'
+  );
+  c.appendChild(cmpCard);
+
+  function renderCompare() {
+    var d = B.db();
+    var a = cmpCard.querySelector("#cmpA").value;
+    var b = cmpCard.querySelector("#cmpB").value;
+    var rows = "";
+
+    d.sheets.slice().sort(byNum).forEach(function (s) {
+      var ha = lastIn(s, a), hb = lastIn(s, b);
+      if (!ha && !hb) return;
+      var state, kind;
+      if (ha && hb) {
+        if (hb.rev > ha.rev) { state = "Revised — rev " + ha.rev + " → rev " + hb.rev; kind = "watch"; }
+        else if (hb.rev === ha.rev) { state = "Carried unchanged at rev " + ha.rev; kind = "good"; }
+        else { state = "Set B carries the older rev " + hb.rev; kind = "bad"; }
+      } else if (ha) {
+        state = "In " + a + " only — never issued in " + b; kind = "bad";
+      } else {
+        state = "First appears in " + b; kind = "good";
+      }
+      rows += '<tr>' +
+        '<td class="k">' + B.esc(s.num) + '<div class="t-sub">' + B.esc(s.project) + '</div></td>' +
+        '<td><div class="t-main">' + B.esc(s.title) + '</div>' +
+          '<div class="t-sub">' + B.esc(discName(s.disc)) + '</div></td>' +
+        '<td class="num">' + (ha ? "Rev " + ha.rev + '<div class="t-sub">' + B.esc(ha.date) + '</div>' : '<span class="muted">—</span>') + '</td>' +
+        '<td class="num">' + (hb ? "Rev " + hb.rev + '<div class="t-sub">' + B.esc(hb.date) + '</div>' : '<span class="muted">—</span>') + '</td>' +
+        '<td>' + B.tag(state, kind) + '</td>' +
+      '</tr>';
+    });
+
+    cmpCard.querySelector("#cmpOut").innerHTML =
+      '<table><thead><tr><th>Sheet</th><th>Title</th><th class="num">' + B.esc(a) + '</th>' +
+      '<th class="num">' + B.esc(b) + '</th><th>Difference</th></tr></thead><tbody>' +
+      (rows || '<tr><td colspan="5" class="empty">No sheet on the index has been issued in either set yet. ' +
+               'Issue one above and this table answers the question the moment you ask it.</td></tr>') +
+      '</tbody></table>';
+  }
+
+  /* ------------------------------------------- addenda vs bulletins & ASIs */
+  function ct(k) { return B.CA_TYPES.filter(function (t) { return t.k === k; })[0] || { form: "—", desc: "" }; }
+  c.appendChild(B.card(
+    '<h2>Addenda are pre-award. Bulletins and ASIs are post-award.</h2>' +
+    '<div class="card-sub">This is the distinction that decides which instrument you reach for, who it goes to, ' +
+    'and whether it can change the contract sum. Getting it wrong is how a clarification turns into a claim.</div>' +
+    '<table><thead><tr><th>Instrument</th><th>When</th><th>What it does</th><th>Form</th></tr></thead><tbody>' +
+      '<tr><td><div class="t-main">Addendum</div><div class="t-sub">Goes to every planholder</div></td>' +
+        '<td>' + B.tag("Pre-award", "good") + '</td>' +
+        '<td>Modifies the bid documents before the contract is signed, and becomes part of the contract documents once it is. ' +
+        'Every bidder has to be pricing the same set.</td><td class="k">—</td></tr>' +
+      '<tr><td><div class="t-main">Bulletin</div><div class="t-sub">Goes to the contractor</div></td>' +
+        '<td>' + B.tag("Post-award", "watch") + '</td>' +
+        '<td>Issues revised drawings against a contract that already exists. The drawings changed after someone signed — ' +
+        'so cost and time are now live questions.</td><td class="k">—</td></tr>' +
+      '<tr><td><div class="t-main">ASI</div><div class="t-sub">Architect\'s Supplemental Instructions</div></td>' +
+        '<td>' + B.tag("Post-award", "watch") + '</td>' +
+        '<td>' + B.esc(ct("ASI").desc) + ' That is exactly what separates it from a Proposal Request.</td>' +
+        '<td class="k">' + B.esc(ct("ASI").form) + '</td></tr>' +
+      '<tr><td><div class="t-main">Proposal Request</div><div class="t-sub">Pricing, not instruction</div></td>' +
+        '<td>' + B.tag("Post-award", "watch") + '</td>' +
+        '<td>' + B.esc(ct("PR").desc) + ' If it moves money or time, it was never an ASI.</td>' +
+        '<td class="k">' + B.esc(ct("PR").form) + '</td></tr>' +
+      '<tr><td><div class="t-main">Change Order</div><div class="t-sub">The executed instrument</div></td>' +
+        '<td>' + B.tag("Post-award", "watch") + '</td>' +
+        '<td>' + B.esc(ct("CO").desc) + '</td>' +
+        '<td class="k">' + B.esc(ct("CO").form) + '</td></tr>' +
+    '</tbody></table>' +
+    '<div class="divider"></div>' +
+    '<div class="fence"><b>"What was in the permit set versus the bid set?"</b> Most firms cannot answer that quickly. ' +
+    'The sets live in dated folders, the revision clouds live on the sheets, and the person who knows is on site. ' +
+    'Here the issue history is on the sheet record itself, so the answer is a table, not an afternoon.</div>' +
+    B.srcNote("AIA G-series form numbers as carried in this hub's engine (B.CA_TYPES). Pre-award and post-award usage described in plain terms; the governing document on any given project is that project's own agreement.")
+  ));
+
+  /* --------------------------------------------------------------- wiring */
+  ["#dDisc", "#dType", "#dSeq"].forEach(function (sel) {
+    var elx = decCard.querySelector(sel);
+    elx.addEventListener("change", renderDecode);
+    elx.addEventListener("input", renderDecode);
+  });
+  cmpCard.querySelector("#cmpA").addEventListener("change", renderCompare);
+  cmpCard.querySelector("#cmpB").addEventListener("change", renderCompare);
+
+  var jump = document.getElementById("jumpDecode");
+  if (jump) jump.addEventListener("click", function () { decCard.querySelector("#dDisc").focus(); });
+
+  renderStats();
+  renderDecode();
+  renderIndex();
+  renderCompare();
+})();
+</script>
+</body>
+</html>

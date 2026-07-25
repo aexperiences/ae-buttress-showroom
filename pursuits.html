@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pursuits · Go/No-Go · Buttress OS V2.0</title>
+<meta name="description" content="Buttress OS — the architecture practice operating system. Powered by Accelerated Experiences LLC.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="buttress.css">
+</head>
+<body>
+<script src="buttress.js"></script>
+<script>
+(function () {
+  var B = window.Buttress;
+  var c = B.mount({ active: "pursuits.html", crumb: "Pursuits · Go/No-Go" });
+
+  var DECISIONS = ["GO", "HOLD", "NO-GO"];
+  function band(dec) { return dec === "GO" ? "good" : (dec === "HOLD" ? "watch" : "bad"); }
+
+  /* ------------------------------------------------------------- page head */
+  c.appendChild(B.page(
+    "Pursuits · Go/No-Go",
+    "The pipeline, and the verdict on each line of it. Every pursuit carries a stage, a fee value, the owner's " +
+    "cost of the work, a due date and a probability — so the weighted pipeline is computed, not guessed at in a hallway.",
+    '<button class="btn brass sm" id="consultBtn">Consult New Business</button>'
+  ));
+
+  /* the part that re-renders when a decision changes */
+  var board = document.createElement("div");
+  c.appendChild(board);
+
+  function renderBoard() {
+    var d = B.db();
+    var P = d.pursuits;
+
+    var weighted = Math.round(P.reduce(function (s, g) { return s + g.value * g.probability / 100; }, 0));
+    var totalFee = P.reduce(function (s, g) { return s + g.value; }, 0);
+    var totalCow = P.reduce(function (s, g) { return s + g.construction; }, 0);
+    var go   = P.filter(function (g) { return g.decision === "GO"; });
+    var hold = P.filter(function (g) { return g.decision === "HOLD"; });
+    var nogo = P.filter(function (g) { return g.decision === "NO-GO"; });
+    var goFee   = go.reduce(function (s, g) { return s + g.value; }, 0);
+    var holdFee = hold.reduce(function (s, g) { return s + g.value; }, 0);
+    var nogoFee = nogo.reduce(function (s, g) { return s + g.value; }, 0);
+
+    var statHTML =
+      B.stat("Weighted pipeline", B.money(weighted),
+             "Fee value × probability across all " + P.length + " pursuits") +
+      B.stat("GO — fee value", B.money(goFee),
+             go.length + " pursuit" + (go.length === 1 ? "" : "s") + " committed to", "good") +
+      B.stat("HOLD — fee value", B.money(holdFee),
+             hold.length + " parked pending qualification", "watch") +
+      B.stat("NO-GO — fee value", B.money(nogoFee),
+             nogo.length + " formally declined", "bad") +
+      B.stat("Pipeline at list", B.money(totalFee),
+             "Against " + B.money(totalCow) + " of cost of the work");
+
+    board.innerHTML = "";
+    board.appendChild(B.card(
+      '<h2>The pipeline, weighted</h2>' +
+      '<div class="card-sub">A raw pipeline total flatters everybody. The weighted number — fee value times the ' +
+      'probability on each pursuit — is the one that should drive staffing.</div>' +
+      '<div class="statrow">' + statHTML + '</div>'
+    ));
+
+    var rows = P.map(function (g) {
+      var opts = DECISIONS.map(function (o) {
+        return '<option value="' + B.esc(o) + '"' + (o === g.decision ? " selected" : "") + '>' + B.esc(o) + '</option>';
+      }).join("");
+      return '<tr>' +
+        '<td><div class="t-main">' + B.esc(g.name) + '</div>' +
+          '<div class="t-sub">' + B.esc(g.client) + ' · ' + B.esc(g.type) + ' · ' + B.esc(g.owner) + '</div>' +
+          '<div class="t-sub">' + B.esc(g.note) + '</div></td>' +
+        '<td>' + B.tag(g.stage, "ghost") + '</td>' +
+        '<td class="num">' + B.money(g.value) + '</td>' +
+        '<td class="num">' + B.money(g.construction) + '</td>' +
+        '<td class="k">' + B.esc(g.due) + '</td>' +
+        '<td class="num">' + B.pct(g.probability) +
+          '<div class="t-sub">' + B.money(Math.round(g.value * g.probability / 100)) + ' weighted</div></td>' +
+        '<td>' + B.tag(g.decision, band(g.decision)) +
+          '<div style="margin-top:5px"><select class="dec" data-id="' + B.esc(g.id) + '" ' +
+          'aria-label="Decision for ' + B.esc(g.name) + '" ' +
+          'style="width:auto;padding:4px 8px;font-size:12px">' + opts + '</select></div></td>' +
+      '</tr>';
+    }).join("");
+
+    board.appendChild(B.card(
+      '<h2>Pursuits</h2>' +
+      '<div class="card-sub">Change a decision and every number on this page moves with it. ' +
+      'The verdict lives on the record, not in the principal’s head.</div>' +
+      '<table><thead><tr><th>Pursuit</th><th>Stage</th><th class="num">Fee value</th>' +
+      '<th class="num">Cost of the work</th><th>Due</th><th class="num">Probability</th>' +
+      '<th>Decision</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+      '<div class="divider"></div>' +
+      '<div class="row">' +
+        B.tag(go.length + " GO", go.length ? "good" : "ghost") +
+        B.tag(hold.length + " HOLD", hold.length ? "watch" : "ghost") +
+        B.tag(nogo.length + " NO-GO", nogo.length ? "bad" : "ghost") +
+        B.tag(B.money(weighted) + " weighted", "ghost") +
+      '</div>'
+    ));
+
+    Array.prototype.forEach.call(board.querySelectorAll("select.dec"), function (sel) {
+      sel.addEventListener("change", function () {
+        var id = this.dataset.id, val = this.value, name = "";
+        B.save(function (x) {
+          x.pursuits.forEach(function (g) {
+            if (g.id === id) { g.decision = val; name = g.name; }
+          });
+        });
+        B.toast(name + " — decision set to " + val + ".", "ok");
+        renderBoard();
+      });
+    });
+  }
+  renderBoard();
+
+  /* ------------------------------------------------------------ QBS reality */
+  c.appendChild(B.card(
+    '<h2>Public work runs on QBS</h2>' +
+    '<div class="card-sub">Qualifications-based selection. On a public pursuit, price cannot be a selection factor — ' +
+    'the committee shortlists and ranks on qualifications, then negotiates a fee with the firm it already picked.</div>' +
+    '<div class="fence"><b>The win rides on qualifications, not the fee.</b> ' +
+    'That is why this room tracks the stage, the owner, the due date and the verdict — and why a fee number ' +
+    'never appears in a submittal here. The fee conversation opens in the Fee &amp; Proposal room, after the ranking.</div>' +
+    '<ul class="reasons">' +
+      '<li><span class="rtag assumption">ASSUMPTION</span><span>' +
+      B.esc("Post Falls is QBS (qualifications-based) — price can't be a selection factor, so the win rides on the reference sheets, not the fee.") +
+      '</span></li>' +
+    '</ul>' +
+    '<div class="srcnote">Carried verbatim from the Pursuits chain’s own reasoning, tagged ASSUMPTION by the engine ' +
+    'rather than asserted as fact. Confirm the selection method in the solicitation before responding.</div>' +
+    '<div class="divider"></div>' +
+    '<a class="btn ghost sm" href="proposal.html">Open Fee &amp; Proposal →</a>'
+  ));
+
+  /* --------------------------------------------------- Consult New Business */
+  var EXAMPLES = [
+    "Which pursuits should we actually chase this month?",
+    "Is there room in the backlog for another civic RFQ?",
+    "Should we formally no-go Sandpoint?",
+    "What does the weighted pipeline say about the shortlist interview?"
+  ];
+  c.appendChild(B.card(
+    '<h2>Consult New Business</h2>' +
+    '<div class="card-sub">Routes down the Pursuits chain — the department head reads the record, the AE packages the ask, ' +
+    'two opposing lenses argue it, and the Pacemaker releases only at or above its confidence bar. ' +
+    'Below the bar it holds and asks for a human.</div>' +
+    '<div class="row" style="margin-bottom:12px">' +
+      '<input id="q" placeholder="e.g. Which pursuits should we actually chase this month?" style="flex:1;min-width:260px">' +
+      '<button class="btn brass" id="go">Route it</button>' +
+    '</div>' +
+    '<div class="row" style="gap:6px;margin-bottom:4px">' +
+      EXAMPLES.map(function (s) {
+        return '<button class="btn ghost sm ex" data-q="' + B.esc(s) + '">' + B.esc(s) + '</button>';
+      }).join("") +
+    '</div>' +
+    '<div id="out"></div>'
+  ));
+
+  function renderAnswer(r) {
+    var out = document.getElementById("out");
+    if (!out || !r) return;
+    var v = r.verdict, dept = r.dept, passed = r.passed;
+    var pctv = Math.min(100, v.conf);
+    var packaged = passed
+      ? (dept.pace.name + " released it at " + v.conf + "%, clearing the " + dept.gate + "% bar. " + v.stance)
+      : (dept.pace.name + " held it at " + v.conf + "%, under the " + dept.gate + "% bar — this one needs a human. " + v.stance);
+    out.innerHTML =
+      '<div class="divider"></div>' +
+      '<div class="' + (passed ? "busrow conclude" : "busrow reject") + '" style="display:block">' +
+        '<div class="bus-topic">' + (passed ? "pursuits.pacemaker.released" : "escalation.below_bar") + '</div>' +
+        '<div class="bus-body" style="margin-top:5px">' + B.esc(packaged) + '</div>' +
+      '</div>' +
+      '<div class="conf">' +
+        '<span class="muted small">' + B.esc(dept.name) + ' · bar ' + dept.gate + '%</span>' +
+        '<span class="conf-bar"><i class="conf-fill ' + (passed ? "" : "under") + '" style="width:' + pctv + '%"></i>' +
+        '<span class="conf-gate" style="left:' + dept.gate + '%"></span></span>' +
+        '<span class="conf-n">' + v.conf + '%</span>' +
+      '</div>' +
+      '<ul class="reasons">' + v.reasons.map(function (x) {
+        return '<li><span class="rtag ' + x.t + '">' + x.t.toUpperCase() + '</span><span>' + B.esc(x.s) + '</span></li>';
+      }).join("") + '</ul>' +
+      '<div class="srcnote">Routed through ' + B.esc(dept.dh.name) + ' (DH) → ' + B.esc(dept.ae.name) +
+        ' (AE) → the bus → ' + B.esc(dept.pace.name) + ' (Pacemaker) → ' + B.esc(dept.lensA.name) +
+        ' / ' + B.esc(dept.lensB.name) + ' (opposing lenses). Full trace on the Agent Org page.</div>';
+  }
+
+  function ask(q) {
+    if (!q) { B.toast("Type a question first.", ""); return; }
+    var r = B.consult("pursuits", q);
+    if (!r) { B.toast("The Pursuits chain is not in this build.", ""); return; }
+    renderAnswer(r);
+  }
+
+  setTimeout(function () {
+    var qEl = document.getElementById("q");
+    document.getElementById("go").addEventListener("click", function () { ask(qEl.value.trim()); });
+    qEl.addEventListener("keydown", function (e) { if (e.key === "Enter") ask(this.value.trim()); });
+    Array.prototype.forEach.call(document.querySelectorAll(".ex"), function (b) {
+      b.addEventListener("click", function () { qEl.value = this.dataset.q; ask(this.dataset.q); });
+    });
+    var cb = document.getElementById("consultBtn");
+    if (cb) cb.addEventListener("click", function () {
+      qEl.scrollIntoView({ behavior: "smooth", block: "center" });
+      qEl.focus();
+    });
+  }, 0);
+})();
+</script>
+</body>
+</html>

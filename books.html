@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Books &amp; Multipliers · Buttress OS V2.0</title>
+<meta name="description" content="Buttress OS — the architecture practice operating system. Powered by Accelerated Experiences LLC.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="buttress.css">
+</head>
+<body>
+<script src="buttress.js"></script>
+<script>
+(function () {
+  var B = window.Buttress;
+  var c = B.mount({ active: "books.html", crumb: "Books & Multipliers" });
+  var DEPT_KEY = "money";
+  var NM = B.BENCH.netMultiplier;
+  var UT = B.BENCH.utilization;
+
+  function bring(elm) {
+    if (elm && typeof elm.scrollIntoView === "function") elm.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+  /* the engine's own banding rule, reused so the what-if reads the same way the board does */
+  function band(v, b) {
+    if (v >= b.target[0]) return "good";
+    if (v >= b.target[0] * 0.9) return "watch";
+    return "bad";
+  }
+  function fmt(k) {
+    if (k.fmt === "pct")   return B.pct(k.value);
+    if (k.fmt === "x")     return k.value.toFixed(2) + "x";
+    if (k.fmt === "mo")    return k.value.toFixed(1) + " mo";
+    if (k.fmt === "days")  return Math.round(k.value) + " d";
+    if (k.fmt === "money") return B.money(k.value);
+    return String(k.value);
+  }
+  function targetLine(k) {
+    return k.bench && k.bench.target
+      ? "Target " + k.bench.target[0] + "–" + k.bench.target[1] + (k.bench.unit || "")
+      : "No published target band";
+  }
+
+  /* the plain-terms formula for each metric on the board */
+  var FORMULA = {
+    utilization:   "Billable (direct) hours ÷ total hours worked, across the whole roster.",
+    netMultiplier: "Net revenue ÷ direct labor cost. Here: fee earned to date across the commissions, divided by the labor booked to them.",
+    realization:   "What was actually billed ÷ what the billable work was worth at each person’s billing rate.",
+    backlog:       "Contracted but unearned fee ÷ average monthly earned fee — the answer is in months of work.",
+    collection:    "Weighted average days outstanding on open invoices, weighted by invoice amount.",
+    wip:           "Earned to date less already billed, summed across every commission."
+  };
+  var WHY = {
+    utilization:   "It sets the ceiling on everything else. Hours that are not billable are overhead by another name.",
+    netMultiplier: "It answers the only question that matters about a fee: does it pay for the people who draw it?",
+    realization:   "It is where fee quietly disappears — write-offs, unbilled overruns, discounts nobody logged.",
+    backlog:       "It is how far ahead the office is sold. Low backlog is a staffing decision waiting to happen.",
+    collection:    "Earned is not collected. A firm can be profitable on paper and out of cash on the same day.",
+    wip:           "It is salary already spent that has not been asked for yet."
+  };
+
+  /* ------------------------------------------------------------- page head */
+  c.appendChild(B.page(
+    "Books & Multipliers",
+    "The metrics board. Utilization, net multiplier, realization, backlog, AR aging and WIP — computed from this " +
+    "hub’s own commissions, labor and invoices, each against a sourced benchmark. Every formula is written out in " +
+    "plain terms, because a number a principal cannot explain is a number they will not act on.",
+    '<button class="btn brass sm" id="consultBtn">Consult Money</button>'
+  ));
+
+  /* -------------------------------------------------------------- the board */
+  c.appendChild(B.card(
+    '<h2>The board</h2>' +
+    '<div class="card-sub">Every metric the engine publishes, with its band colour, its target band and the reason ' +
+    'it is on the wall. Nothing here is typed in at month end — it is read off the record as it stands right now.</div>' +
+    '<div class="statrow" id="board"></div>' +
+    B.srcNote("Benchmarks: Deltek Clarity (A/E), BQE A/E benchmark set, Northstar target bands. " +
+              "Values computed live from this hub’s commissions, labor and invoices.")
+  ));
+
+  /* ----------------------------------------------- formulas + benchmark table */
+  c.appendChild(B.card(
+    '<h2>What each number is, and where its benchmark comes from</h2>' +
+    '<div class="card-sub">The formula in plain terms, this firm’s figure, the published band, and the source ' +
+    'string the engine ships with that band. Where two sources disagree, the disagreement is printed rather than ' +
+    'resolved.</div>' +
+    '<table><thead><tr><th>Metric</th><th>Formula, in plain terms</th><th class="num">This firm</th>' +
+      '<th>Benchmark</th><th>Source</th></tr></thead><tbody id="formulaRows"></tbody></table>' +
+    '<div class="divider"></div>' +
+    '<div class="fence"><b>The AR aging benchmark ships with a conflict in it.</b> The engine’s own source string ' +
+    'reads: “' + B.esc(B.BENCH.collection.src) + '”. Two published figures, on either side of the target band. ' +
+    'Both are shown, neither is averaged into a fake consensus.</div>'
+  ));
+
+  /* ------------------------------------------------------ per-person utilization */
+  c.appendChild(B.card(
+    '<h2>Utilization, seat by seat</h2>' +
+    '<div class="card-sub">Hours worked, billable hours, and each person’s utilization against their own target — ' +
+    'not against a single firm-wide number, because the seats are not doing the same job.</div>' +
+    '<table><thead><tr><th>Person</th><th>Role</th><th class="num">Hours</th><th class="num">Billable</th>' +
+      '<th class="num">Utilization</th><th class="num">Own target</th><th>Against target</th>' +
+      '<th class="num">Billing rate</th></tr></thead><tbody id="laborRows"></tbody></table>' +
+    '<div class="divider"></div>' +
+    '<div class="fence" id="principalNote"></div>' +
+    B.srcNote("Firm-wide utilization band: " + B.BENCH.utilization.src +
+              ". The per-seat targets above are this hub’s own settings, not a published benchmark.")
+  ));
+
+  /* --------------------------------------------------------------- what-if */
+  c.appendChild(B.card(
+    '<h2>What-if — move the labor cost, watch the multiplier</h2>' +
+    '<div class="card-sub">Net revenue holds at what the commissions have actually earned. Drag the direct labor ' +
+    'cost and the net multiplier recomputes live against the ' + NM.target[0] + '–' + NM.target[1] + NM.unit +
+    ' band. The second slider moves billable hours and recomputes utilization the same way.</div>' +
+    '<div class="grid g2">' +
+      '<div>' +
+        '<label class="f" for="sLabor">Direct labor cost <span id="sLaborLbl" class="mono"></span></label>' +
+        '<input id="sLabor" type="range" min="50" max="175" step="1" value="100">' +
+        '<div class="small muted" style="margin-top:6px" id="sLaborNote"></div>' +
+      '</div>' +
+      '<div>' +
+        '<label class="f" for="sHours">Billable hours <span id="sHoursLbl" class="mono"></span></label>' +
+        '<input id="sHours" type="range" min="50" max="140" step="1" value="100">' +
+        '<div class="small muted" style="margin-top:6px" id="sHoursNote"></div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="statrow" id="whatifStats" style="margin-top:14px"></div>' +
+    '<div class="fence" id="whatifRead" style="margin-top:13px"></div>' +
+    '<div class="row" style="margin-top:12px">' +
+      '<button class="btn ghost sm" id="resetWhatif">Back to today’s numbers</button>' +
+      '<span class="muted small">The sliders are a model. They do not write to the record.</span>' +
+    '</div>' +
+    B.srcNote(NM.src)
+  ));
+
+  /* --------------------------------------------------------- consult Money */
+  c.appendChild(B.card(
+    '<h2>Consult Money</h2>' +
+    '<div class="card-sub">Sterling (DH) owns the integrity of every number; Marin (AE) packages invoices, WIP, AR ' +
+    'aging and the multiplier view; Baseline (Pacemaker) holds an 85% bar — the highest in the org alongside Law. ' +
+    'Realized argues only from what cleared the bank; Multiple asks whether the phase clears the multiplier on real ' +
+    'labor cost.</div>' +
+    '<div class="row" style="margin-bottom:12px">' +
+      '<input id="q" placeholder="e.g. Are we billing everything we have earned?" style="flex:1;min-width:260px">' +
+      '<button class="btn brass" id="go">Route it</button>' +
+    '</div>' +
+    '<div class="row" style="gap:6px;margin-bottom:4px">' +
+      ['Are we billing everything we have earned?',
+       'Is the net multiplier holding?',
+       'How long is our money sitting in AR?'].map(function (s) {
+        return '<button class="btn ghost sm ex" data-q="' + B.esc(s) + '">' + B.esc(s) + '</button>';
+      }).join("") +
+    '</div>' +
+    '<div id="out"></div>'
+  ));
+
+  c.appendChild(B.card(
+    '<h2>Why this room escalates instead of answering</h2>' +
+    '<div class="card-sub">Run the consult above and it will hold below its bar. That is the designed behaviour, ' +
+    'not a failure of the model.</div>' +
+    '<div class="fence"><b>Money runs an 85% confidence bar — the highest in the org alongside Law.</b> ' +
+    'Every other department releases at 80. Money holds higher because a wrong figure does not stay in this room: ' +
+    'it goes into a fee letter, a forecast and a bank conversation. ' + B.esc(B.SEATS.depts.filter(function (x) {
+      return x.key === "money"; })[0].pace.line) + '</div>' +
+    '<div class="divider"></div>' +
+    '<div class="fence"><b>A high bar holding a number back is the feature.</b> The alternative is a system that ' +
+    'always answers — and a principal who cannot tell the confident answers from the bluffed ones. When Money ' +
+    'escalates, it does not go silent: it hands up the stance, the confidence, and every reason tagged ' +
+    '[data] or [assumption], so the human is deciding with the same evidence the machine had.</div>' +
+    '<div class="row" style="margin-top:12px;gap:7px">' +
+      B.tag("Money · bar 85%", "watch") + B.tag("Law · bar 85%", "watch") +
+      B.tag("Every other department · bar 80%", "ghost") +
+    '</div>'
+  ));
+
+  /* ------------------------------------------------------------- rendering */
+  function renderBoard() {
+    var ks = B.kpis();
+    document.getElementById("board").innerHTML = ks.map(function (k) {
+      var note = '<b>' + B.esc(targetLine(k)) + '</b><br>' + B.esc(k.help);
+      return B.stat(k.label, fmt(k), note, k.band);
+    }).join("");
+
+    document.getElementById("formulaRows").innerHTML = ks.map(function (k) {
+      var bandTxt = k.bench && k.bench.target
+        ? k.bench.target[0] + "–" + k.bench.target[1] + (k.bench.unit || "") +
+          (k.bench.median !== undefined ? '<div class="t-sub">Median ' + k.bench.median + (k.bench.unit || "") + '</div>' : "")
+        : '<span class="muted">None published</span>';
+      return '<tr>' +
+        '<td><div class="t-main">' + B.esc(k.label) + '</div>' +
+          '<div class="t-sub">' + B.esc(WHY[k.k] || "") + '</div></td>' +
+        '<td class="t-sub" style="margin:0">' + B.esc(FORMULA[k.k] || "") + '</td>' +
+        '<td class="num"><b>' + fmt(k) + '</b>' +
+          '<div class="t-sub">' + B.tag(k.band, k.band) + '</div></td>' +
+        '<td class="k">' + bandTxt + '</td>' +
+        '<td class="t-sub" style="margin:0">' + B.esc(k.bench ? k.bench.src : "") + '</td>' +
+      '</tr>';
+    }).join("");
+  }
+
+  function renderLabor(d) {
+    var rows = d.labor.map(function (p) {
+      var u = p.hours ? (p.billable / p.hours) * 100 : 0;
+      var hasTarget = Number(p.target) > 0;
+      var b = "";
+      if (hasTarget) b = u >= p.target ? "good" : (u >= p.target * 0.9 ? "watch" : "bad");
+      var delta = u - Number(p.target);
+      return '<tr>' +
+        '<td><div class="t-main">' + B.esc(p.name) + '</div></td>' +
+        '<td>' + B.esc(p.role) + '</td>' +
+        '<td class="num">' + p.hours + '</td>' +
+        '<td class="num">' + p.billable + '</td>' +
+        '<td class="num"><b' + (b ? ' style="color:var(--' + (b === "watch" ? "brass-2" : b) + ')"' : "") + '>' +
+          B.pct(u) + '</b></td>' +
+        '<td class="num">' + (hasTarget ? B.pct(p.target) : '<span class="muted">—</span>') + '</td>' +
+        '<td>' + (hasTarget
+            ? B.tag((delta >= 0 ? "+" : "") + delta.toFixed(0) + " pts", b)
+            : B.tag("Non-billable seat by design", "ghost")) + '</td>' +
+        '<td class="num">' + (p.rate ? B.money(p.rate) + "/hr" : '<span class="muted">—</span>') + '</td>' +
+      '</tr>';
+    }).join("");
+
+    var totalH = d.labor.reduce(function (s, p) { return s + (Number(p.hours) || 0); }, 0);
+    var totalB = d.labor.reduce(function (s, p) { return s + (Number(p.billable) || 0); }, 0);
+    var firmU = totalH ? (totalB / totalH) * 100 : 0;
+    rows += '<tr><td class="t-main">Firm</td><td class="muted">All seats</td>' +
+      '<td class="num t-main">' + totalH + '</td><td class="num t-main">' + totalB + '</td>' +
+      '<td class="num t-main">' + B.pct(firmU) + '</td>' +
+      '<td class="num">' + UT.target[0] + '–' + UT.target[1] + UT.unit + '</td>' +
+      '<td>' + B.tag(firmU >= UT.target[0] ? "In the band" : "Under the band",
+                     firmU >= UT.target[0] ? "good" : "watch") + '</td><td></td></tr>';
+
+    document.getElementById("laborRows").innerHTML = rows;
+
+    var principals = d.labor.filter(function (p) { return p.role === "Principal"; });
+    var tech = d.labor.filter(function (p) { return p.role !== "Principal" && Number(p.target) > 0; });
+    var techTargets = tech.map(function (p) { return p.target; });
+    var lo = Math.min.apply(null, techTargets), hi = Math.max.apply(null, techTargets);
+    document.getElementById("principalNote").innerHTML =
+      '<b>A principal runs a much lower utilization target than technical staff, and that is deliberate.</b> ' +
+      (principals.length
+        ? B.esc(principals[0].name) + ' carries a ' + B.pct(principals[0].target) + ' target in this hub while the ' +
+          'technical seats carry ' + B.pct(lo) + '–' + B.pct(hi) + '. '
+        : "") +
+      'The principal seat is selling the next commission, sealing the set, managing the owner and carrying the ' +
+      'firm’s risk — real work, none of it billable to a project. Judging that seat against a production target ' +
+      'produces exactly the wrong behaviour: a principal who bills more and sells nothing. The firm-wide band is ' +
+      'the sourced number; the per-seat targets are a management decision this hub makes explicit instead of ' +
+      'leaving implied.';
+  }
+
+  /* --------------------------------------------------------------- what-if */
+  var base = (function () {
+    var d = B.db();
+    var revenue = d.commissions.reduce(function (s, x) { return s + B.earnedToDate(x); }, 0);
+    var labor = d.commissions.reduce(function (s, x) { return s + (Number(x.laborCost) || 0); }, 0);
+    var hours = d.labor.reduce(function (s, p) { return s + (Number(p.hours) || 0); }, 0);
+    var billable = d.labor.reduce(function (s, p) { return s + (Number(p.billable) || 0); }, 0);
+    return { revenue:revenue, labor:labor, hours:hours, billable:billable };
+  })();
+
+  function renderWhatif() {
+    var lPct = Number(document.getElementById("sLabor").value) || 100;
+    var hPct = Number(document.getElementById("sHours").value) || 100;
+    var labor = Math.round(base.labor * lPct / 100);
+    var billable = Math.round(base.billable * hPct / 100);
+    var nm = labor ? base.revenue / labor : 0;
+    var u = base.hours ? (billable / base.hours) * 100 : 0;
+    var nmB = band(nm, NM), uB = band(u, UT);
+    var clears = nm >= NM.target[0];
+    var above = nm > NM.target[1];
+
+    document.getElementById("sLaborLbl").textContent = B.money(labor) + " (" + lPct + "% of today)";
+    document.getElementById("sHoursLbl").textContent = billable + " hrs (" + hPct + "% of today)";
+    document.getElementById("sLaborNote").textContent =
+      "Today: " + B.money(base.labor) + " of direct labor booked to the commissions, against " +
+      B.money(base.revenue) + " of fee earned to date.";
+    document.getElementById("sHoursNote").textContent =
+      "Today: " + base.billable + " billable of " + base.hours + " total hours across the roster.";
+
+    document.getElementById("whatifStats").innerHTML =
+      B.stat("Net multiplier", nm.toFixed(2) + "x",
+             "Target " + NM.target[0] + "–" + NM.target[1] + NM.unit, nmB) +
+      B.stat("Net revenue", B.money(base.revenue), "Earned to date — held constant") +
+      B.stat("Direct labor cost", B.money(labor),
+             lPct === 100 ? "As recorded" : (lPct > 100 ? "+" : "") + (lPct - 100) + "% against today") +
+      B.stat("Utilization", B.pct(u),
+             "Target " + UT.target[0] + "–" + UT.target[1] + UT.unit, uB) +
+      B.stat("Billable hours", String(billable),
+             "of " + base.hours + " total hours") +
+      B.stat("Break-even labor cost", B.money(Math.round(base.revenue / NM.target[0])),
+             "The most labor that still clears " + NM.target[0] + NM.unit);
+
+    document.getElementById("whatifRead").innerHTML =
+      '<b>At ' + B.money(labor) + ' of direct labor cost the net multiplier is ' + nm.toFixed(2) + 'x — ' +
+      (clears
+        ? 'it clears the ' + NM.target[0] + NM.unit + ' floor' +
+          (above ? ' and sits above the top of the ' + NM.target[0] + '–' + NM.target[1] + NM.unit +
+                   ' band, which is the profitable side of it.' : ' and sits inside the target band.')
+        : 'it does not clear the ' + NM.target[0] + NM.unit + ' floor, so overhead is eating the fee.') +
+      '</b> The firm stops clearing the floor once direct labor passes ' +
+      B.money(Math.round(base.revenue / NM.target[0])) + ' against the ' + B.money(base.revenue) +
+      ' of fee already earned. Utilization at these hours is ' + B.pct(u) + ' against a ' +
+      UT.target[0] + '–' + UT.target[1] + UT.unit + ' band.';
+  }
+
+  function render() {
+    var d = B.db();
+    renderBoard();
+    renderLabor(d);
+    renderWhatif();
+  }
+
+  /* -------------------------------------------------------- consult render */
+  function renderAnswer(r) {
+    var out = document.getElementById("out");
+    var v = r.verdict, dept = r.dept, passed = r.passed;
+    var pctv = Math.min(100, v.conf);
+    var head = passed
+      ? dept.pace.name + " released it: " + v.stance
+      : "Held below the " + dept.gate + "% bar (" + v.conf + "%). Needs a human — not enough live data. " + v.stance;
+    out.innerHTML =
+      '<div class="divider"></div>' +
+      '<div class="' + (passed ? "busrow conclude" : "busrow reject") + '" style="display:block">' +
+        '<div class="bus-topic">' + (passed ? "money.pacemaker.released" : "escalation.below_bar") + '</div>' +
+        '<div class="bus-body" style="margin-top:5px">' + B.esc(head) + '</div>' +
+      '</div>' +
+      '<div class="conf">' +
+        '<span class="muted small">' + B.esc(dept.name) + ' · bar ' + dept.gate + '%</span>' +
+        '<span class="conf-bar"><i class="conf-fill ' + (passed ? "" : "under") + '" style="width:' + pctv + '%"></i>' +
+        '<span class="conf-gate" style="left:' + dept.gate + '%"></span></span>' +
+        '<span class="conf-n">' + v.conf + '%</span>' +
+      '</div>' +
+      '<ul class="reasons">' + v.reasons.map(function (x) {
+        return '<li><span class="rtag ' + B.esc(x.t) + '">' + B.esc(x.t.toUpperCase()) + '</span><span>' +
+          B.esc(x.s) + '</span></li>';
+      }).join("") + '</ul>' +
+      (passed ? "" :
+        '<div class="fence" style="margin-top:11px"><b>This is the gate working.</b> ' +
+        B.esc(dept.pace.name) + ' came in at ' + v.conf + '% against an ' + dept.gate + '% bar, so nothing was ' +
+        'released as a decision. It escalates to ' + B.esc(B.SEATS.coo.name) + ' and then to the principal with the ' +
+        'stance and every reason attached — a held number, not a silent one.</div>') +
+      '<div class="srcnote">Routed through ' + B.esc(dept.dh.name) + ' (DH) → ' + B.esc(dept.ae.name) +
+        ' (AE) → the bus → ' + B.esc(dept.pace.name) + ' (Pacemaker) → ' + B.esc(dept.lensA.name) +
+        ' / ' + B.esc(dept.lensB.name) + ' (opposing lenses). Full trace on the Agent Org page.</div>';
+  }
+
+  function ask(q) {
+    if (!q) { B.toast("Type a question first.", ""); return; }
+    var r = B.consult(DEPT_KEY, q);
+    if (!r) { B.toast("Books & Multipliers is not in this build.", ""); return; }
+    renderAnswer(r);
+    B.toast(r.passed
+      ? "Money released it above its 85% bar."
+      : "Money held at " + r.verdict.conf + "% against its 85% bar — escalated, not answered.", "ok");
+  }
+
+  /* ------------------------------------------------------------------ boot */
+  render();
+
+  setTimeout(function () {
+    ["sLabor", "sHours"].forEach(function (id) {
+      var e = document.getElementById(id);
+      e.addEventListener("input", renderWhatif);
+      e.addEventListener("change", renderWhatif);
+    });
+    document.getElementById("resetWhatif").addEventListener("click", function () {
+      document.getElementById("sLabor").value = "100";
+      document.getElementById("sHours").value = "100";
+      renderWhatif();
+      B.toast("What-if reset to the recorded numbers.", "ok");
+    });
+
+    document.getElementById("go").addEventListener("click", function () {
+      ask(document.getElementById("q").value.trim());
+    });
+    document.getElementById("q").addEventListener("keydown", function (e) {
+      if (e.key === "Enter") ask(this.value.trim());
+    });
+    Array.prototype.forEach.call(document.querySelectorAll(".ex"), function (b) {
+      b.addEventListener("click", function () {
+        document.getElementById("q").value = this.dataset.q;
+        ask(this.dataset.q);
+      });
+    });
+    var cb = document.getElementById("consultBtn");
+    if (cb) cb.addEventListener("click", function () {
+      var q = document.getElementById("q");
+      bring(q); q.focus();
+    });
+  }, 0);
+})();
+</script>
+</body>
+</html>

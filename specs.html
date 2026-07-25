@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Specs · MasterFormat · Buttress OS V2.0</title>
+<meta name="description" content="Buttress OS — the architecture practice operating system. Powered by Accelerated Experiences LLC.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="buttress.css">
+</head>
+<body>
+<script src="buttress.js"></script>
+<script>
+(function () {
+  var B = window.Buttress;
+  var c = B.mount({ active: "specs.html", crumb: "Specs · MasterFormat" });
+
+  var DEPT_KEY = "standards";
+  var filterDiv = "";          // "" = every division
+
+  function divName(n) {
+    var x = B.MF_DIVISIONS.filter(function (m) { return m.n === n; })[0];
+    return x ? x.name : "Division " + n;
+  }
+  function subs(s) { return (s.submittals || []); }
+  function logRows() {
+    return B.db().ca.filter(function (x) { return x.type === "SUBMITTAL"; });
+  }
+  function maxSubNum(d) {
+    var max = 0;
+    d.ca.forEach(function (x) {
+      var m = /^SUB-(\d+)$/.exec(String(x.num || ""));
+      if (m) max = Math.max(max, Number(m[1]));
+    });
+    return max;
+  }
+  function plusDays(n) {
+    var t = new Date();
+    t.setDate(t.getDate() + (Number(n) || 0));
+    return t.getFullYear() + "-" + ("0" + (t.getMonth() + 1)).slice(-2) + "-" + ("0" + t.getDate()).slice(-2);
+  }
+
+  /* ------------------------------------------------------------- page head */
+  c.appendChild(B.page(
+    "Specs · MasterFormat",
+    "The project manual, held as data instead of as a Word file. Sections are numbered on the CSI MasterFormat structure, " +
+    "and the submittal requirements written into Part 1 of each section build the submittal log directly — no one retypes them, no one remembers them.",
+    '<button class="btn brass sm" id="jumpAsk">Consult Standards &amp; Specs</button>'
+  ));
+
+  /* ----------------------------------------------------------------- stats */
+  var statCard = B.card(
+    '<h2>The project manual, by the numbers</h2>' +
+    '<div class="card-sub">Counted off this hub\'s own sections and its own CA log — the two things that are supposed to agree and usually do not.</div>' +
+    '<div class="statrow" id="statRow"></div>'
+  );
+  c.appendChild(statCard);
+
+  function renderStats() {
+    var d = B.db();
+    var divs = {}, reqs = 0, draft = 0;
+    d.specs.forEach(function (s) {
+      divs[s.div] = 1;
+      reqs += subs(s).length;
+      if (s.status === "Draft") draft++;
+    });
+    var inLog = logRows().length;
+    statCard.querySelector("#statRow").innerHTML =
+      B.stat("Sections", d.specs.length, "MasterFormat sections in the manual") +
+      B.stat("Divisions touched", Object.keys(divs).length, "Of the " + B.MF_DIVISIONS.length + " a building project reaches") +
+      B.stat("Part 1 requirements", reqs, "Every one of them owed by a contractor") +
+      B.stat("Submittals in the log", inLog, "Type SUBMITTAL on the CA desk right now",
+             inLog >= reqs ? "good" : "watch") +
+      B.stat("Draft sections", draft, "Not issued — their requirements cannot be enforced",
+             draft ? "watch" : "good");
+  }
+
+  /* ================================================ THE ONE THAT SELLS IT ==
+     Part 1 of a section lists what the contractor owes. That list IS the
+     submittal log. Here it builds itself, into the same CA desk that runs the
+     RFIs — one record, not four tools. */
+  var killCard = B.card(
+    '<h2>Part 1 builds the submittal log</h2>' +
+    '<div class="card-sub">Every section carries its Part 1 submittal requirements. Press the button on a section and each requirement ' +
+    'becomes a live submittal on the CA desk — type SUBMITTAL, status Open, ball in the Contractor\'s court, spec section attached. ' +
+    'This is the move that retires four tools at once: the spec file, the submittal log spreadsheet, the project-information system it was retyped into, ' +
+    'and the memory of whoever wrote the section.</div>' +
+    '<div class="row" style="align-items:flex-end;margin-bottom:12px">' +
+      '<div style="min-width:210px"><label class="f">Review window (days)</label><input id="win" type="number" min="1" max="60" value="14"></div>' +
+      '<button class="btn brass" id="buildAll">Build the log from every issued section</button>' +
+      '<button class="btn ghost sm" id="jumpLog">See the log</button>' +
+    '</div>' +
+    '<div id="divChips" class="row" style="gap:6px;margin-bottom:12px"></div>' +
+    '<div id="specBody"></div>' +
+    '<div class="fence" style="margin-top:13px">The window above sets the response date Buttress puts on each generated submittal. ' +
+    'It is an office default you choose here — not a code requirement and not a contract term. ' +
+    'The real review period is whatever the executed agreement and Division 01 say it is.</div>' +
+    B.srcNote("CSI MasterFormat division structure and the section list carried in this hub's engine (B.MF_DIVISIONS, B.db().specs). Generated submittals are written to the same CA log the RFIs live in.")
+  );
+  c.appendChild(killCard);
+
+  function renderChips() {
+    var d = B.db();
+    var used = {};
+    d.specs.forEach(function (s) { used[s.div] = (used[s.div] || 0) + 1; });
+    var html = '<button class="btn ' + (filterDiv === "" ? "brass" : "ghost") + ' sm divchip" data-div="">All divisions</button>';
+    B.MF_DIVISIONS.forEach(function (m) {
+      var n = used[m.n] || 0;
+      html += '<button class="btn ' + (filterDiv === m.n ? "brass" : "ghost") + ' sm divchip" data-div="' + B.esc(m.n) + '"' +
+        (n ? "" : ' title="No section in this hub yet"') + '>' +
+        B.esc(m.n) + ' · ' + B.esc(m.name) + (n ? ' <span class="tag mono">' + n + '</span>' : '') + '</button>';
+    });
+    killCard.querySelector("#divChips").innerHTML = html;
+    Array.prototype.forEach.call(killCard.querySelectorAll(".divchip"), function (b) {
+      b.addEventListener("click", function () {
+        filterDiv = this.getAttribute("data-div");
+        renderChips();
+        renderSpecs();
+      });
+    });
+  }
+
+  function renderSpecs() {
+    var d = B.db();
+    var list = d.specs.filter(function (s) { return !filterDiv || s.div === filterDiv; });
+    var existing = {};
+    logRows().forEach(function (x) { existing[x.spec + "||" + x.subject] = 1; });
+
+    var rows = list.map(function (s) {
+      var pending = subs(s).filter(function (r) {
+        return !existing[s.sec + "||" + s.title + " — " + r];
+      }).length;
+      var chips = subs(s).map(function (r) {
+        var made = existing[s.sec + "||" + s.title + " — " + r];
+        return B.tag(r, made ? "good" : "ghost");
+      }).join(" ");
+      return '<tr>' +
+        '<td class="k">' + B.esc(s.sec) +
+          '<div class="t-sub">Div ' + B.esc(s.div) + ' · ' + B.esc(divName(s.div)) + '</div></td>' +
+        '<td><div class="t-main">' + B.esc(s.title) + '</div>' +
+          '<div class="t-sub">' + B.esc(s.project) + '</div></td>' +
+        '<td>' + B.tag(s.status, s.status === "Issued" ? "good" : "watch") + '</td>' +
+        '<td><div class="row" style="gap:5px">' + chips + '</div>' +
+          '<div class="t-sub">Part 1 · ' + subs(s).length + ' requirement' + (subs(s).length === 1 ? "" : "s") +
+          (pending ? " · " + pending + " not yet in the log" : " · all in the log") + '</div></td>' +
+        '<td class="num"><button class="btn ' + (pending ? "brass" : "ghost") + ' sm gen" data-id="' + B.esc(s.id) + '">' +
+          (pending ? "Build " + pending + " submittal" + (pending === 1 ? "" : "s") : "Log is current") + '</button></td>' +
+      '</tr>';
+    }).join("");
+
+    killCard.querySelector("#specBody").innerHTML =
+      '<table><thead><tr><th>Section</th><th>Title</th><th>Status</th>' +
+      '<th>Part 1 submittal requirements</th><th class="num">Build</th></tr></thead><tbody>' +
+      (rows || '<tr><td colspan="5" class="empty">No section in this hub sits in that division yet.</td></tr>') +
+      '</tbody></table>';
+
+    Array.prototype.forEach.call(killCard.querySelectorAll(".gen"), function (b) {
+      b.addEventListener("click", function () { buildFrom([this.getAttribute("data-id")]); });
+    });
+  }
+
+  /* The generator. Writes real entries into B.db().ca and persists them. */
+  function buildFrom(ids) {
+    var win = Number(killCard.querySelector("#win").value) || 14;
+    var due = plusDays(win);
+    var created = 0, skipped = 0, sections = {};
+
+    B.save(function (d) {
+      var existing = {};
+      d.ca.forEach(function (x) { if (x.type === "SUBMITTAL") existing[x.spec + "||" + x.subject] = 1; });
+      var seqNo = maxSubNum(d);
+      d.specs.forEach(function (s) {
+        if (ids.indexOf(s.id) < 0) return;
+        subs(s).forEach(function (r) {
+          var subject = s.title + " — " + r;
+          var key = s.sec + "||" + subject;
+          if (existing[key]) { skipped++; return; }
+          existing[key] = 1;
+          d.ca.push({
+            id: "ca" + (d.seq++),
+            num: "SUB-" + ("00" + (++seqNo)).slice(-3),
+            type: "SUBMITTAL",
+            subject: subject,
+            project: s.project,
+            ball: "Contractor",
+            status: "Open",
+            days: 0,
+            due: due,
+            spec: s.sec,
+            from: "Section " + s.sec + " · Part 1",
+            action: "",
+            costImpact: false,
+            timeImpact: false,
+            note: "Generated from the Part 1 submittal requirements of Section " + s.sec + " " + s.title +
+                  ". Response date set on this hub's " + win + "-day office default."
+          });
+          created++;
+          sections[s.sec] = 1;
+        });
+      });
+    });
+
+    if (created) {
+      B.toast(created + " submittal" + (created === 1 ? "" : "s") + " created from " +
+              Object.keys(sections).length + " section" + (Object.keys(sections).length === 1 ? "" : "s") +
+              " — Part 1, straight onto the CA desk." + (skipped ? " " + skipped + " already logged." : ""), "ok");
+    } else {
+      B.toast("Nothing to build — every Part 1 requirement on that selection is already in the log.", "");
+    }
+    renderStats();
+    renderSpecs();
+    renderLog();
+  }
+
+  /* ------------------------------------------------------- the log it built */
+  var logCard = B.card(
+    '<h2>The submittal log</h2>' +
+    '<div class="card-sub">The same CA log the RFIs, ASIs and field reports live in — one record, one ball-in-court, one aging clock. ' +
+    'Everything generated above lands here with its spec section attached, so the section behind a submittal is never a guess.</div>' +
+    '<div id="logBody"></div>'
+  );
+  logCard.id = "logCard";
+  c.appendChild(logCard);
+
+  function renderLog() {
+    var rows = logRows().map(function (x) {
+      var gen = String(x.from || "").indexOf("Part 1") >= 0;
+      return '<tr>' +
+        '<td class="k">' + B.esc(x.num) +
+          '<div class="t-sub">' + B.esc((B.CA_TYPES.filter(function (t) { return t.k === "SUBMITTAL"; })[0] || {}).form || "—") + '</div></td>' +
+        '<td><div class="t-main">' + B.esc(x.subject) + '</div>' +
+          '<div class="t-sub">' + B.esc(x.project) + (gen ? ' · ' + B.tag("from Part 1", "good") : "") + '</div></td>' +
+        '<td class="k">' + B.esc(x.spec || "—") + '</td>' +
+        '<td>' + B.tag(x.ball, x.ball === "Architect" ? "watch" : "ghost") + '</td>' +
+        '<td>' + B.tag(x.status, x.status === "Open" ? "" : "good") +
+          '<div class="t-sub">' + (x.due ? "due " + B.esc(x.due) : "—") + '</div></td>' +
+      '</tr>';
+    }).join("");
+
+    logCard.querySelector("#logBody").innerHTML =
+      '<table><thead><tr><th>No.</th><th>Submittal</th><th>Spec section</th><th>Ball</th><th>Status</th></tr></thead><tbody>' +
+      (rows || '<tr><td colspan="5" class="empty">The log is empty. Build it from Part 1 above.</td></tr>') +
+      '</tbody></table>' +
+      '<div class="divider"></div>' +
+      '<div class="fence"><b>This is the "replaces four tools" moment.</b> The requirement was written once, in the section. ' +
+      'It is now a tracked item with a ball-in-court and a date, without a spreadsheet, without a re-key, ' +
+      'and without anyone hoping they caught every line of Part 1.</div>';
+  }
+
+  /* --------------------------------------------- the 3-part section format */
+  c.appendChild(B.card(
+    '<h2>Three parts, and only one of them builds the log</h2>' +
+    '<div class="card-sub">Every MasterFormat section is written in the same three-part format. The submittal log comes out of Part 1 — ' +
+    'not out of Part 2, not out of Part 3, and not out of memory.</div>' +
+    '<div class="grid g3">' +
+      '<div><div class="t-main">Part 1 — General</div>' +
+        '<div class="t-sub">Administrative and procedural requirements: what the section covers, references, quality assurance, ' +
+        'and the submittals the contractor owes. <b>This is the part the log builds from.</b></div></div>' +
+      '<div><div class="t-main">Part 2 — Products</div>' +
+        '<div class="t-sub">Materials, equipment, fabrication and finishes. What the thing is made of and to what standard.</div></div>' +
+      '<div><div class="t-main">Part 3 — Execution</div>' +
+        '<div class="t-sub">Examination, installation, field quality control, protection. How it goes in and how it is checked.</div></div>' +
+    '</div>' +
+    '<div class="divider"></div>' +
+    '<div class="row">' +
+      B.tag("MasterFormat is a 50-division structure, 00–49", "ghost") +
+      B.tag(B.MF_DIVISIONS.length + " divisions carried here — the ones a building project actually touches", "ghost") +
+      B.tag("Section numbers are Division · Level 2 · Level 3", "ghost") +
+    '</div>' +
+    B.srcNote("CSI MasterFormat 50-division structure and the three-part section format. Division list as carried in this hub's engine; a full commercial project manual reaches divisions this showroom does not seed.")
+  ));
+
+  /* ---------------------------------------------------------- what it costs */
+  var repl = B.REPLACES.filter(function (r) {
+    return r.tool.indexOf("Newforma") >= 0 || r.tool.indexOf("Spreadsheets") >= 0;
+  }).map(function (r) {
+    return '<tr><td><div class="t-main">' + B.esc(r.tool) + '</div>' +
+      '<div class="t-sub">' + B.esc(r.job) + '</div></td><td class="k">' + B.esc(r.cost) + '</td></tr>';
+  }).join("");
+  c.appendChild(B.card(
+    '<h2>What the Part 1 bridge retires</h2>' +
+    '<div class="card-sub">The spec section already exists. The submittal log already exists. What costs money is the gap between them — ' +
+    'the re-keying, the tool bought to hold the re-keyed version, and the item nobody transcribed.</div>' +
+    '<table><thead><tr><th>Today</th><th>What it costs</th></tr></thead><tbody>' + repl + '</tbody></table>' +
+    B.srcNote("Vendor-published where published; third-party estimates labeled as such. Newforma does not publish per-seat pricing.")
+  ));
+
+  /* ------------------------------------------ consult Standards & Specs */
+  var dept = B.SEATS.depts.filter(function (x) { return x.key === DEPT_KEY; })[0];
+  var askCard = B.card(
+    '<h2>Consult Standards &amp; Specs</h2>' +
+    '<div class="card-sub">' + B.esc(dept.dh.name) + ' owns the spec, the standard details and the code read. ' +
+    'The question routes down the chain, two opposing lenses argue it, and ' + B.esc(dept.pace.name) +
+    ' releases it only at or above the ' + dept.gate + '% bar — and a code position also needs a cited source, or the answer is ' +
+    '"confirm it with the AHJ."</div>' +
+    '<div class="row" style="margin-bottom:12px">' +
+      '<input id="q" placeholder="e.g. Which sections are holding up the submittal log?" style="flex:1;min-width:260px">' +
+      '<button class="btn brass" id="go">Route it</button>' +
+    '</div>' +
+    '<div class="row" style="gap:6px;margin-bottom:4px">' +
+      ['Which spec sections are still Draft?',
+       'How does the submittal log build itself?',
+       'What does the code say about the egress comment?',
+       'Which division is the storefront section in?'].map(function (s) {
+        return '<button class="btn ghost sm ex" data-q="' + B.esc(s) + '">' + B.esc(s) + '</button>';
+      }).join("") +
+    '</div>' +
+    '<div id="out"></div>'
+  );
+  c.appendChild(askCard);
+
+  function renderAnswer(r) {
+    var v = r.verdict, dp = r.dept, passed = r.passed;
+    var pctv = Math.min(100, v.conf);
+    var packaged = passed
+      ? (dp.pace.name + " releases it: " + v.stance)
+      : (dp.pace.name + " is holding this below the " + dp.gate + "% bar at " + v.conf +
+         "% — it needs a human. Here is what the chain has, with the follow-up already filed. " + v.stance);
+
+    askCard.querySelector("#out").innerHTML =
+      '<div class="divider"></div>' +
+      '<div class="' + (passed ? "busrow conclude" : "busrow reject") + '" style="display:block">' +
+        '<div class="bus-topic">' + (passed ? "standards.pacemaker.released" : "escalation.below_bar") + '</div>' +
+        '<div class="bus-body" style="margin-top:5px">' + B.esc(packaged) + '</div>' +
+      '</div>' +
+      '<div class="conf">' +
+        '<span class="muted small">' + B.esc(dp.name) + ' · bar ' + dp.gate + '%</span>' +
+        '<span class="conf-bar"><i class="conf-fill ' + (passed ? "" : "under") + '" style="width:' + pctv + '%"></i>' +
+        '<span class="conf-gate" style="left:' + dp.gate + '%"></span></span>' +
+        '<span class="conf-n">' + v.conf + '%</span>' +
+      '</div>' +
+      '<ul class="reasons">' + v.reasons.map(function (x) {
+        return '<li><span class="rtag ' + x.t + '">' + x.t.toUpperCase() + '</span><span>' + B.esc(x.s) + '</span></li>';
+      }).join("") + '</ul>' +
+      '<div class="divider"></div>' +
+      '<div class="bus">' + r.events.map(function (e) {
+        return '<div class="busrow' + (e.kind === "conclude" ? " conclude" : (e.kind === "reject" ? " reject" : "")) + '">' +
+          '<div class="bus-t">' + B.esc(e.stamp) + '</div>' +
+          '<div><div class="bus-topic">' + B.esc(e.topic) + '</div>' +
+            '<div class="bus-from"><b>' + B.esc(e.from) + '</b> → ' + B.esc(e.to) + '</div>' +
+            '<div class="bus-body">' + B.esc(e.body) + '</div></div></div>';
+      }).join("") + '</div>' +
+      '<div class="srcnote">Routed through ' + B.esc(dp.dh.name) + ' (DH) → ' + B.esc(dp.ae.name) +
+        ' (AE) → the bus → ' + B.esc(dp.pace.name) + ' (Pacemaker) → ' + B.esc(dp.lensA.name) +
+        ' / ' + B.esc(dp.lensB.name) + ' (opposing lenses). Full trace on the Agent Org page.</div>';
+  }
+
+  function ask(q) {
+    if (!q) { B.toast("Type a question first.", ""); return; }
+    var r = B.consult(DEPT_KEY, q);
+    if (!r) { B.toast("That department is not in this build.", ""); return; }
+    renderAnswer(r);
+  }
+
+  askCard.querySelector("#go").addEventListener("click", function () {
+    ask(askCard.querySelector("#q").value.trim());
+  });
+  askCard.querySelector("#q").addEventListener("keydown", function (e) {
+    if (e.key === "Enter") ask(this.value.trim());
+  });
+  Array.prototype.forEach.call(askCard.querySelectorAll(".ex"), function (b) {
+    b.addEventListener("click", function () {
+      askCard.querySelector("#q").value = this.getAttribute("data-q");
+      ask(this.getAttribute("data-q"));
+    });
+  });
+
+  /* --------------------------------------------------------------- wiring */
+  killCard.querySelector("#buildAll").addEventListener("click", function () {
+    var ids = B.db().specs.filter(function (s) { return s.status === "Issued"; }).map(function (s) { return s.id; });
+    if (!ids.length) { B.toast("No issued section to build from — a Draft section's requirements are not enforceable yet.", ""); return; }
+    buildFrom(ids);
+  });
+  killCard.querySelector("#jumpLog").addEventListener("click", function () {
+    if (typeof logCard.scrollIntoView === "function") { try { logCard.scrollIntoView(); } catch (e) {} }
+  });
+  var jump = document.getElementById("jumpAsk");
+  if (jump) jump.addEventListener("click", function () { askCard.querySelector("#q").focus(); });
+
+  renderStats();
+  renderChips();
+  renderSpecs();
+  renderLog();
+})();
+</script>
+</body>
+</html>

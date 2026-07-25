@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Operations · Buttress OS V2.0</title>
+<meta name="description" content="Buttress OS — the architecture practice operating system. Powered by Accelerated Experiences LLC.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="buttress.css">
+</head>
+<body>
+<script src="buttress.js"></script>
+<script>
+(function () {
+  var B = window.Buttress;
+  var c = B.mount({ active: "ops.html", crumb: "Operations" });
+
+  function bring(elm) {
+    if (elm && typeof elm.scrollIntoView === "function") {
+      elm.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }
+  function today() { return new Date().toISOString().slice(0, 10); }
+
+  /* Seed the follow-up calendar from the record itself the first time this
+     room is opened. Every item below is a due date already carried somewhere
+     else in the hub — nothing here is invented. */
+  function seedFollowups(d) {
+    if (d.followups) return;
+    var items = [];
+    (d.permits || []).forEach(function (p) {
+      if (p.due && p.due !== "—") {
+        items.push({ id: "f_" + p.id, text: "AHJ — " + p.project + " · " + p.ahj +
+          (p.status === "In review" ? " (cycle " + p.cycle + " comments open)" : " (" + p.status + ")"),
+          due: p.due, done: false, src: "Consultants & AHJ" });
+      }
+    });
+    (d.ca || []).forEach(function (x) {
+      if (x.ball === "Architect" && x.status !== "Closed" && x.due && x.due !== "—") {
+        items.push({ id: "f_" + x.id, text: x.num + " — " + x.subject + " · " + x.project,
+          due: x.due, done: false, src: "CA Desk" });
+      }
+    });
+    B.save(function (x) { x.followups = items; });
+  }
+
+  /* ------------------------------------------------------------- page head */
+  c.appendChild(B.page(
+    "Operations",
+    "The filing cabinet and the follow-up calendar for the whole office. Every other room owns its own work; this " +
+    "one owns the connective tissue — what is actually blocking the office right now, pulled across departments, " +
+    "and the calendar that makes sure nothing released today is forgotten next Tuesday.",
+    '<button class="btn brass sm" id="consultBtn">Consult Operations</button>'
+  ));
+
+  c.appendChild(B.card('<div class="statrow" id="statrow"></div>'));
+
+  /* ------------------------------------------------------- the bottleneck */
+  c.appendChild(B.card(
+    '<h2>What is actually blocking the office</h2>' +
+    '<div class="card-sub">Four lanes, one view. Choke — the throughput lens on this desk — asks a single ' +
+    'question: where is the queue that is holding everything else up?</div>' +
+    '<div id="lanes"></div>' +
+    '<div id="choke"></div>'
+  ));
+
+  /* --------------------------------------------------------- the detail rows */
+  var grid = document.createElement("div"); grid.className = "grid g2";
+  grid.appendChild(B.card(
+    '<h2>In the Architect\'s court</h2>' +
+    '<div class="card-sub">Open CA items where the ball is ours. Aging in our own court is the one number an ' +
+    'owner points at in a claim, which is why this lane is read first.</div>' +
+    '<div id="ourCourt"></div>'
+  ));
+  grid.appendChild(B.card(
+    '<h2>AHJ comments and pending approvals</h2>' +
+    '<div class="card-sub">Two queues nobody owns in a small firm: unresolved jurisdiction comments, and the ' +
+    'items the org has honestly fenced to the principal.</div>' +
+    '<div id="queues"></div>'
+  ));
+  c.appendChild(grid);
+
+  /* ---------------------------------------------------------------- the WIP */
+  c.appendChild(B.card(
+    '<h2>Unbilled work in progress</h2>' +
+    '<div class="card-sub">Not a billing problem — an operations problem. Work performed and not invoiced is a ' +
+    'process that stopped halfway, and it is the number that most often surprises a principal.</div>' +
+    '<div id="wip"></div>'
+  ));
+
+  /* ------------------------------------------------------ the follow-up desk */
+  c.appendChild(B.card(
+    '<h2>The follow-up calendar</h2>' +
+    '<div class="card-sub">Every conclusion the org releases gets two things done to it before it is over: it is ' +
+    'filed to the project record, and it gets a date on this calendar. That is the whole mechanism by which ' +
+    'nothing drops silently — not memory, not an inbox, not someone meaning to circle back.</div>' +
+    '<div class="fence"><b>Released, filed, followed up.</b> Index (the Operations AE) files the released ' +
+    'conclusion to the project record and sets the follow-up on the same pass. An answer with no date on it is ' +
+    'how a firm loses a permit cycle.</div>' +
+    '<div class="grid g3" style="margin:14px 0 4px">' +
+      '<div><label class="f" for="fuText">Follow up on</label>' +
+        '<input id="fuText" placeholder="e.g. confirm G704 dates with the contractor"></div>' +
+      '<div><label class="f" for="fuDue">Date</label><input id="fuDue" type="date"></div>' +
+      '<div><label class="f">&nbsp;</label>' +
+        '<div class="row"><button class="btn brass" id="fuGo">Add to the calendar</button>' +
+        '<button class="btn ghost" id="fuClear">Clear completed</button></div></div>' +
+    '</div>' +
+    '<div id="fu"></div>'
+  ));
+
+  /* -------------------------------------------------------- consult operations */
+  c.appendChild(B.card(
+    '<h2>Consult Operations</h2>' +
+    '<div class="card-sub">Keystone (DH) owns the connective tissue; Index (AE) owns the filing cabinet and the ' +
+    'follow-up calendar for the whole office; Meter (Pacemaker) releases at 80% and sends a cross-department ' +
+    'conflict up to the COO. Method argues for the cleanest repeatable process; Choke asks where the bottleneck ' +
+    'actually is.</div>' +
+    '<div class="row" style="margin-bottom:12px">' +
+      '<input id="q" placeholder="e.g. Where is the bottleneck this week?" style="flex:1;min-width:260px">' +
+      '<button class="btn brass" id="go">Route it</button>' +
+    '</div>' +
+    '<div class="row" style="gap:6px;margin-bottom:4px">' +
+      ['Where is the bottleneck this week?',
+       'What is blocking the office right now?',
+       'What did we file and follow up on?',
+       'Is anything going to drop this month?'].map(function (s) {
+        return '<button class="btn ghost sm ex" data-q="' + B.esc(s) + '">' + B.esc(s) + '</button>';
+      }).join("") +
+    '</div>' +
+    '<div id="out"></div>'
+  ));
+
+  /* ----------------------------------------------------------- computations */
+  function lanes(d) {
+    var ours = (d.ca || []).filter(function (x) { return x.ball === "Architect" && x.status !== "Closed"; });
+    var oldest = ours.reduce(function (m, x) { return Math.max(m, Number(x.days) || 0); }, 0);
+    var unresolved = (d.permits || []).reduce(function (s, p) {
+      return s + Math.max(0, (Number(p.comments) || 0) - (Number(p.resolved) || 0));
+    }, 0);
+    var pending = B.approvals().filter(function (a) { return a.state === "Pending"; });
+    var unbilled = (d.commissions || []).filter(function (x) { return B.readyToBill(x) > 0; });
+    return [
+      { key: "ca", label: "CA desk — in the Architect's court", short: "CA desk",
+        n: ours.length, outside: true, oldest: oldest,
+        note: "Open RFIs, submittals and transmittals the contractor and consultants are waiting on",
+        who: "the contractor and consultants", room: "CA Desk",
+        unit: "items in the Architect's court" },
+      { key: "ahj", label: "AHJ — comments unresolved", short: "AHJ comment",
+        n: unresolved, outside: true, oldest: 0,
+        note: "Jurisdiction comments still open across permit cycles",
+        who: "the jurisdiction", room: "Consultants & AHJ",
+        unit: "unresolved AHJ comments" },
+      { key: "ap", label: "Approval Desk — waiting on the principal", short: "Approval Desk",
+        n: pending.length, outside: false, oldest: 0,
+        note: "True fences only: a send, a spend, a price, booking a human",
+        who: "the principal, by design", room: "Approval Desk",
+        unit: "items on the Approval Desk" },
+      { key: "wip", label: "Billing — commissions with unbilled work", short: "Billing",
+        n: unbilled.length, outside: false, oldest: 0,
+        note: B.money(B.wip()) + " earned and not yet invoiced",
+        who: "nobody outside the office knows", room: "Billing",
+        unit: "commissions carrying work to invoice" }
+    ];
+  }
+  /* The bottleneck is the deepest queue where the next move is ours AND someone
+     outside the office is held up by it. Ties break to the lane carrying the
+     oldest item. Internal queues are a different problem — real, but they do
+     not stop anyone else's day. */
+  function bottleneck(L) {
+    var out = L.filter(function (l) { return l.outside && l.n > 0; });
+    if (!out.length) return null;
+    out.sort(function (a, b) { return b.n - a.n || b.oldest - a.oldest; });
+    return out[0];
+  }
+
+  function renderStats(d) {
+    var L = lanes(d);
+    var by = {}; L.forEach(function (l) { by[l.key] = l; });
+    var fu = d.followups || [];
+    var openFu = fu.filter(function (f) { return !f.done; });
+    var overdue = openFu.filter(function (f) { return f.due && f.due < today(); });
+    document.getElementById("statrow").innerHTML =
+      B.stat("In our court", String(by.ca.n), "CA items the office owes an answer on", by.ca.n ? "watch" : "good") +
+      B.stat("AHJ comments open", String(by.ahj.n), "Across every permit cycle", by.ahj.n ? "watch" : "good") +
+      B.stat("Pending approvals", String(by.ap.n), "Fenced to the principal", by.ap.n ? "watch" : "good") +
+      B.stat("Unbilled WIP", B.money(B.wip()), "Work performed, not yet invoiced",
+             B.wip() > 60000 ? "watch" : "good") +
+      B.stat("Follow-ups open", String(openFu.length), fu.length - openFu.length + " cleared this session") +
+      B.stat("Follow-ups past date", String(overdue.length), overdue.length ? "Read these first" : "Nothing past its date",
+             overdue.length ? "bad" : "good");
+  }
+
+  function renderLanes(d) {
+    var L = lanes(d);
+    var max = bottleneck(L);
+    document.getElementById("lanes").innerHTML =
+      '<table><thead><tr><th>Lane</th><th>Owned by</th><th class="num">Items waiting</th>' +
+      '<th>Who is held up</th><th>Read</th></tr></thead><tbody>' +
+      L.map(function (l) {
+        var isChoke = max && l.key === max.key;
+        return '<tr><td><div class="t-main">' + B.esc(l.label) + '</div>' +
+          '<div class="t-sub">' + B.esc(l.note) + '</div></td>' +
+          '<td class="small muted">' + B.esc(l.room) + '</td>' +
+          '<td class="num">' + (l.n ? '<b>' + l.n + '</b>' : "0") +
+            (l.oldest ? '<div class="t-sub">oldest ' + l.oldest + ' d</div>' : '') + '</td>' +
+          '<td class="small muted">' + B.esc(l.who) + '</td>' +
+          '<td>' + (isChoke ? B.tag("the bottleneck", "bad")
+            : (l.n ? B.tag(l.outside ? "outside party waiting" : "internal queue", "watch") : B.tag("clear", "good"))) +
+          '</td></tr>';
+      }).join("") + '</tbody></table>';
+
+    var inside = L.filter(function (l) { return !l.outside && l.n > 0; });
+    document.getElementById("choke").innerHTML =
+      '<div class="divider"></div>' +
+      (max
+        ? '<div class="fence"><b>The bottleneck is the ' + B.esc(max.short) + ' — ' + max.n +
+          ' item' + (max.n > 1 ? "s" : "") + ' with ' + B.esc(max.who) + ' waiting on us' +
+          (max.oldest ? ', the oldest at ' + max.oldest + ' days' : '') + '.</b> ' +
+          'The method is stated so you can argue with it: rank the lanes where the next move belongs to this ' +
+          'office <i>and</i> someone outside it is held up; break ties with the oldest item. ' +
+          (inside.length
+            ? 'The deeper queues — ' + B.esc(inside.map(function (l) { return l.n + " " + l.unit; }).join(" and ")) +
+              ' — are the office waiting on itself. Real, and worth money, but they do not stop anyone else\'s day.'
+            : '') + '</div>'
+        : '<div class="fence"><b>Nobody outside the office is waiting on us.</b> Every lane where a third party ' +
+          'depends on our next move is clear, and the calendar is carrying the follow-ups.</div>') +
+      '<div class="srcnote" style="font-style:normal">Every figure on this page is pulled live from the other ' +
+      'rooms of this hub — the CA log, the permit cycles, the Approval Desk and the commission spine. Nothing on ' +
+      'this page is entered twice.</div>';
+  }
+
+  function renderOurCourt(d) {
+    var ours = (d.ca || []).filter(function (x) { return x.ball === "Architect" && x.status !== "Closed"; });
+    var rows = ours.map(function (x) {
+      var t = B.CA_TYPES.filter(function (k) { return k.k === x.type; })[0];
+      return '<tr><td class="k">' + B.esc(x.num) + '<div class="t-sub">' + B.esc(t ? t.form : "—") + '</div></td>' +
+        '<td><div class="t-main">' + B.esc(x.subject) + '</div>' +
+          '<div class="t-sub">' + B.esc(x.project) + '</div></td>' +
+        '<td>' + B.tag(x.status, "watch") + '</td>' +
+        '<td class="num">' + (x.days > 10 ? '<b style="color:var(--bad)">' + x.days + ' d</b>' : x.days + " d") +
+          '<div class="t-sub">due ' + B.esc(x.due) + '</div></td></tr>';
+    }).join("") || '<tr><td colspan="4" class="empty">Nothing is sitting in the Architect\'s court.</td></tr>';
+    document.getElementById("ourCourt").innerHTML =
+      '<table><thead><tr><th>No.</th><th>Item</th><th>Status</th><th class="num">Age</th></tr></thead>' +
+      '<tbody>' + rows + '</tbody></table>';
+  }
+
+  function renderQueues(d) {
+    var permits = (d.permits || []).filter(function (p) {
+      return (Number(p.comments) || 0) - (Number(p.resolved) || 0) > 0;
+    });
+    var pending = B.approvals().filter(function (a) { return a.state === "Pending"; });
+    var pRows = permits.map(function (p) {
+      var open = p.comments - p.resolved;
+      return '<tr><td><div class="t-main">' + B.esc(p.project) + '</div>' +
+        '<div class="t-sub">' + B.esc(p.ahj) + ' · cycle ' + p.cycle + '</div></td>' +
+        '<td class="num">' + open + ' of ' + p.comments + '<div class="t-sub">due ' + B.esc(p.due) + '</div></td></tr>';
+    }).join("") || '<tr><td colspan="2" class="empty">No unresolved AHJ comments.</td></tr>';
+
+    var aRows = pending.map(function (a) {
+      return '<tr><td><div class="t-main">' + B.esc(a.title) + '</div>' +
+        '<div class="t-sub">' + B.esc(a.by) + '</div></td>' +
+        '<td>' + B.tag(a.kind, "watch") + '</td></tr>';
+    }).join("") || '<tr><td colspan="2" class="empty">The desk is empty. That is the goal.</td></tr>';
+
+    document.getElementById("queues").innerHTML =
+      '<table><thead><tr><th>AHJ comments</th><th class="num">Unresolved</th></tr></thead>' +
+      '<tbody>' + pRows + '</tbody></table>' +
+      '<div class="divider"></div>' +
+      '<table><thead><tr><th>Waiting on the principal</th><th>Fence</th></tr></thead>' +
+      '<tbody>' + aRows + '</tbody></table>' +
+      '<div class="row" style="margin-top:12px"><a class="btn ghost sm" href="approvals.html">Open the desk →</a></div>';
+  }
+
+  function renderWip(d) {
+    var rows = (d.commissions || []).filter(function (x) { return B.readyToBill(x) > 0; })
+      .sort(function (a, b) { return B.readyToBill(b) - B.readyToBill(a); })
+      .map(function (x) {
+        return '<tr><td><div class="t-main">' + B.esc(x.name) + '</div>' +
+          '<div class="t-sub">' + B.esc(x.number) + ' · ' + B.esc(x.client) + ' · lead ' + B.esc(x.lead) + '</div></td>' +
+          '<td>' + B.tag(x.phase, "ghost") + '</td>' +
+          '<td class="num">' + x.pctComplete + '%</td>' +
+          '<td class="num">' + B.money(B.earnedToDate(x)) + '</td>' +
+          '<td class="num"><b style="color:var(--brass-2)">' + B.money(B.readyToBill(x)) + '</b></td></tr>';
+      }).join("") || '<tr><td colspan="5" class="empty">Nothing earned is sitting unbilled.</td></tr>';
+    document.getElementById("wip").innerHTML =
+      '<table><thead><tr><th>Commission</th><th>Phase</th><th class="num">Complete</th>' +
+      '<th class="num">Earned</th><th class="num">Ready to bill</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+      '<div class="divider"></div>' +
+      '<div class="fence"><b>' + B.money(B.wip()) + ' total.</b> The invoice itself is drafted in the Billing ' +
+      'room and the send stays behind the Approval Desk — but the reason it is sitting here at all is an ' +
+      'operations failure, not a money one.</div>';
+  }
+
+  function renderFu(d) {
+    var fu = (d.followups || []).slice().sort(function (a, b) {
+      if (a.done !== b.done) return a.done ? 1 : -1;
+      return String(a.due) < String(b.due) ? -1 : 1;
+    });
+    var rows = fu.map(function (f) {
+      var late = !f.done && f.due && f.due < today();
+      return '<tr><td style="width:34px">' +
+          '<input type="checkbox" class="fuBox" data-id="' + B.esc(f.id) + '"' + (f.done ? " checked" : "") +
+          ' style="width:16px;height:16px" aria-label="mark done"></td>' +
+        '<td><div class="t-main"' + (f.done ? ' style="text-decoration:line-through;color:var(--mut)"' : '') + '>' +
+          B.esc(f.text) + '</div>' +
+          '<div class="t-sub">from ' + B.esc(f.src || "added by hand") + '</div></td>' +
+        '<td class="k">' + B.esc(f.due || "—") + '</td>' +
+        '<td>' + (f.done ? B.tag("cleared", "good") : (late ? B.tag("past date", "bad") : B.tag("open", "watch"))) +
+        '</td></tr>';
+    }).join("") || '<tr><td colspan="4" class="empty">Nothing on the calendar. Add the first item above.</td></tr>';
+
+    document.getElementById("fu").innerHTML =
+      '<table><thead><tr><th></th><th>Follow-up</th><th>Date</th><th>State</th></tr></thead>' +
+      '<tbody>' + rows + '</tbody></table>' +
+      '<div class="srcnote" style="font-style:normal">The opening list is derived from dates already carried ' +
+      'elsewhere in this hub — permit cycle due dates and CA items in our court. Anything you add joins them and ' +
+      'persists in this browser.</div>';
+
+    /* Toggling updates the row in place and refreshes the counters — the list is
+       deliberately NOT re-sorted under the cursor, so the next click lands where
+       the eye already is. Order settles on the next full render. */
+    Array.prototype.forEach.call(document.querySelectorAll(".fuBox"), function (el) {
+      el.addEventListener("change", function () {
+        var id = this.getAttribute("data-id"), on = this.checked, text = "";
+        B.save(function (x) {
+          (x.followups || []).forEach(function (f) { if (f.id === id) { f.done = on; text = f.text; } });
+        });
+        var tr = this.parentNode && this.parentNode.parentNode;
+        if (tr) {
+          var title = tr.querySelector(".t-main");
+          if (title) title.setAttribute("style", on ? "text-decoration:line-through;color:var(--mut)" : "");
+          var cells = tr.getElementsByTagName("td");
+          var last = cells[cells.length - 1];
+          var f = (B.db().followups || []).filter(function (x) { return x.id === id; })[0];
+          var late = f && !f.done && f.due && f.due < today();
+          if (last) last.innerHTML = on ? B.tag("cleared", "good")
+            : (late ? B.tag("past date", "bad") : B.tag("open", "watch"));
+        }
+        renderStats(B.db());
+        B.toast(on ? "Cleared: " + text : "Reopened: " + text, "ok");
+      });
+    });
+  }
+
+  function render() {
+    var d = B.db();
+    renderStats(d);
+    renderLanes(d);
+    renderOurCourt(d);
+    renderQueues(d);
+    renderWip(d);
+    renderFu(d);
+  }
+
+  /* ------------------------------------------------- the output contract */
+  function renderAnswer(r) {
+    var out = document.getElementById("out");
+    var v = r.verdict, dept = r.dept, passed = r.passed;
+    var pctv = Math.min(100, v.conf);
+    var head = passed
+      ? dept.pace.name + " released it: " + v.stance
+      : "Held below the " + dept.gate + "% bar (" + v.conf + "%). Needs a human — not enough live data. " + v.stance;
+    out.innerHTML =
+      '<div class="divider"></div>' +
+      '<div class="' + (passed ? "busrow conclude" : "busrow reject") + '" style="display:block">' +
+        '<div class="bus-topic">' + (passed ? "ops.pacemaker.released" : "escalation.below_bar") + '</div>' +
+        '<div class="bus-body" style="margin-top:5px">' + B.esc(head) + '</div>' +
+      '</div>' +
+      '<div class="conf">' +
+        '<span class="muted small">' + B.esc(dept.name) + ' · bar ' + dept.gate + '%</span>' +
+        '<span class="conf-bar"><i class="conf-fill ' + (passed ? "" : "under") + '" style="width:' + pctv + '%"></i>' +
+        '<span class="conf-gate" style="left:' + dept.gate + '%"></span></span>' +
+        '<span class="conf-n">' + v.conf + '%</span>' +
+      '</div>' +
+      '<ul class="reasons">' + v.reasons.map(function (x) {
+        return '<li><span class="rtag ' + B.esc(x.t) + '">' + B.esc(x.t.toUpperCase()) + '</span><span>' +
+          B.esc(x.s) + '</span></li>';
+      }).join("") + '</ul>' +
+      (passed
+        ? '<div class="srcnote" style="font-style:normal">Filed to the project record and given a follow-up date ' +
+          'on the calendar above — that step is not optional, and it is the reason a released conclusion cannot ' +
+          'quietly disappear.</div>'
+        : '') +
+      '<div class="srcnote">Routed through ' + B.esc(dept.dh.name) + ' (DH) → ' + B.esc(dept.ae.name) +
+        ' (AE) → the bus → ' + B.esc(dept.pace.name) + ' (Pacemaker) → ' + B.esc(dept.lensA.name) +
+        ' / ' + B.esc(dept.lensB.name) + ' (opposing lenses). Full trace on the Agent Org page.</div>';
+  }
+
+  function ask(q) {
+    if (!q) { B.toast("Type a question first.", ""); return; }
+    var r = B.consult("ops", q);
+    if (!r) { B.toast("Operations is not in this build.", ""); return; }
+    renderAnswer(r);
+  }
+
+  /* ------------------------------------------------------------------ boot */
+  seedFollowups(B.db());
+  render();
+
+  setTimeout(function () {
+    var due = document.getElementById("fuDue");
+    if (due && !due.value) due.value = today();
+
+    document.getElementById("fuGo").addEventListener("click", function () {
+      var t = document.getElementById("fuText").value.trim();
+      var dt = document.getElementById("fuDue").value || today();
+      if (!t) { B.toast("Type what needs following up on.", ""); return; }
+      B.save(function (x) {
+        x.followups = x.followups || [];
+        x.followups.push({ id: "f" + Date.now(), text: t, due: dt, done: false, src: "added on this desk" });
+      });
+      document.getElementById("fuText").value = "";
+      render();
+      B.toast("Follow-up set for " + dt + " and filed to this hub's record.", "ok");
+    });
+
+    document.getElementById("fuClear").addEventListener("click", function () {
+      var n = (B.db().followups || []).filter(function (f) { return f.done; }).length;
+      if (!n) { B.toast("Nothing is checked off yet.", ""); return; }
+      B.save(function (x) {
+        x.followups = (x.followups || []).filter(function (f) { return !f.done; });
+      });
+      render();
+      B.toast(n + " completed follow-up" + (n > 1 ? "s" : "") + " cleared off the calendar.", "ok");
+    });
+
+    document.getElementById("go").addEventListener("click", function () {
+      ask(document.getElementById("q").value.trim());
+    });
+    document.getElementById("q").addEventListener("keydown", function (e) {
+      if (e.key === "Enter") ask(this.value.trim());
+    });
+    Array.prototype.forEach.call(document.querySelectorAll(".ex"), function (b) {
+      b.addEventListener("click", function () {
+        document.getElementById("q").value = this.dataset.q;
+        ask(this.dataset.q);
+      });
+    });
+    var cb = document.getElementById("consultBtn");
+    if (cb) cb.addEventListener("click", function () {
+      var q = document.getElementById("q"); bring(q); q.focus();
+    });
+  }, 0);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>IT · System Health · Buttress OS V2.0</title>
+<meta name="description" content="Buttress OS — the architecture practice operating system. Powered by Accelerated Experiences LLC.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="buttress.css">
+</head>
+<body>
+<script src="buttress.js"></script>
+<script>
+(function () {
+  var B = window.Buttress;
+  var c = B.mount({ active: "it.html", crumb: "IT · System Health" });
+
+  var STATES = ["CLEAR", "WATCH", "INTERVENE"];
+  var STATE_META = {
+    CLEAR: {
+      band: "good", tag: "good",
+      short: "Reachable, inside its normal range, and logged.",
+      long: "Nothing is asked of anyone. The check runs, the result is filed, and the room stays quiet. " +
+            "A CLEAR service that has not been checked is not CLEAR — it is unknown."
+    },
+    WATCH: {
+      band: "watch", tag: "watch",
+      short: "A trend that could become an incident, but is not one yet.",
+      long: "The org handles it: notes it, files it, sets a follow-up on the operations calendar, and keeps " +
+            "watching. A principal does not get pulled out of a client meeting for a WATCH. That restraint is " +
+            "the whole point — an alert that fires for everything is an alert nobody reads."
+    },
+    INTERVENE: {
+      band: "bad", tag: "bad",
+      short: "A genuine outage or a security event. A person is needed now.",
+      long: "This is the only state that reaches a human immediately. Steady, the IT pacemaker, does not sit on " +
+            "it, does not wait for a batch, and does not try one more thing first. Everything else the department " +
+            "clears itself."
+    }
+  };
+
+  function bring(elm) {
+    if (elm && typeof elm.scrollIntoView === "function") {
+      elm.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }
+  function stamp(dt) {
+    return dt.toISOString().slice(0, 10) + " " +
+      dt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  }
+
+  /* ------------------------------------------------------------- page head */
+  c.appendChild(B.page(
+    "IT · System Health",
+    "Three states, and only three: CLEAR, WATCH, INTERVENE. Ward owns uptime and says which one plainly, so a " +
+    "principal reads one word instead of a dashboard. Only a genuine outage or a security event escalates to a " +
+    "human — everything else the department clears, files and follows up on itself.",
+    '<button class="btn brass sm" id="consultBtn">Consult IT · System Health</button>'
+  ));
+
+  c.appendChild(B.card('<div class="statrow" id="statrow"></div>'));
+
+  /* -------------------------------------------------------- the state model */
+  c.appendChild(B.card(
+    '<h2>The three-state model, and what each one obliges</h2>' +
+    '<div class="card-sub">A state is not a colour on a chart. It is a statement about who has to do something ' +
+    'and how soon.</div>' +
+    '<table><thead><tr><th>State</th><th>What it means</th><th>Who acts</th></tr></thead><tbody>' +
+      STATES.map(function (s) {
+        var m = STATE_META[s];
+        return '<tr><td>' + B.tag(s, m.tag) + '</td>' +
+          '<td><div class="t-main">' + B.esc(m.short) + '</div>' +
+            '<div class="t-sub">' + B.esc(m.long) + '</div></td>' +
+          '<td>' + (s === "INTERVENE"
+            ? B.tag("a human, immediately", "bad")
+            : B.tag("the department", "ghost")) + '</td></tr>';
+      }).join("") +
+    '</tbody></table>' +
+    '<div class="divider"></div>' +
+    '<div class="fence"><b>Escalation is rationed on purpose.</b> Steady calls system health for the office; a ' +
+    'real outage or security event goes to a person the moment it is seen. A storage curve bending the wrong way ' +
+    'does not — it becomes a follow-up on the operations calendar, which is where it belongs.</div>'
+  ));
+
+  /* ------------------------------------------------------------- the board */
+  c.appendChild(B.card(
+    '<h2>Services</h2>' +
+    '<div class="card-sub">Set a state on any line to see how the posture reads. The change is written to this ' +
+    'hub\'s record in your browser.</div>' +
+    '<div id="svc"></div>' +
+    '<div id="intervene"></div>'
+  ));
+
+  /* ------------------------------------------------------------ the backups */
+  c.appendChild(B.card(
+    '<h2>Backups — the line that matters most and gets looked at least</h2>' +
+    '<div class="card-sub">Loss, the risk lens on this desk, asks one question about every project: which drawing ' +
+    'set is not backed up? The answer has to be none, and it has to be a verified none.</div>' +
+    '<div class="fence"><b>An unverified backup is not a backup.</b> A job that reports success and a restore ' +
+    'that actually reads back are two different facts. Until the second one is checked, you have a scheduled task, ' +
+    'not a recovery plan — and you find out which on the worst possible day.</div>' +
+    '<div class="divider"></div>' +
+    '<div id="backup"></div>' +
+    '<div class="row" style="margin-top:13px">' +
+      '<button class="btn brass" id="verifyGo">Verify backup now</button>' +
+      '<span class="muted small">In this showroom the check stamps the record in your browser. Nothing is read ' +
+      'from disk and nothing leaves this tab.</span>' +
+    '</div>' +
+    '<div id="checks"></div>'
+  ));
+
+  /* ------------------------------------------------------------- consult IT */
+  c.appendChild(B.card(
+    '<h2>Consult IT · System Health</h2>' +
+    '<div class="card-sub">Ward (DH) owns uptime; Cache (AE) packages incident notes, the watch list and backup ' +
+    'verification; Steady (Pacemaker) is the only voice out of the triad and escalates a real outage or security ' +
+    'event to a human immediately. Access asks whether the model store, the plot queue and the portal are ' +
+    'reachable; Loss asks where the exposure is.</div>' +
+    '<div class="row" style="margin-bottom:12px">' +
+      '<input id="q" placeholder="e.g. Is anything at risk right now?" style="flex:1;min-width:260px">' +
+      '<button class="btn brass" id="go">Route it</button>' +
+    '</div>' +
+    '<div class="row" style="gap:6px;margin-bottom:4px">' +
+      ['Is anything at risk right now?',
+       'Are the backups verified?',
+       'Do we have a storage problem before the CD push?',
+       'Does anything need a human today?'].map(function (s) {
+        return '<button class="btn ghost sm ex" data-q="' + B.esc(s) + '">' + B.esc(s) + '</button>';
+      }).join("") +
+    '</div>' +
+    '<div id="out"></div>'
+  ));
+
+  /* ---------------------------------------------------------------- render */
+  function counts(d) {
+    var sys = d.systems || [];
+    var out = { CLEAR: 0, WATCH: 0, INTERVENE: 0 };
+    sys.forEach(function (s) { if (out[s.state] !== undefined) out[s.state]++; });
+    out.total = sys.length;
+    return out;
+  }
+
+  function renderStats(d) {
+    var n = counts(d);
+    var last = d.itChecks && d.itChecks.length ? d.itChecks[0] : null;
+    var posture = n.INTERVENE ? "INTERVENE" : (n.WATCH ? "WATCH" : "CLEAR");
+    document.getElementById("statrow").innerHTML =
+      B.stat("Office posture", posture, STATE_META[posture].short, STATE_META[posture].band) +
+      B.stat("Services monitored", String(n.total), "One record per service") +
+      B.stat("CLEAR", String(n.CLEAR), "Nothing asked of anyone", "good") +
+      B.stat("WATCH", String(n.WATCH), "Handled and followed up by the department", n.WATCH ? "watch" : "good") +
+      B.stat("INTERVENE", String(n.INTERVENE), "Reaches a human immediately", n.INTERVENE ? "bad" : "good") +
+      B.stat("Last backup verification", last ? B.esc(last.at.replace(/^\S+\s/, "")) : "04:12",
+             last ? "checked this session · " + B.esc(last.at) : "nightly set, verified 04:12 on the record",
+             "good");
+  }
+
+  function renderSvc(d) {
+    var rows = (d.systems || []).map(function (s) {
+      var m = STATE_META[s.state] || STATE_META.CLEAR;
+      var sel = '<select class="stSel" data-id="' + B.esc(s.id) + '" style="min-width:132px">' +
+        STATES.map(function (k) {
+          return '<option value="' + k + '"' + (k === s.state ? " selected" : "") + '>' + k + '</option>';
+        }).join("") + '</select>';
+      return '<tr>' +
+        '<td><div class="t-main">' + B.esc(s.name) + '</div>' +
+          '<div class="t-sub">' + B.esc(m.short) + '</div></td>' +
+        '<td>' + B.tag(s.state, m.tag) + '</td>' +
+        '<td class="k">' + B.esc(s.metric) + '</td>' +
+        '<td>' + sel + '</td>' +
+        '<td>' + (s.state === "INTERVENE"
+          ? B.tag("a human, now", "bad")
+          : B.tag("the department", "ghost")) + '</td>' +
+      '</tr>';
+    }).join("") || '<tr><td colspan="5" class="empty">No services on the record.</td></tr>';
+
+    document.getElementById("svc").innerHTML =
+      '<table><thead><tr><th>Service</th><th>State</th><th>What the check reads</th>' +
+      '<th>Set state</th><th>Escalates to</th></tr></thead><tbody>' + rows + '</tbody></table>';
+
+    Array.prototype.forEach.call(document.querySelectorAll(".stSel"), function (el) {
+      el.addEventListener("change", function () {
+        var id = this.getAttribute("data-id"), v = this.value, name = "";
+        B.save(function (x) {
+          (x.systems || []).forEach(function (s) { if (s.id === id) { s.state = v; name = s.name; } });
+        });
+        render();
+        B.toast(name + " set to " + v + "." +
+          (v === "INTERVENE" ? " In production that pages a person immediately." : ""), "ok");
+      });
+    });
+
+    var bad = (d.systems || []).filter(function (s) { return s.state === "INTERVENE"; });
+    document.getElementById("intervene").innerHTML = bad.length
+      ? '<div class="divider"></div><div class="fence" style="border-left-color:var(--bad);background:var(--bad-w)">' +
+        '<b>' + bad.length + ' service' + (bad.length > 1 ? "s are" : " is") + ' on INTERVENE: ' +
+        B.esc(bad.map(function (s) { return s.name; }).join(", ")) + '.</b> This is the state that does not wait ' +
+        'for a report. In production a person is raised on it the moment it is seen; here it is recorded so you ' +
+        'can see exactly which condition earns that.</div>'
+      : '';
+  }
+
+  function renderBackup(d) {
+    var store = (d.systems || []).filter(function (s) { return /backup/i.test(s.metric || ""); })[0] ||
+                (d.systems || [])[0];
+    var checks = d.itChecks || [];
+    document.getElementById("backup").innerHTML =
+      '<div class="statrow">' +
+        B.stat("Protected service", store ? B.esc(store.name) : "—",
+               store ? B.esc(store.metric) : "", store && store.state === "CLEAR" ? "good" : "watch") +
+        B.stat("On the record", "04:12", "Nightly backup verified — verified, not assumed", "good") +
+        B.stat("Checks this session", String(checks.length),
+               checks.length ? "Most recent " + B.esc(checks[0].at) : "None run yet in this browser",
+               checks.length ? "good" : "") +
+      '</div>';
+
+    document.getElementById("checks").innerHTML = checks.length
+      ? '<div class="divider"></div><table><thead><tr><th>Verification</th><th>Scope</th><th>Result</th>' +
+        '<th>Run by</th></tr></thead><tbody>' +
+        checks.map(function (k) {
+          return '<tr><td class="k">' + B.esc(k.at) + '</td>' +
+            '<td>' + B.esc(k.scope) + '</td>' +
+            '<td>' + B.tag(k.result, "good") + '</td>' +
+            '<td class="small muted">' + B.esc(k.by) + '</td></tr>';
+        }).join("") + '</tbody></table>'
+      : '';
+  }
+
+  function render() {
+    var d = B.db();
+    renderStats(d);
+    renderSvc(d);
+    renderBackup(d);
+  }
+
+  /* ------------------------------------------------- the output contract */
+  function renderAnswer(r) {
+    var out = document.getElementById("out");
+    var v = r.verdict, dept = r.dept, passed = r.passed;
+    var pctv = Math.min(100, v.conf);
+    var head = passed
+      ? dept.pace.name + " released it: " + v.stance
+      : "Held below the " + dept.gate + "% bar (" + v.conf + "%). Needs a human — not enough live data. " + v.stance;
+    out.innerHTML =
+      '<div class="divider"></div>' +
+      '<div class="' + (passed ? "busrow conclude" : "busrow reject") + '" style="display:block">' +
+        '<div class="bus-topic">' + (passed ? "it.pacemaker.released" : "escalation.below_bar") + '</div>' +
+        '<div class="bus-body" style="margin-top:5px">' + B.esc(head) + '</div>' +
+      '</div>' +
+      '<div class="conf">' +
+        '<span class="muted small">' + B.esc(dept.name) + ' · bar ' + dept.gate + '%</span>' +
+        '<span class="conf-bar"><i class="conf-fill ' + (passed ? "" : "under") + '" style="width:' + pctv + '%"></i>' +
+        '<span class="conf-gate" style="left:' + dept.gate + '%"></span></span>' +
+        '<span class="conf-n">' + v.conf + '%</span>' +
+      '</div>' +
+      '<ul class="reasons">' + v.reasons.map(function (x) {
+        return '<li><span class="rtag ' + B.esc(x.t) + '">' + B.esc(x.t.toUpperCase()) + '</span><span>' +
+          B.esc(x.s) + '</span></li>';
+      }).join("") + '</ul>' +
+      '<div class="srcnote">Routed through ' + B.esc(dept.dh.name) + ' (DH) → ' + B.esc(dept.ae.name) +
+        ' (AE) → the bus → ' + B.esc(dept.pace.name) + ' (Pacemaker) → ' + B.esc(dept.lensA.name) +
+        ' / ' + B.esc(dept.lensB.name) + ' (opposing lenses). Full trace on the Agent Org page.</div>';
+  }
+
+  function ask(q) {
+    if (!q) { B.toast("Type a question first.", ""); return; }
+    var r = B.consult("it", q);
+    if (!r) { B.toast("IT · System Health is not in this build.", ""); return; }
+    renderAnswer(r);
+  }
+
+  /* ------------------------------------------------------------------ boot */
+  render();
+
+  setTimeout(function () {
+    document.getElementById("verifyGo").addEventListener("click", function () {
+      var at = stamp(new Date());
+      var d = B.db();
+      var store = (d.systems || []).filter(function (s) { return /backup/i.test(s.metric || ""); })[0] ||
+                  (d.systems || [])[0];
+      B.save(function (x) {
+        x.itChecks = x.itChecks || [];
+        x.itChecks.unshift({
+          at: at,
+          scope: (store ? store.name : "Primary store") + " — nightly set",
+          result: "Verified",
+          by: "Cache (IT AE)"
+        });
+        if (x.itChecks.length > 6) x.itChecks = x.itChecks.slice(0, 6);
+      });
+      render();
+      B.toast("Backup verification stamped at " + at + " and filed to this hub's record.", "ok");
+    });
+
+    document.getElementById("go").addEventListener("click", function () {
+      ask(document.getElementById("q").value.trim());
+    });
+    document.getElementById("q").addEventListener("keydown", function (e) {
+      if (e.key === "Enter") ask(this.value.trim());
+    });
+    Array.prototype.forEach.call(document.querySelectorAll(".ex"), function (b) {
+      b.addEventListener("click", function () {
+        document.getElementById("q").value = this.dataset.q;
+        ask(this.dataset.q);
+      });
+    });
+    var cb = document.getElementById("consultBtn");
+    if (cb) cb.addEventListener("click", function () {
+      var q = document.getElementById("q"); bring(q); q.focus();
+    });
+  }, 0);
+})();
+</script>
+</body>
+</html>

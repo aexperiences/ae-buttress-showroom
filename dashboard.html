@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Command Center · Buttress OS V2.0</title>
+<meta name="description" content="Buttress OS — the architecture practice operating system. Powered by Accelerated Experiences LLC.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="buttress.css">
+</head>
+<body>
+<script src="buttress.js"></script>
+<script>
+(function () {
+  var B = window.Buttress;
+  var c = B.mount({ active: "dashboard.html", crumb: "Command Center" });
+  var d = B.db();
+
+  /* ------------------------------------------------------------- page head */
+  c.appendChild(B.page(
+    "Command Center",
+    "Everything the practice is carrying, on one sheet. The numbers below are computed from this hub's own data — not typed in, not reconstructed at month end.",
+    '<button class="btn brass sm" id="askNora">Ask Nora</button>'
+  ));
+
+  /* -------------------------------------------------------- the KPI board */
+  var kpis = B.kpis();
+  function fmt(k) {
+    if (k.fmt === "pct")   return B.pct(k.value);
+    if (k.fmt === "x")     return k.value.toFixed(2) + "x";
+    if (k.fmt === "mo")    return k.value.toFixed(1) + " mo";
+    if (k.fmt === "days")  return Math.round(k.value) + " d";
+    if (k.fmt === "money") return B.money(k.value);
+    return k.value;
+  }
+  var statHTML = kpis.map(function (k) {
+    var t = k.bench && k.bench.target
+      ? "Target " + k.bench.target[0] + "–" + k.bench.target[1] + (k.bench.unit || "")
+      : "";
+    return B.stat(k.label, fmt(k), t, k.band);
+  }).join("");
+
+  var board = B.card(
+    '<div class="between"><div>' +
+      '<h2>The practice, by the numbers</h2>' +
+      '<div class="card-sub">Utilization, net multiplier and realization are the three a principal is judged on — ' +
+      'and the three most firms cannot produce on demand.</div>' +
+    '</div></div>' +
+    '<div class="statrow">' + statHTML + '</div>' +
+    B.srcNote("Benchmarks: Deltek Clarity (A/E), BQE A/E benchmark set, Northstar target bands. " +
+              "Values above are computed live from this hub's commissions, labor and invoices.")
+  );
+  c.appendChild(board);
+
+  /* the pain we're selling against — sourced, never asserted */
+  var painHTML = B.PAIN.slice(0, 4).map(function (p) {
+    return '<div class="stat"><div class="s-v" style="font-size:19px">' + B.esc(p.stat) + '</div>' +
+           '<div class="s-n">' + B.esc(p.claim) + '</div></div>';
+  }).join("");
+  c.appendChild(B.card(
+    '<h2>Why this room exists</h2>' +
+    '<div class="card-sub">The industry numbers behind every metric above. If a firm can\'t see these, it can\'t manage them.</div>' +
+    '<div class="statrow">' + painHTML + '</div>' +
+    B.srcNote("Total Synergy 2026 Architecture Industry Benchmark Report.")
+  ));
+
+  /* ------------------------------------------------- commissions + the desk */
+  var grid = document.createElement("div"); grid.className = "grid g2";
+
+  /* live commissions, phase-native */
+  var rows = d.commissions.filter(function (x) { return x.phase !== "Complete"; }).map(function (x) {
+    var earned = B.earnedToDate(x), ready = B.readyToBill(x);
+    var ph = B.PHASES.filter(function (p) { return p.k === x.phase; })[0];
+    return '<tr>' +
+      '<td><div class="t-main">' + B.esc(x.name) + '</div>' +
+        '<div class="t-sub">' + B.esc(x.number) + ' · ' + B.esc(x.client) + '</div></td>' +
+      '<td>' + B.tag(x.phase, x.phase === "CA" ? "watch" : "") +
+        '<div class="t-sub">' + (ph ? B.esc(ph.name) + " · " + ph.pct + "% of fee" : "Pre-design") + '</div></td>' +
+      '<td class="num">' + (x.fee ? B.money(x.fee) : "—") +
+        '<div class="t-sub">' + x.pctComplete + '% complete</div></td>' +
+      '<td class="num">' + (ready > 0 ? '<b style="color:var(--brass-2)">' + B.money(ready) + '</b>' : "—") +
+        '<div class="t-sub">' + B.money(earned) + ' earned</div></td>' +
+    '</tr>';
+  }).join("");
+
+  var commCard = B.card(
+    '<h2>Live commissions</h2>' +
+    '<div class="card-sub">Phase-native. Because the phase carries its own fee percentage, ' +
+    'percent-complete billing and phase profitability fall out of the record instead of being rebuilt each month.</div>' +
+    '<table><thead><tr><th>Commission</th><th>Phase</th><th class="num">Fee</th>' +
+    '<th class="num">Ready to bill</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+    '<div class="divider"></div>' +
+    '<div class="fence"><b>' + B.money(B.wip()) + ' is earned and not yet invoiced.</b> ' +
+    'That is work already paid for in salary. Billing it is one click from the Billing room — ' +
+    'the send itself stays behind the Approval Desk.</div>'
+  );
+  grid.appendChild(commCard);
+
+  /* the CA desk — what's in OUR court */
+  var openCA = d.ca.filter(function (x) { return x.status === "Open" || x.status === "In Review"; });
+  var ours = openCA.filter(function (x) { return x.ball === "Architect"; });
+  var aged = openCA.filter(function (x) { return x.days > 10; });
+  var caRows = openCA.slice(0, 6).map(function (x) {
+    var ct = B.CA_TYPES.filter(function (t) { return t.k === x.type; })[0];
+    return '<tr>' +
+      '<td class="k">' + B.esc(x.num) + '<div class="t-sub">' + (ct ? B.esc(ct.form) : "—") + '</div></td>' +
+      '<td><div class="t-main">' + B.esc(x.subject) + '</div>' +
+        '<div class="t-sub">' + B.esc(x.project) + '</div></td>' +
+      '<td>' + B.tag(x.ball, x.ball === "Architect" ? "watch" : "ghost") + '</td>' +
+      '<td class="num">' + (x.days > 10 ? '<b style="color:var(--bad)">' + x.days + ' d</b>' : x.days + " d") + '</td>' +
+    '</tr>';
+  }).join("");
+
+  grid.appendChild(B.card(
+    '<h2>CA desk — ball in court</h2>' +
+    '<div class="card-sub">One log for RFIs, submittals, ASIs, proposal requests and field reports, ' +
+    'each mapped to its real AIA form. Aging in <i>our</i> court is the number an owner points at in a claim.</div>' +
+    '<table><thead><tr><th>No.</th><th>Item</th><th>Ball</th><th class="num">Age</th></tr></thead>' +
+    '<tbody>' + caRows + '</tbody></table>' +
+    '<div class="divider"></div>' +
+    '<div class="row">' +
+      B.tag(ours.length + " in the Architect's court", ours.length ? "watch" : "good") +
+      B.tag(aged.length + " past 10 days", aged.length ? "bad" : "good") +
+      B.tag(openCA.length + " open total", "ghost") +
+    '</div>'
+  ));
+  c.appendChild(grid);
+
+  /* ------------------------------------------------ approvals + permits row */
+  var grid2 = document.createElement("div"); grid2.className = "grid g2";
+
+  var pend = B.approvals().filter(function (a) { return a.state === "Pending"; });
+  var apRows = pend.map(function (a) {
+    return '<tr><td><div class="t-main">' + B.esc(a.title) + '</div>' +
+      '<div class="t-sub">' + B.esc(a.summary) + '</div></td>' +
+      '<td>' + B.tag(a.kind, "watch") + '<div class="t-sub">' + B.esc(a.by) + '</div></td></tr>';
+  }).join("") || '<tr><td colspan="2" class="empty">The desk is empty. That is the goal.</td></tr>';
+
+  grid2.appendChild(B.card(
+    '<h2>Approval Desk <span class="tag watch mono">GHOST MODE</span></h2>' +
+    '<div class="card-sub">The org clears everything it honestly can. Only true fences reach the principal — ' +
+    'a send, a spend, a price, or booking a human. A desk trending toward empty is the autonomy scoreboard.</div>' +
+    '<table><thead><tr><th>Waiting on you</th><th>Fence</th></tr></thead><tbody>' + apRows + '</tbody></table>' +
+    '<div class="divider"></div>' +
+    '<a class="btn ghost sm" href="approvals.html">Open the desk →</a>'
+  ));
+
+  var pmRows = d.permits.map(function (p) {
+    var st = p.status === "Issued" ? "good" : (p.status === "In review" ? "watch" : "ghost");
+    var openC = p.comments - p.resolved;
+    return '<tr><td><div class="t-main">' + B.esc(p.project) + '</div>' +
+      '<div class="t-sub">' + B.esc(p.ahj) + '</div></td>' +
+      '<td>' + B.tag(p.status, st) + '</td>' +
+      '<td class="num">' + (p.cycle ? "Cycle " + p.cycle : "—") +
+        '<div class="t-sub">' + (openC > 0 ? openC + " open" : (p.comments ? "all resolved" : "—")) + '</div></td></tr>';
+  }).join("");
+
+  grid2.appendChild(B.card(
+    '<h2>AHJ · permit cycles</h2>' +
+    '<div class="card-sub">Comment cycles and resubmittals, tracked per jurisdiction. ' +
+    'No practice-management tool at this firm size does this — it lives in someone\'s inbox.</div>' +
+    '<table><thead><tr><th>Project</th><th>Status</th><th class="num">Cycle</th></tr></thead>' +
+    '<tbody>' + pmRows + '</tbody></table>'
+  ));
+  c.appendChild(grid2);
+
+  /* --------------------------------------------------------- what it replaces */
+  var repRows = B.REPLACES.map(function (r) {
+    return '<tr><td><div class="t-main">' + B.esc(r.tool) + '</div>' +
+      '<div class="t-sub">' + B.esc(r.job) + '</div></td>' +
+      '<td class="k">' + B.esc(r.cost) + '</td></tr>';
+  }).join("");
+  c.appendChild(B.card(
+    '<h2>What this replaces</h2>' +
+    '<div class="card-sub">We price against the stack and the headcount it retires, not against a website. ' +
+    'Where a vendor does not publish a price, we say so rather than inventing one.</div>' +
+    '<table><thead><tr><th>Today</th><th>What it costs</th></tr></thead><tbody>' + repRows + '</tbody></table>' +
+    B.srcNote("Vendor-published where published; third-party estimates labeled as such. " +
+              "Deltek, BQE, Autodesk, Newforma and Unanet do not publish per-seat pricing.")
+  ));
+
+  /* ----------------------------------------------------------- Ask Nora flow */
+  var noraCard = B.card(
+    '<h2>Ask Nora — the COO seat</h2>' +
+    '<div class="card-sub">Nora reads the ask, routes it to the right department, lets that chain work under its own ' +
+    'confidence bar, and packages one clean answer back. She gates and packages — she does not do the work.</div>' +
+    '<div class="row" style="margin-bottom:12px">' +
+      '<input id="q" placeholder="e.g. Which pursuits should we actually chase this month?" style="flex:1;min-width:260px">' +
+      '<button class="btn brass" id="go">Route it</button>' +
+    '</div>' +
+    '<div class="row" style="gap:6px;margin-bottom:4px">' +
+      ['Which pursuits should we chase?',
+       'What is sitting in our court on the CA desk?',
+       'Are we billing everything we have earned?',
+       'Is anyone\'s license about to lapse?'].map(function (s) {
+        return '<button class="btn ghost sm ex" data-q="' + B.esc(s) + '">' + B.esc(s) + '</button>';
+      }).join("") +
+    '</div>' +
+    '<div id="out"></div>', "nora"
+  );
+  c.appendChild(noraCard);
+
+  function renderAnswer(r) {
+    var out = document.getElementById("out");
+    var v = r.result.verdict, dept = r.dept, passed = r.result.passed;
+    var pctv = Math.min(100, v.conf);
+    var gateLeft = dept.gate + "%";
+    out.innerHTML =
+      '<div class="divider"></div>' +
+      '<div class="' + (passed ? "busrow conclude" : "busrow reject") + '" style="display:block">' +
+        '<div class="bus-topic">' + (passed ? "coo.released" : "escalation.below_bar") + '</div>' +
+        '<div class="bus-body" style="margin-top:5px">' + B.esc(r.packaged) + '</div>' +
+      '</div>' +
+      '<div class="conf">' +
+        '<span class="muted small">' + B.esc(dept.name) + ' · bar ' + dept.gate + '%</span>' +
+        '<span class="conf-bar"><i class="conf-fill ' + (passed ? "" : "under") + '" style="width:' + pctv + '%"></i>' +
+        '<span class="conf-gate" style="left:' + gateLeft + '"></span></span>' +
+        '<span class="conf-n">' + v.conf + '%</span>' +
+      '</div>' +
+      '<ul class="reasons">' + v.reasons.map(function (x) {
+        return '<li><span class="rtag ' + x.t + '">' + x.t.toUpperCase() + '</span><span>' + B.esc(x.s) + '</span></li>';
+      }).join("") + '</ul>' +
+      '<div class="srcnote">Routed through ' + B.esc(dept.dh.name) + ' (DH) → ' + B.esc(dept.ae.name) +
+        ' (AE) → the bus → ' + B.esc(dept.pace.name) + ' (Pacemaker) → ' + B.esc(dept.lensA.name) +
+        ' / ' + B.esc(dept.lensB.name) + ' (opposing lenses). Full trace on the Agent Org page.</div>';
+  }
+
+  function ask(q) {
+    if (!q) { B.toast("Type a question first.", ""); return; }
+    renderAnswer(B.askNora(q));
+  }
+  setTimeout(function () {
+    document.getElementById("go").addEventListener("click", function () {
+      ask(document.getElementById("q").value.trim());
+    });
+    document.getElementById("q").addEventListener("keydown", function (e) {
+      if (e.key === "Enter") ask(this.value.trim());
+    });
+    Array.prototype.forEach.call(document.querySelectorAll(".ex"), function (b) {
+      b.addEventListener("click", function () {
+        document.getElementById("q").value = this.dataset.q;
+        ask(this.dataset.q);
+      });
+    });
+    var an = document.getElementById("askNora");
+    if (an) an.addEventListener("click", function () {
+      document.getElementById("q").scrollIntoView({ behavior: "smooth", block: "center" });
+      document.getElementById("q").focus();
+    });
+  }, 0);
+})();
+</script>
+</body>
+</html>

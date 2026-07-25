@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Consultants &amp; AHJ · Buttress OS V2.0</title>
+<meta name="description" content="Buttress OS — the architecture practice operating system. Powered by Accelerated Experiences LLC.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="buttress.css">
+</head>
+<body>
+<script src="buttress.js"></script>
+<script>
+(function () {
+  var B = window.Buttress;
+  var c = B.mount({ active: "coord.html", crumb: "Consultants & AHJ" });
+  var DEPT_KEY = "coord";
+
+  function bring(elm) {
+    if (elm && typeof elm.scrollIntoView === "function") {
+      elm.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }
+  function today() { return new Date().toISOString().slice(0, 10); }
+  function pendingAgreements(list) {
+    return list.filter(function (k) { return String(k.agreement).indexOf("pending") >= 0; });
+  }
+  function permitBand(p) {
+    if (p.status === "Issued") return "good";
+    if (p.status === "In review") return "watch";
+    return "ghost";
+  }
+
+  /* ------------------------------------------------------------- page head */
+  c.appendChild(B.page(
+    "Consultants & AHJ",
+    "The team outside the office. C401 scopes, fees and deliverable dates on one side; the authority having " +
+    "jurisdiction, its comment cycles and every resubmittal on the other. Both of these normally live in an inbox, " +
+    "and both of them are where a set quietly stops moving.",
+    '<button class="btn brass sm" id="consultBtn">Consult Consultants &amp; AHJ</button>'
+  ));
+
+  /* ------------------------------------------------------------ the boards */
+  c.appendChild(B.card(
+    '<h2>The team outside, at a glance</h2>' +
+    '<div class="card-sub">Consultant money committed against consultant money paid, and every AHJ comment that ' +
+    'is still open. Both numbers are computed from this hub’s own register — not from a folder of PDFs.</div>' +
+    '<div class="statrow" id="statrow"></div>'
+  ));
+
+  /* ------------------------------------------------------------- exposure */
+  c.appendChild(B.card(
+    '<h2>Agreement exposure <span class="tag bad mono">HARD FLAG</span></h2>' +
+    '<div class="card-sub">A consultant producing drawings before the C401 is executed is not a paperwork problem. ' +
+    'It is uninsured, unflowed-down scope sitting inside a set that carries the architect’s seal.</div>' +
+    '<div id="exposure"></div>'
+  ));
+
+  /* ------------------------------------------------------ consultant register */
+  c.appendChild(B.card(
+    '<h2>Consultant register · C401</h2>' +
+    '<div class="card-sub">Discipline, contact, agreement status, fee committed and paid, the commissions each one ' +
+    'is carrying, and the next deliverable that is actually due. Outstanding fee is what the firm still owes them ' +
+    'against work already scoped.</div>' +
+    '<div id="register"></div>'
+  ));
+
+  /* ------------------------------------------------------------ AHJ permits */
+  c.appendChild(B.card(
+    '<h2>AHJ · permit review cycles</h2>' +
+    '<div class="card-sub">One row per jurisdiction and project: when it went in, which review cycle it is on, how ' +
+    'many comments were raised against how many are resolved, and the date the reviewer is working to. Resolving a ' +
+    'comment or logging a new cycle writes to this hub’s record immediately.</div>' +
+    '<div id="permits"></div>' +
+    '<div class="divider"></div>' +
+    '<div class="grid g4">' +
+      '<div class="field" style="grid-column:span 2"><label class="f" for="cyclePermit">Log a new review cycle on</label>' +
+        '<select id="cyclePermit"></select></div>' +
+      '<div class="field"><label class="f" for="cycleComments">Comments raised in this cycle</label>' +
+        '<input id="cycleComments" type="number" min="0" step="1" value="0"></div>' +
+      '<div class="field"><label class="f">&nbsp;</label>' +
+        '<button class="btn sm" id="logCycle">Log the review cycle</button></div>' +
+    '</div>' +
+    '<div class="fence"><b>A resubmittal is an event, not a feeling.</b> Logging a cycle advances the cycle number, ' +
+    'adds the comments that came back with it, sets the submittal date, and puts the permit back into review. ' +
+    'That is the record an owner asks for when the bid date slips.</div>'
+  ));
+
+  /* --------------------------------------------------------- the copy point */
+  var cop = document.createElement("div"); cop.className = "grid g2";
+  cop.appendChild(B.card(
+    '<h2>Nobody tracks this</h2>' +
+    '<div class="card-sub">Said plainly, because it is the whole reason this room exists.</div>' +
+    '<div class="fence"><b>Permit comment-and-resubmittal cycles are tracked by essentially no ' +
+    'practice-management tool at this firm size.</b> They live in someone’s inbox — a plan reviewer’s PDF ' +
+    'markup, a forwarded thread, a note on a redline. Which means the count of open comments, the cycle number, and ' +
+    'who owes the answer are all reconstructed from memory the moment an owner asks.</div>' +
+    '<div class="divider"></div>' +
+    '<div class="small muted">' + B.esc(B.ROOMS.coord.why) + '</div>' +
+    '<div class="row" style="margin-top:11px">' +
+      B.tag("Cycle number", "ghost") + B.tag("Comments raised", "ghost") +
+      B.tag("Comments resolved", "ghost") + B.tag("Resubmittal date", "ghost") +
+      B.tag("Who owes the answer", "watch") +
+    '</div>'
+  ));
+  cop.appendChild(B.card(
+    '<h2>Why the C401 is the one to watch</h2>' +
+    '<div class="card-sub">The architect holds the agreement with the owner. The consultants sit under the ' +
+    'architect — which is why their paper is the architect’s problem.</div>' +
+    '<div class="fence"><b>An executed C401 is what flows the owner-agreement obligations down to the ' +
+    'consultant</b> and confirms the insurance behind their work. Until it is signed, the scope is being produced ' +
+    'on a handshake and the exposure sits with the firm that seals the set.</div>' +
+    '<div class="divider"></div>' +
+    '<div id="matters"></div>' +
+    '<div class="row" style="margin-top:12px">' +
+      '<button class="btn ghost sm" id="stageC401">Stage the C401 for signature</button>' +
+      '<span class="muted small">Ghost Mode — drafted and staged to the Approval Desk. Nothing is sent.</span>' +
+    '</div>'
+  ));
+  c.appendChild(cop);
+
+  /* ------------------------------------------------------------- rendering */
+  function renderStats(d) {
+    var pend = pendingAgreements(d.consultants);
+    var fee = d.consultants.reduce(function (s, k) { return s + (Number(k.fee) || 0); }, 0);
+    var paid = d.consultants.reduce(function (s, k) { return s + (Number(k.paid) || 0); }, 0);
+    var inReview = d.permits.filter(function (p) { return p.status === "In review"; });
+    var openC = d.permits.reduce(function (s, p) { return s + Math.max(0, p.comments - p.resolved); }, 0);
+    var cycles = d.permits.reduce(function (s, p) { return s + (Number(p.cycle) || 0); }, 0);
+
+    document.getElementById("statrow").innerHTML =
+      B.stat("Consultants in the register", String(d.consultants.length),
+             d.consultants.filter(function (k) { return k.status === "Current"; }).length + " currently producing") +
+      B.stat("Fee committed", B.money(fee), B.money(paid) + " paid to date") +
+      B.stat("Outstanding to consultants", B.money(fee - paid),
+             "Scoped work not yet paid", (fee - paid) > 0 ? "watch" : "good") +
+      B.stat("Without an executed C401", String(pend.length),
+             pend.length ? "Producing on a handshake" : "All agreements executed", pend.length ? "bad" : "good") +
+      B.stat("Permits in review", String(inReview.length),
+             cycles + " review cycles logged in total", inReview.length ? "watch" : "good") +
+      B.stat("AHJ comments open", String(openC),
+             "Raised and not yet resolved", openC ? "watch" : "good");
+  }
+
+  function renderExposure(d) {
+    var pend = pendingAgreements(d.consultants);
+    var box = document.getElementById("exposure");
+    if (!pend.length) {
+      box.innerHTML = '<div class="fence"><b>Every consultant in the register is working under an executed ' +
+        'C401.</b> Nothing is being produced on a handshake right now.</div>';
+      return;
+    }
+    box.innerHTML = pend.map(function (k) {
+      var projects = (k.projects || []);
+      var m = (d.matters || []).filter(function (x) {
+        return x.ref === "C401" || String(x.title).indexOf(k.name) >= 0;
+      })[0];
+      return '<div class="fence" style="border-left-color:var(--bad); background:var(--bad-w); margin-bottom:11px">' +
+        '<div class="row" style="gap:8px;margin-bottom:6px">' +
+          B.tag("C401 NOT EXECUTED", "bad") +
+          B.tag(k.agreement, "mono") +
+          B.tag(k.disc, "ghost") +
+        '</div>' +
+        '<b>' + B.esc(k.name) + ' is carrying ' + projects.length + ' commission' +
+          (projects.length === 1 ? "" : "s") + ' with no signed agreement' +
+          (projects.length ? ': ' + B.esc(projects.join(", ")) : "") + '.</b> ' +
+        'Next deliverable on the register is <b>' + B.esc(k.nextDue) + '</b>, and the register carries them at ' +
+        B.money(k.fee) + ' of fee with ' + B.money(k.paid) + ' paid. Producing before the C401 is executed means ' +
+        'the owner-agreement obligations have not flowed down and the insurance behind that scope is unconfirmed.' +
+        (m ? '<div class="divider"></div><div class="small"><b>' + B.esc(m.title) + '</b> · ' +
+             B.tag(m.risk + " risk", m.risk === "High" ? "bad" : "watch") + ' · ' + B.esc(m.ref) +
+             '<div style="margin-top:5px">' + B.esc(m.note) + '</div></div>' : "") +
+      '</div>';
+    }).join("");
+  }
+
+  function renderMatters(d) {
+    var rows = (d.matters || []).filter(function (m) { return m.ref === "C401"; }).map(function (m) {
+      return '<tr><td><div class="t-main">' + B.esc(m.title) + '</div>' +
+        '<div class="t-sub">' + B.esc(m.note) + '</div></td>' +
+        '<td>' + B.tag(m.risk, m.risk === "High" ? "bad" : "watch") +
+          '<div class="t-sub">' + B.esc(m.state) + '</div></td></tr>';
+    }).join("") || '<tr><td colspan="2" class="empty">No open C401 matters on the docket.</td></tr>';
+    document.getElementById("matters").innerHTML =
+      '<table><thead><tr><th>Open matter · C401</th><th>Risk</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+      '<div class="srcnote" style="font-style:normal">Advisory only. The Law room routes anything with real ' +
+      'exposure to a licensed attorney — it is not one.</div>';
+  }
+
+  function renderRegister(d) {
+    var rows = d.consultants.map(function (k) {
+      var isPending = String(k.agreement).indexOf("pending") >= 0;
+      var out = (Number(k.fee) || 0) - (Number(k.paid) || 0);
+      var stBand = k.status === "Current" ? "good" : (k.status === "Complete" ? "ghost" : "bad");
+      return '<tr>' +
+        '<td><div class="t-main">' + B.esc(k.name) + (isPending ? ' ' + B.tag("EXPOSURE", "bad") : "") + '</div>' +
+          '<div class="t-sub">' + B.esc(k.disc) + '</div></td>' +
+        '<td class="k">' + B.esc(k.contact) + '</td>' +
+        '<td>' + B.tag(k.agreement, isPending ? "bad" : "good") +
+          '<div class="t-sub">' + (isPending ? "Not executed" : "Executed") + '</div></td>' +
+        '<td class="num">' + (k.fee ? B.money(k.fee) : "—") + '</td>' +
+        '<td class="num">' + (k.paid ? B.money(k.paid) : "—") + '</td>' +
+        '<td class="num">' + (out > 0 ? '<b style="color:var(--brass-2)">' + B.money(out) + '</b>' : "—") + '</td>' +
+        '<td>' + ((k.projects || []).length
+            ? (k.projects || []).map(function (p, i) {
+                return i === 0 ? B.esc(p) : '<div class="t-sub">' + B.esc(p) + '</div>';
+              }).join("")
+            : '<span class="muted">—</span>') + '</td>' +
+        '<td>' + B.esc(k.nextDue) + '</td>' +
+        '<td>' + B.tag(k.status, stBand) + '</td>' +
+      '</tr>';
+    }).join("");
+
+    document.getElementById("register").innerHTML =
+      '<table><thead><tr><th>Consultant</th><th>Contact</th><th>Agreement</th>' +
+      '<th class="num">Fee</th><th class="num">Paid</th><th class="num">Outstanding</th>' +
+      '<th>Commissions</th><th>Next deliverable due</th><th>Status</th></tr></thead>' +
+      '<tbody>' + rows + '</tbody></table>';
+  }
+
+  function renderPermits(d) {
+    var rows = d.permits.map(function (p) {
+      var open = Math.max(0, p.comments - p.resolved);
+      var pctDone = p.comments ? Math.round((p.resolved / p.comments) * 100) : 0;
+      var canResolve = open > 0;
+      return '<tr>' +
+        '<td><div class="t-main">' + B.esc(p.project) + '</div>' +
+          '<div class="t-sub">' + B.esc(p.note) + '</div></td>' +
+        '<td>' + B.esc(p.ahj) + '</td>' +
+        '<td class="k">' + B.esc(p.submitted) + '</td>' +
+        '<td class="num">' + (p.cycle ? "Cycle " + p.cycle : "—") + '</td>' +
+        '<td class="num">' + p.resolved + ' / ' + p.comments +
+          '<div class="bar" style="margin-top:5px;min-width:74px"><i style="width:' + pctDone + '%"></i></div>' +
+          '<div class="t-sub">' + (p.comments ? (open > 0 ? open + " open" : "all resolved") : "none raised") + '</div></td>' +
+        '<td>' + B.tag(p.status, permitBand(p)) + '</td>' +
+        '<td class="k">' + B.esc(p.due) + '</td>' +
+        '<td><button class="btn ghost sm resolveBtn" data-id="' + B.esc(p.id) + '"' +
+          (canResolve ? "" : ' disabled style="opacity:.45;cursor:default"') + '>Resolve a comment</button>' +
+          (canResolve ? "" : '<div class="t-sub">' +
+            (p.comments ? "Nothing open on this cycle" : "Nothing raised yet") + '</div>') + '</td>' +
+      '</tr>';
+    }).join("");
+
+    document.getElementById("permits").innerHTML =
+      '<table><thead><tr><th>Project</th><th>Jurisdiction</th><th>Submitted</th><th class="num">Cycle</th>' +
+      '<th class="num">Resolved / raised</th><th>Status</th><th>Due</th><th>Action</th></tr></thead>' +
+      '<tbody>' + rows + '</tbody></table>';
+
+    Array.prototype.forEach.call(document.querySelectorAll(".resolveBtn"), function (b) {
+      b.addEventListener("click", function () {
+        var id = this.getAttribute("data-id");
+        var after = null;
+        B.save(function (x) {
+          x.permits.forEach(function (p) {
+            if (p.id === id && p.resolved < p.comments) { p.resolved += 1; after = p; }
+          });
+        });
+        if (!after) { B.toast("Nothing left to resolve on that permit.", ""); return; }
+        var open = after.comments - after.resolved;
+        B.toast("Comment resolved — " + after.resolved + " of " + after.comments + " closed on cycle " +
+          after.cycle + (open ? ", " + open + " still open." : ". The resubmittal can go."), "ok");
+        render();
+      });
+    });
+
+    var sel = document.getElementById("cyclePermit");
+    var keep = sel.value;
+    sel.innerHTML = d.permits.map(function (p) {
+      return '<option value="' + B.esc(p.id) + '">' + B.esc(p.project) + " — " + B.esc(p.ahj) +
+        (p.cycle ? " (cycle " + p.cycle + ")" : " (not submitted)") + '</option>';
+    }).join("");
+    if (keep) sel.value = keep;
+  }
+
+  function render() {
+    var d = B.db();
+    renderStats(d);
+    renderExposure(d);
+    renderMatters(d);
+    renderRegister(d);
+    renderPermits(d);
+  }
+
+  /* ------------------------------------------- Consult Consultants & AHJ */
+  c.appendChild(B.card(
+    '<h2>Consult Consultants &amp; AHJ</h2>' +
+    '<div class="card-sub">Lattice (DH) owns the team outside the office; Relay (AE) packages C401 scopes, ' +
+    'deliverable dates, permit comments and resubmittals; Interlock (Pacemaker) is the only voice out of the triad ' +
+    'and escalates a discipline conflict. Sequence asks who needs what and when; Clash asks where the disciplines ' +
+    'actually collide.</div>' +
+    '<div class="row" style="margin-bottom:12px">' +
+      '<input id="q" placeholder="e.g. What is still open with the AHJ on Riverside?" style="flex:1;min-width:260px">' +
+      '<button class="btn brass" id="go">Route it</button>' +
+    '</div>' +
+    '<div class="row" style="gap:6px;margin-bottom:4px">' +
+      ['What is still open with the AHJ on Riverside?',
+       'Which consultant is producing without a C401?',
+       'What has to close before the addendum goes out?'].map(function (s) {
+        return '<button class="btn ghost sm ex" data-q="' + B.esc(s) + '">' + B.esc(s) + '</button>';
+      }).join("") +
+    '</div>' +
+    '<div id="out"></div>'
+  ));
+
+  function renderAnswer(r) {
+    var out = document.getElementById("out");
+    var v = r.verdict, dept = r.dept, passed = r.passed;
+    var pctv = Math.min(100, v.conf);
+    var head = passed
+      ? dept.pace.name + " released it: " + v.stance
+      : "Held below the " + dept.gate + "% bar (" + v.conf + "%). Needs a human — not enough live data. " + v.stance;
+    out.innerHTML =
+      '<div class="divider"></div>' +
+      '<div class="' + (passed ? "busrow conclude" : "busrow reject") + '" style="display:block">' +
+        '<div class="bus-topic">' + (passed ? "coord.pacemaker.released" : "escalation.below_bar") + '</div>' +
+        '<div class="bus-body" style="margin-top:5px">' + B.esc(head) + '</div>' +
+      '</div>' +
+      '<div class="conf">' +
+        '<span class="muted small">' + B.esc(dept.name) + ' · bar ' + dept.gate + '%</span>' +
+        '<span class="conf-bar"><i class="conf-fill ' + (passed ? "" : "under") + '" style="width:' + pctv + '%"></i>' +
+        '<span class="conf-gate" style="left:' + dept.gate + '%"></span></span>' +
+        '<span class="conf-n">' + v.conf + '%</span>' +
+      '</div>' +
+      '<ul class="reasons">' + v.reasons.map(function (x) {
+        return '<li><span class="rtag ' + B.esc(x.t) + '">' + B.esc(x.t.toUpperCase()) + '</span><span>' +
+          B.esc(x.s) + '</span></li>';
+      }).join("") + '</ul>' +
+      '<div class="srcnote">Routed through ' + B.esc(dept.dh.name) + ' (DH) → ' + B.esc(dept.ae.name) +
+        ' (AE) → the bus → ' + B.esc(dept.pace.name) + ' (Pacemaker) → ' + B.esc(dept.lensA.name) +
+        ' / ' + B.esc(dept.lensB.name) + ' (opposing lenses). Full trace on the Agent Org page.</div>';
+  }
+
+  function ask(q) {
+    if (!q) { B.toast("Type a question first.", ""); return; }
+    var r = B.consult(DEPT_KEY, q);
+    if (!r) { B.toast("Consultants & AHJ is not in this build.", ""); return; }
+    renderAnswer(r);
+  }
+
+  /* ------------------------------------------------------------------ boot */
+  render();
+
+  setTimeout(function () {
+    document.getElementById("logCycle").addEventListener("click", function () {
+      var id = document.getElementById("cyclePermit").value;
+      var raised = Math.max(0, Math.round(Number(document.getElementById("cycleComments").value) || 0));
+      var after = null;
+      B.save(function (x) {
+        x.permits.forEach(function (p) {
+          if (p.id === id) {
+            p.cycle = (Number(p.cycle) || 0) + 1;
+            p.comments = (Number(p.comments) || 0) + raised;
+            p.submitted = today();
+            p.status = "In review";
+            after = p;
+          }
+        });
+      });
+      if (!after) { B.toast("Pick a permit first.", ""); return; }
+      B.toast("Cycle " + after.cycle + " logged on " + after.project + " — " + raised +
+        " comment" + (raised === 1 ? "" : "s") + " raised, submitted " + after.submitted + ".", "ok");
+      document.getElementById("cycleComments").value = "0";
+      render();
+    });
+
+    document.getElementById("stageC401").addEventListener("click", function () {
+      var d = B.db();
+      var pend = pendingAgreements(d.consultants);
+      if (!pend.length) { B.toast("Every C401 in the register is already executed.", ""); return; }
+      var k = pend[0];
+      B.stage(
+        "external",
+        "C401 for signature — " + k.name,
+        k.name + " (" + k.disc + ", " + k.contact + ") is on " +
+          ((k.projects || []).join(", ") || "no recorded commission") +
+          " with the agreement still marked “" + k.agreement + "”. Next deliverable: " + k.nextDue + ".",
+        "It is an agreement that goes outside the office and binds the firm. It is drafted and staged — never sent.",
+        "Relay (Consultants & AHJ AE)"
+      );
+      B.toast("C401 staged to the Approval Desk. Nothing has been sent.", "ok");
+    });
+
+    document.getElementById("go").addEventListener("click", function () {
+      ask(document.getElementById("q").value.trim());
+    });
+    document.getElementById("q").addEventListener("keydown", function (e) {
+      if (e.key === "Enter") ask(this.value.trim());
+    });
+    Array.prototype.forEach.call(document.querySelectorAll(".ex"), function (b) {
+      b.addEventListener("click", function () {
+        document.getElementById("q").value = this.dataset.q;
+        ask(this.dataset.q);
+      });
+    });
+    var cb = document.getElementById("consultBtn");
+    if (cb) cb.addEventListener("click", function () {
+      var q = document.getElementById("q");
+      bring(q); q.focus();
+    });
+  }, 0);
+})();
+</script>
+</body>
+</html>

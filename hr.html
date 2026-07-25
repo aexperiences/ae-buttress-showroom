@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HR · People Ops · Buttress OS V2.0</title>
+<meta name="description" content="Buttress OS — the architecture practice operating system. Powered by Accelerated Experiences LLC.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="buttress.css">
+</head>
+<body>
+<script src="buttress.js"></script>
+<script>
+(function () {
+  var B = window.Buttress;
+  var c = B.mount({ active: "hr.html", crumb: "HR · People Ops" });
+
+  /* --------------------------------------------------------------- helpers */
+  function bring(elm) {
+    if (elm && typeof elm.scrollIntoView === "function") {
+      elm.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }
+  /* "9 / 24 HSW hours" or "AXP — 2,940 / 3,740 hrs" -> {done,total} */
+  function frac(s) {
+    var m = String(s == null ? "" : s).replace(/,/g, "")
+      .match(/(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)/);
+    return m ? { done: Number(m[1]), total: Number(m[2]) } : null;
+  }
+  /* "ID AR-6110 · exp 2026-12-31" -> {num, exp, year} */
+  function lic(s) {
+    s = String(s == null ? "" : s);
+    var e = s.match(/exp\s+(\d{4})-(\d{2})-(\d{2})/);
+    if (!e) return null;
+    return { num: s.split("·")[0].trim(), exp: e[1] + "-" + e[2] + "-" + e[3], year: Number(e[1]) };
+  }
+  /* "4 of 6 ARE divisions passed" -> {done,total} */
+  function are(note) {
+    var m = String(note == null ? "" : note).match(/(\d+)\s+of\s+(\d+)\s+ARE/);
+    return m ? { done: Number(m[1]), total: Number(m[2]) } : null;
+  }
+  function clean(s) { return String(s == null ? "" : s).replace(/^[^\w"(]+\s*/, ""); }
+  function bar(p, cls) {
+    var w = Math.max(0, Math.min(100, p));
+    return '<div class="bar" style="margin-top:6px"><i style="width:' + w.toFixed(0) + '%' +
+      (cls ? ";background:var(--" + cls + ")" : "") + '"></i></div>';
+  }
+
+  var NOW = new Date();
+  var YEAR = NOW.getFullYear();
+  /* Straight-line pace through the calendar year — arithmetic on this record, */
+  /* not a rule from any licensing board. Stated as method wherever it is used. */
+  var YEAR_FRAC = (NOW - new Date(YEAR, 0, 1)) / (new Date(YEAR + 1, 0, 1) - new Date(YEAR, 0, 1));
+
+  function ceState(t) {
+    var f = frac(t.ce);
+    if (!f) return null;
+    var expected = f.total * YEAR_FRAC;
+    return { done: f.done, total: f.total, expected: expected, behind: f.done < expected };
+  }
+  function licState(t) {
+    var l = lic(t.license);
+    if (!l) return null;
+    l.renewsThisYear = l.year <= YEAR;
+    return l;
+  }
+
+  /* ------------------------------------------------------------- page head */
+  c.appendChild(B.page(
+    "HR · People Ops",
+    "The roster, human and AI seats side by side, and the one compliance line an architecture practice actually " +
+    "gets audited on: licensure and continuing education. A lapsed stamp is not an HR nicety — it is a stop-work " +
+    "event, because the seat that seals the drawings can no longer seal them.",
+    '<button class="btn brass sm" id="consultBtn">Consult HR · People Ops</button>'
+  ));
+
+  c.appendChild(B.card('<div class="statrow" id="statrow"></div>'));
+
+  /* --------------------------------------------------- the stop-work fence */
+  c.appendChild(B.card(
+    '<h2>Why licensure sits at the top of this room</h2>' +
+    '<div class="card-sub">Every other people metric can slip a week without anyone noticing. This one cannot.</div>' +
+    '<div class="fence"><b>A lapsed stamp is a stop-work event.</b> Only a licensed seat can seal the work. ' +
+    'If the Architect of Record\'s registration lapses, drawings cannot be sealed, the permit set cannot be ' +
+    'submitted, and construction administration on an open project has no licensee behind it. The exposure is not ' +
+    'a personnel file note — it is the whole board of work.</div>' +
+    '<div class="divider"></div>' +
+    '<div class="row" style="gap:7px">' +
+      B.tag("Renewal date", "ghost") + '<span class="muted">→ drives →</span>' +
+      B.tag("CE hours booked", "watch") + '<span class="muted">→ drives →</span>' +
+      B.tag("Ability to seal", "good") +
+    '</div>' +
+    '<div class="srcnote" style="font-style:normal;margin-top:10px">License numbers, expiry dates and the CE ' +
+    'requirement shown on this page are the ones carried on each seat\'s record in this hub. What a given ' +
+    'jurisdiction requires at renewal is set by that licensing board and is confirmed there, not here.</div>'
+  ));
+
+  /* ------------------------------------------------------------ the roster */
+  c.appendChild(B.card(
+    '<h2>The roster — human and AI seats, one list</h2>' +
+    '<div class="card-sub">The org does not keep two org charts. A human seat carries licensure, CE and a ' +
+    'personnel record; an AI seat carries a department, a confidence bar and a fence. Both show up here because ' +
+    'both do work the office depends on.</div>' +
+    '<div id="roster"></div>'
+  ));
+
+  /* ------------------------------------------------- licensure + CE detail */
+  c.appendChild(B.card(
+    '<h2>Licensure &amp; continuing education</h2>' +
+    '<div class="card-sub">Registration number, renewal date, and HSW hours against the requirement on the ' +
+    'record. Pace below is a straight-line read of the calendar year — hours booked versus hours you would expect ' +
+    'to have by this date if they were spread evenly.</div>' +
+    '<div id="licTable"></div>' +
+    '<div class="divider"></div>' +
+    '<div id="licFlags" class="row" style="gap:7px"></div>'
+  ));
+
+  /* ----------------------------------------------------- log CE hours (persist) */
+  c.appendChild(B.card(
+    '<h2>Log CE hours</h2>' +
+    '<div class="card-sub">Booking hours is ordinary work — it clears without a fence. The entry writes to this ' +
+    'hub\'s record and the pace flag recomputes on the spot.</div>' +
+    '<div class="grid g3" style="margin-bottom:12px">' +
+      '<div><label class="f" for="ceWho">Seat</label><select id="ceWho"></select></div>' +
+      '<div><label class="f" for="ceHrs">HSW hours to add</label>' +
+        '<input id="ceHrs" type="number" min="0.5" step="0.5" value="4"></div>' +
+      '<div><label class="f">&nbsp;</label>' +
+        '<div class="row"><button class="btn brass" id="ceGo">Log the hours</button></div></div>' +
+    '</div>' +
+    '<div id="ceEcho" class="muted small"></div>'
+  ));
+
+  /* ------------------------------------------------------ the candidate seat */
+  c.appendChild(B.card(
+    '<h2>The candidate seat — AXP and the ARE</h2>' +
+    '<div class="card-sub">The second stampable seat in a small firm is usually already in the office. Tracking ' +
+    'the hours and the divisions is how you know when it arrives, instead of finding out at a resignation.</div>' +
+    '<div id="axp"></div>'
+  ));
+
+  /* ------------------------------------------- offboarding — staged, never run */
+  c.appendChild(B.card(
+    '<h2>Offboarding</h2>' +
+    '<div class="card-sub">Every people action on this page clears on its own except this one.</div>' +
+    '<div class="fence"><b>A termination is never auto-run.</b> Balance, the HR pacemaker, releases people ' +
+    'decisions at its bar like any other department — but ending someone\'s employment always routes to a human. ' +
+    'The control below stages the action to the Approval Desk with its reasons attached. The org will not execute ' +
+    'it, and nothing here notifies anyone.</div>' +
+    '<div class="grid g3" style="margin:13px 0 0">' +
+      '<div><label class="f" for="offWho">Seat</label><select id="offWho"></select></div>' +
+      '<div><label class="f" for="offWhy">Reason on the record</label>' +
+        '<input id="offWhy" placeholder="e.g. end of contract term"></div>' +
+      '<div><label class="f">&nbsp;</label>' +
+        '<div class="row"><button class="btn ghost" id="offGo">Stage to the Approval Desk</button></div></div>' +
+    '</div>' +
+    '<div class="srcnote" style="font-style:normal">Ghost Mode — staging drafts the item and files it. No letter ' +
+    'is written, no account is closed, no one is told.</div>'
+  ));
+
+  /* ------------------------------------------------------------- consult HR */
+  c.appendChild(B.card(
+    '<h2>Consult HR · People Ops</h2>' +
+    '<div class="card-sub">Hale (DH) owns the team\'s health and the hard conversations; Roster (AE) packages ' +
+    'offers, checklists and the license/CE tracking; Balance (Pacemaker) is the only voice out of the triad and ' +
+    'routes a termination to a human every time. Bench argues for the talent needed to deliver the backlog; ' +
+    'Record asks whether licensure and paperwork are current and defensible.</div>' +
+    '<div class="row" style="margin-bottom:12px">' +
+      '<input id="q" placeholder="e.g. Is anyone\'s license about to lapse?" style="flex:1;min-width:260px">' +
+      '<button class="btn brass" id="go">Route it</button>' +
+    '</div>' +
+    '<div class="row" style="gap:6px;margin-bottom:4px">' +
+      ['Is anyone\'s license about to lapse?',
+       'Is CE on pace across the studio?',
+       'When do we get a second stampable seat?',
+       'Do we need to hire for the backlog?'].map(function (s) {
+        return '<button class="btn ghost sm ex" data-q="' + B.esc(s) + '">' + B.esc(s) + '</button>';
+      }).join("") +
+    '</div>' +
+    '<div id="out"></div>'
+  ));
+
+  /* ---------------------------------------------------------------- render */
+  function renderStats(d) {
+    var team = d.team || [];
+    var humans = team.filter(function (t) { return t.type === "Human"; });
+    var ai = team.filter(function (t) { return t.type !== "Human"; });
+    var licensed = humans.filter(function (t) { return licState(t); });
+    var renewing = licensed.filter(function (t) { return licState(t).renewsThisYear; });
+    var behind = humans.filter(function (t) { var s = ceState(t); return s && s.behind; });
+    var onboarding = team.filter(function (t) { return t.status === "Onboarding"; });
+
+    document.getElementById("statrow").innerHTML =
+      B.stat("Human seats", String(humans.length), "Carry licensure and a personnel record") +
+      B.stat("AI seats", String(ai.length), "Carry a department, a bar and a fence") +
+      B.stat("Licensed seats", String(licensed.length), "Can seal the work") +
+      B.stat("Renewing in " + YEAR, String(renewing.length),
+             renewing.length ? B.esc(renewing.map(function (t) { return t.name; }).join(", ")) : "None this calendar year",
+             renewing.length ? "watch" : "good") +
+      B.stat("CE behind pace", String(behind.length),
+             behind.length ? B.esc(behind.map(function (t) { return t.name; }).join(", ")) : "All seats at or ahead of pace",
+             behind.length ? "bad" : "good") +
+      B.stat("Mid-onboarding", String(onboarding.length),
+             onboarding.length ? B.esc(onboarding.map(function (t) { return t.name; }).join(", ")) : "No open onboarding");
+  }
+
+  function renderRoster(d) {
+    var rows = (d.team || []).map(function (t) {
+      var l = licState(t), ce = ceState(t), ax = frac(t.license) && !l ? frac(t.license) : null;
+      var isHuman = t.type === "Human";
+      var licCell;
+      if (l) {
+        licCell = '<span class="mono">' + B.esc(l.num) + '</span>' +
+          '<div class="t-sub">expires ' + B.esc(l.exp) + '</div>' +
+          (l.renewsThisYear ? '<div style="margin-top:4px">' + B.tag("renews " + l.year, "watch") + '</div>' : '');
+      } else if (ax) {
+        licCell = '<span class="muted small">Not yet licensed</span>' +
+          '<div class="t-sub">AXP ' + ax.done.toLocaleString() + " / " + ax.total.toLocaleString() + ' hrs</div>';
+      } else if (isHuman) {
+        licCell = '<span class="muted small">No license on the record</span>';
+      } else {
+        licCell = '<span class="muted small">Not applicable — AI seat</span>';
+      }
+      var ceCell = ce
+        ? '<span class="mono">' + ce.done + " / " + ce.total + '</span> <span class="muted small">HSW</span>' +
+          bar(ce.done / ce.total * 100, ce.behind ? "bad" : "good") +
+          '<div class="t-sub">' + (ce.behind ? "behind pace" : "at or ahead of pace") + '</div>'
+        : '<span class="muted small">—</span>';
+
+      return '<tr>' +
+        '<td><div class="t-main">' + B.esc(t.name) + '</div>' +
+          '<div class="t-sub">' + B.esc(t.role) + '</div></td>' +
+        '<td>' + B.tag(isHuman ? "Human" : t.type, isHuman ? "good" : "ghost") +
+          '<div class="t-sub">' + B.esc(t.dept) + '</div></td>' +
+        '<td>' + B.tag(t.status, t.status === "Active" ? "good" : "watch") + '</td>' +
+        '<td>' + licCell + '</td>' +
+        '<td>' + ceCell + '</td>' +
+        '<td class="small muted">' + B.esc(clean(t.note)) + '</td>' +
+      '</tr>';
+    }).join("") || '<tr><td colspan="6" class="empty">No seats on the roster.</td></tr>';
+
+    document.getElementById("roster").innerHTML =
+      '<table><thead><tr><th>Seat</th><th>Type</th><th>Status</th><th>License</th>' +
+      '<th>CE · HSW hours</th><th>On the record</th></tr></thead><tbody>' + rows + '</tbody></table>';
+  }
+
+  function renderLic(d) {
+    var humans = (d.team || []).filter(function (t) { return t.type === "Human"; });
+    var rows = humans.map(function (t) {
+      var l = licState(t), ce = ceState(t);
+      if (!l && !ce) return "";
+      var flag = "";
+      if (l && l.renewsThisYear && ce && ce.behind) flag = B.tag("renews " + l.year + " · CE behind pace", "bad");
+      else if (l && l.renewsThisYear) flag = B.tag("renews this calendar year", "watch");
+      else if (ce && ce.behind) flag = B.tag("CE behind pace", "watch");
+      else flag = B.tag("clear", "good");
+
+      return '<tr>' +
+        '<td><div class="t-main">' + B.esc(t.name) + '</div><div class="t-sub">' + B.esc(t.role) + '</div></td>' +
+        '<td class="k">' + (l ? B.esc(l.num) : '<span class="muted">—</span>') + '</td>' +
+        '<td class="k">' + (l ? B.esc(l.exp) : '<span class="muted">—</span>') + '</td>' +
+        '<td class="num">' + (ce ? ce.done + " / " + ce.total : "—") +
+          (ce ? bar(ce.done / ce.total * 100, ce.behind ? "bad" : "good") : "") + '</td>' +
+        '<td class="num">' + (ce ? ce.expected.toFixed(1) : "—") +
+          '<div class="t-sub">' + (ce ? "by " + NOW.toISOString().slice(0, 10) : "") + '</div></td>' +
+        '<td>' + flag + '</td>' +
+      '</tr>';
+    }).join("") || '<tr><td colspan="6" class="empty">No licensed seats on the roster.</td></tr>';
+
+    document.getElementById("licTable").innerHTML =
+      '<table><thead><tr><th>Seat</th><th>Registration</th><th>Expires</th>' +
+      '<th class="num">HSW booked</th><th class="num">Expected by today</th><th>Read</th>' +
+      '</tr></thead><tbody>' + rows + '</tbody></table>';
+
+    var renewing = humans.filter(function (t) { var l = licState(t); return l && l.renewsThisYear; });
+    var behind = humans.filter(function (t) { var s = ceState(t); return s && s.behind; });
+    document.getElementById("licFlags").innerHTML =
+      B.tag(renewing.length + " renewing in " + YEAR, renewing.length ? "watch" : "good") +
+      B.tag(behind.length + " behind CE pace", behind.length ? "bad" : "good") +
+      B.tag("Pace method: straight line through the calendar year", "ghost");
+  }
+
+  function renderAxp(d) {
+    var cands = (d.team || []).filter(function (t) { return frac(t.license) && !lic(t.license); });
+    if (!cands.length) {
+      document.getElementById("axp").innerHTML = '<div class="empty">No candidate seat on the roster.</div>';
+      return;
+    }
+    document.getElementById("axp").innerHTML = cands.map(function (t) {
+      var h = frac(t.license), a = are(t.note);
+      var hp = h ? h.done / h.total * 100 : 0;
+      var ap = a ? a.done / a.total * 100 : 0;
+      return '<div class="grid g2">' +
+        '<div><div class="t-main">' + B.esc(t.name) + ' · ' + B.esc(t.role) + '</div>' +
+          '<div class="t-sub">' + B.esc(clean(t.note)) + '</div>' +
+          '<div class="divider"></div>' +
+          '<div class="statrow">' +
+            B.stat("AXP hours", h ? h.done.toLocaleString() : "—",
+                   h ? "of " + h.total.toLocaleString() + " required on this record · " + B.pct(hp) + " there" : "") +
+            B.stat("ARE divisions passed", a ? a.done + " / " + a.total : "—",
+                   a ? (a.total - a.done) + " remaining" : "", a && a.done >= a.total ? "good" : "watch") +
+          '</div></div>' +
+        '<div>' +
+          '<label class="f">AXP hours logged</label>' + bar(hp) +
+          '<div class="t-sub">' + (h ? (h.total - h.done).toLocaleString() + " hours to go" : "") + '</div>' +
+          '<div style="height:12px"></div>' +
+          '<label class="f">ARE divisions</label>' + bar(ap) +
+          '<div class="t-sub">' + (a ? a.done + " of " + a.total + " passed" : "") + '</div>' +
+          '<div class="divider"></div>' +
+          '<div class="fence">A second stampable seat changes what the office can carry — it is the difference ' +
+          'between one person sealing every sheet and a practice with redundancy. That is a staffing plan input, ' +
+          'not a personnel note.</div>' +
+        '</div></div>';
+    }).join('<div class="divider"></div>');
+  }
+
+  function renderPickers(d) {
+    var ceSeats = (d.team || []).filter(function (t) { return frac(t.ce); });
+    var ceSel = document.getElementById("ceWho");
+    var keepCe = ceSel.value;
+    ceSel.innerHTML = ceSeats.map(function (t) {
+      var s = ceState(t);
+      return '<option value="' + B.esc(t.id) + '">' + B.esc(t.name) + ' — ' + s.done + " / " + s.total +
+        ' HSW</option>';
+    }).join("") || '<option value="">No seat tracks CE hours</option>';
+    if (keepCe) ceSel.value = keepCe;
+
+    var offSel = document.getElementById("offWho");
+    if (!offSel.options.length) {
+      offSel.innerHTML = (d.team || []).map(function (t) {
+        return '<option value="' + B.esc(t.id) + '">' + B.esc(t.name) + ' — ' + B.esc(t.role) + '</option>';
+      }).join("");
+    }
+  }
+
+  function render() {
+    var d = B.db();
+    renderStats(d);
+    renderRoster(d);
+    renderLic(d);
+    renderAxp(d);
+    renderPickers(d);
+  }
+
+  /* ------------------------------------------------- the output contract */
+  function renderAnswer(r) {
+    var out = document.getElementById("out");
+    var v = r.verdict, dept = r.dept, passed = r.passed;
+    var pctv = Math.min(100, v.conf);
+    var head = passed
+      ? dept.pace.name + " released it: " + v.stance
+      : "Held below the " + dept.gate + "% bar (" + v.conf + "%). Needs a human — not enough live data. " + v.stance;
+    out.innerHTML =
+      '<div class="divider"></div>' +
+      '<div class="' + (passed ? "busrow conclude" : "busrow reject") + '" style="display:block">' +
+        '<div class="bus-topic">' + (passed ? "hr.pacemaker.released" : "escalation.below_bar") + '</div>' +
+        '<div class="bus-body" style="margin-top:5px">' + B.esc(head) + '</div>' +
+      '</div>' +
+      '<div class="conf">' +
+        '<span class="muted small">' + B.esc(dept.name) + ' · bar ' + dept.gate + '%</span>' +
+        '<span class="conf-bar"><i class="conf-fill ' + (passed ? "" : "under") + '" style="width:' + pctv + '%"></i>' +
+        '<span class="conf-gate" style="left:' + dept.gate + '%"></span></span>' +
+        '<span class="conf-n">' + v.conf + '%</span>' +
+      '</div>' +
+      '<ul class="reasons">' + v.reasons.map(function (x) {
+        return '<li><span class="rtag ' + B.esc(x.t) + '">' + B.esc(x.t.toUpperCase()) + '</span><span>' +
+          B.esc(x.s) + '</span></li>';
+      }).join("") + '</ul>' +
+      '<div class="srcnote">Routed through ' + B.esc(dept.dh.name) + ' (DH) → ' + B.esc(dept.ae.name) +
+        ' (AE) → the bus → ' + B.esc(dept.pace.name) + ' (Pacemaker) → ' + B.esc(dept.lensA.name) +
+        ' / ' + B.esc(dept.lensB.name) + ' (opposing lenses). Full trace on the Agent Org page.</div>';
+  }
+
+  function ask(q) {
+    if (!q) { B.toast("Type a question first.", ""); return; }
+    var r = B.consult("hr", q);
+    if (!r) { B.toast("HR · People Ops is not in this build.", ""); return; }
+    renderAnswer(r);
+  }
+
+  /* ------------------------------------------------------------------ boot */
+  render();
+
+  setTimeout(function () {
+    document.getElementById("ceGo").addEventListener("click", function () {
+      var id = document.getElementById("ceWho").value;
+      var add = Number(document.getElementById("ceHrs").value);
+      if (!id) { B.toast("No seat selected.", ""); return; }
+      if (!(add > 0)) { B.toast("Enter a number of hours greater than zero.", ""); return; }
+      var name = "", after = null;
+      B.save(function (x) {
+        (x.team || []).forEach(function (t) {
+          if (t.id !== id) return;
+          var f = frac(t.ce); if (!f) return;
+          var v = Math.round((f.done + add) * 10) / 10;
+          t.ce = v + " / " + f.total + " HSW hours";
+          name = t.name; after = { done: v, total: f.total };
+        });
+      });
+      render();
+      if (after) {
+        var st = after.total * YEAR_FRAC;
+        document.getElementById("ceEcho").innerHTML =
+          B.esc(name) + " now carries " + after.done + " of " + after.total + " HSW hours on the record — " +
+          (after.done < st ? "still behind" : "at or ahead of") + " a straight-line pace of " + st.toFixed(1) +
+          " hours by today. Written to this hub, in this browser.";
+        B.toast(add + " HSW hour" + (add === 1 ? "" : "s") + " logged for " + name + ".", "ok");
+      }
+    });
+
+    document.getElementById("offGo").addEventListener("click", function () {
+      var id = document.getElementById("offWho").value;
+      var why = document.getElementById("offWhy").value.trim();
+      var d = B.db();
+      var seat = (d.team || []).filter(function (t) { return t.id === id; })[0];
+      if (!seat) { B.toast("No seat selected.", ""); return; }
+      B.stage(
+        "people",
+        "Offboarding — " + seat.name,
+        seat.name + " · " + seat.role + " · " + seat.dept + ". Reason on the record: " +
+          (why || "not stated") + ". Staged for review only — no action has been taken on this seat.",
+        "Ending someone's employment is never auto-run. Balance routes every termination to a human, with the " +
+          "reasons attached.",
+        "Roster (HR AE)"
+      );
+      B.toast("Offboarding staged to the Approval Desk. Nothing has been executed.", "ok");
+    });
+
+    document.getElementById("go").addEventListener("click", function () {
+      ask(document.getElementById("q").value.trim());
+    });
+    document.getElementById("q").addEventListener("keydown", function (e) {
+      if (e.key === "Enter") ask(this.value.trim());
+    });
+    Array.prototype.forEach.call(document.querySelectorAll(".ex"), function (b) {
+      b.addEventListener("click", function () {
+        document.getElementById("q").value = this.dataset.q;
+        ask(this.dataset.q);
+      });
+    });
+    var cb = document.getElementById("consultBtn");
+    if (cb) cb.addEventListener("click", function () {
+      var q = document.getElementById("q"); bring(q); q.focus();
+    });
+  }, 0);
+})();
+</script>
+</body>
+</html>

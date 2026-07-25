@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Detail Studio · Buttress OS V2.0</title>
+<meta name="description" content="Buttress OS — the architecture practice operating system. Powered by Accelerated Experiences LLC.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="buttress.css">
+</head>
+<body>
+<script src="buttress.js"></script>
+<script>
+(function () {
+  var B = window.Buttress;
+  var c = B.mount({ active: "details.html", crumb: "Detail Studio" });
+
+  /* ===================================================== drafting utilities */
+
+  /* Drawing scales. px per real inch = (inches of paper per foot / 12) * 96. */
+  var SCALES = [
+    { v: 3,    label: '3" = 1\'-0"' },
+    { v: 1.5,  label: '1 1/2" = 1\'-0"' },
+    { v: 1,    label: '1" = 1\'-0"' },
+    { v: 0.75, label: '3/4" = 1\'-0"' },
+    { v: 0.5,  label: '1/2" = 1\'-0"' }
+  ];
+  function ppiFor(sc) { return (Number(sc) / 12) * 96; }
+  function scaleLabel(sc) {
+    var s = SCALES.filter(function (x) { return x.v === Number(sc); })[0];
+    return s ? s.label : Number(sc) + '" = 1\'-0"';
+  }
+
+  /* Inches to a drafting fraction, nearest 1/16. */
+  function frac(x) {
+    var neg = x < 0; x = Math.abs(Number(x) || 0);
+    var whole = Math.floor(x + 1e-9);
+    var n = Math.round((x - whole) * 16);
+    if (n === 16) { whole++; n = 0; }
+    var d = 16;
+    while (n > 0 && n % 2 === 0) { n /= 2; d /= 2; }
+    var s = "";
+    if (whole || !n) s += whole;
+    if (n) s += (whole ? " " : "") + n + "/" + d;
+    return (neg ? "-" : "") + s;
+  }
+  function IN(x) { return frac(x) + '"'; }
+  function FTIN(x) {
+    x = Number(x) || 0;
+    var f = Math.floor(x / 12), i = x - f * 12;
+    return f + "'-" + frac(i) + '"';
+  }
+
+  function tx(x, y, s, o) {
+    o = o || {};
+    return '<text x="' + x + '" y="' + y + '" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="' +
+      (o.size || 10) + '" fill="' + (o.fill || "#1d1a16") + '" text-anchor="' + (o.anchor || "start") + '"' +
+      (o.weight ? ' font-weight="' + o.weight + '"' : "") +
+      (o.rot ? ' transform="rotate(' + o.rot + " " + x + " " + y + ')"' : "") +
+      '>' + B.esc(s) + '</text>';
+  }
+  function ln(x1, y1, x2, y2, o) {
+    o = o || {};
+    return '<line x1="' + x1 + '" y1="' + y1 + '" x2="' + x2 + '" y2="' + y2 +
+      '" stroke="' + (o.stroke || "#4a443b") + '" stroke-width="' + (o.w || 1) + '"' +
+      (o.dash ? ' stroke-dasharray="' + o.dash + '"' : "") + '/>';
+  }
+  function rc(x, y, w, h, fill, o) {
+    o = o || {};
+    return '<rect x="' + x + '" y="' + y + '" width="' + Math.max(0, w) + '" height="' + Math.max(0, h) +
+      '" fill="' + fill + '" stroke="' + (o.stroke || "#1d1a16") + '" stroke-width="' + (o.w === undefined ? 1 : o.w) + '"/>';
+  }
+  /* dimension strings — real ones: line, ticks, and a label that reads the geometry */
+  function dimH(x1, x2, y, label) {
+    return '<g>' + ln(x1, y, x2, y, { w: 0.9 }) +
+      ln(x1, y - 4.5, x1, y + 4.5, { w: 0.9 }) + ln(x2, y - 4.5, x2, y + 4.5, { w: 0.9 }) +
+      tx((x1 + x2) / 2, y - 6, label, { anchor: "middle", size: 10 }) + '</g>';
+  }
+  function dimV(y1, y2, x, label) {
+    return '<g>' + ln(x, y1, x, y2, { w: 0.9 }) +
+      ln(x - 4.5, y1, x + 4.5, y1, { w: 0.9 }) + ln(x - 4.5, y2, x + 4.5, y2, { w: 0.9 }) +
+      tx(x - 5, (y1 + y2) / 2, label, { anchor: "middle", size: 10, rot: -90 }) + '</g>';
+  }
+  function bubble(x, y, n) {
+    return '<g><circle cx="' + x + '" cy="' + y + '" r="8" fill="#fffdf8" stroke="#1d1a16" stroke-width="1"/>' +
+      tx(x, y + 3.5, String(n), { anchor: "middle", size: 9.5, weight: 700 }) + '</g>';
+  }
+  function defs(uid) {
+    return '<defs>' +
+      '<pattern id="' + uid + '-earth" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">' +
+        '<line x1="0" y1="0" x2="0" y2="9" stroke="#b6ab99" stroke-width="1"/></pattern>' +
+      '<pattern id="' + uid + '-conc" width="9" height="9" patternUnits="userSpaceOnUse">' +
+        '<circle cx="2" cy="2.5" r="0.9" fill="#a89e8c"/><circle cx="6.2" cy="6" r="0.7" fill="#a89e8c"/>' +
+        '<path d="M5.6 1.4 l1.5 1.9 h-3 z" fill="#a89e8c"/></pattern>' +
+      '<pattern id="' + uid + '-ins" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">' +
+        '<line x1="0" y1="0" x2="0" y2="7" stroke="#c9954a" stroke-width="1.3"/></pattern>' +
+      '<pattern id="' + uid + '-grav" width="11" height="11" patternUnits="userSpaceOnUse">' +
+        '<circle cx="3" cy="3" r="1.7" fill="none" stroke="#a89e8c" stroke-width="0.8"/>' +
+        '<circle cx="8" cy="7.5" r="1.3" fill="none" stroke="#a89e8c" stroke-width="0.8"/></pattern>' +
+      '<pattern id="' + uid + '-wood" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">' +
+        '<line x1="0" y1="0" x2="0" y2="6" stroke="#c4b696" stroke-width="0.9"/></pattern>' +
+      '</defs>';
+  }
+
+  /* The honesty stamp. Every generated detail carries it. Non-negotiable. */
+  var STAMP_LINE = "NOT FOR CONSTRUCTION — VERIFY WITH THE ARCHITECT OF RECORD";
+  function stampBlock(x, y, w, scaleLbl, extra) {
+    return ln(x, y, x + w, y, { stroke: "#ddd6c8", w: 1 }) +
+      tx(x, y + 17, STAMP_LINE, { size: 11, weight: 700, fill: "#8a4b46" }) +
+      tx(x, y + 32, "Scale " + scaleLbl + " · drawn at 96 px per inch of paper. Printed size depends on your output device.",
+         { size: 9, fill: "#8b8175" }) +
+      tx(x, y + 45, extra, { size: 9, fill: "#8b8175" });
+  }
+  function keynoteBlock(x, y, lines) {
+    return lines.map(function (s, i) {
+      return tx(x, y + i * 14, s, { size: 9.5, fill: "#4a443b" });
+    }).join("");
+  }
+  function svgWrap(w, h, uid, inner) {
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + Math.round(w) + ' ' + Math.round(h) + '" ' +
+      'width="' + Math.round(w) + '" height="' + Math.round(h) + '" style="max-width:100%;height:auto">' +
+      defs(uid) + '<rect x="0" y="0" width="' + Math.round(w) + '" height="' + Math.round(h) + '" fill="#fffdf8"/>' +
+      inner + '</svg>';
+  }
+
+  /* ============================================ DETAIL 1 — exterior wall */
+  function drawWall(s, ppi, uid, scaleLbl) {
+    var layers = [
+      { n: "Cladding",              t: s.clad, fill: "#d9cdb5" },
+      { n: "Ventilated cavity",     t: s.gap,  fill: "#f7f4ec" },
+      { n: "Continuous insulation", t: s.ci,   fill: "url(#" + uid + "-ins)" },
+      { n: "Sheathing",             t: s.sh,   fill: "#e6dcc6" },
+      { n: "Stud cavity",           t: s.stud, fill: "#fffdf8" },
+      { n: "Gypsum board",          t: s.gb,   fill: "#efeae0" }
+    ].filter(function (l) { return l.t > 0; });
+
+    var total = layers.reduce(function (a, l) { return a + l.t; }, 0);
+    var run   = 2 * s.sp + 1.5;
+    var x0 = 96, y0 = 34;
+    var wpx = total * ppi, hpx = run * ppi;
+    var yB = y0 + hpx;
+    var keyX = x0 + wpx + 52;
+    var g = "";
+
+    /* layers, exterior at the left */
+    var x = x0, notes = [], sheathX = null, studX = null;
+    layers.forEach(function (l, i) {
+      g += rc(x, y0, l.t * ppi, hpx, l.fill, { w: 1 });
+      l._x = x; l._mid = x + (l.t * ppi) / 2;
+      if (l.n === "Sheathing") sheathX = x;
+      if (l.n === "Stud cavity") studX = x;
+      x += l.t * ppi;
+    });
+
+    /* studs at spacing, drawn as framing members in a horizontal section */
+    var studCenters = [0.75, 0.75 + s.sp, 0.75 + 2 * s.sp].map(function (v) { return y0 + v * ppi; });
+    if (studX !== null) {
+      /* cavity insulation, held to the exterior face of the cavity */
+      if (s.ins > 0) {
+        for (var b = 0; b < studCenters.length - 1; b++) {
+          var yTop = studCenters[b] + 0.75 * ppi, yBot = studCenters[b + 1] - 0.75 * ppi;
+          g += rc(studX, yTop, s.ins * ppi, yBot - yTop, "url(#" + uid + "-ins)", { stroke: "#c9954a", w: 0.6 });
+        }
+      }
+      studCenters.forEach(function (cy) {
+        var sy = cy - 0.75 * ppi, sh = 1.5 * ppi;
+        g += rc(studX, sy, s.stud * ppi, sh, "url(#" + uid + "-wood)", { w: 1 });
+        g += ln(studX, sy, studX + s.stud * ppi, sy + sh, { w: 0.6, stroke: "#8b8175" });
+        g += ln(studX, sy + sh, studX + s.stud * ppi, sy, { w: 0.6, stroke: "#8b8175" });
+        g += ln(x0 - 44, cy, x0 - 6, cy, { w: 0.7, stroke: "#8b8175", dash: "10 3 2 3" });
+      });
+    }
+    /* water-resistive barrier — a line, because that is what it is */
+    if (sheathX !== null) g += ln(sheathX, y0, sheathX, yB, { stroke: "#a8762c", w: 2.2 });
+
+    /* keynote bubbles + list */
+    layers.forEach(function (l, i) {
+      var by = y0 + 24 + i * 24;
+      g += bubble(l._mid, by, i + 1);
+      notes.push((i + 1) + "  " + l.n + " — " + IN(l.t));
+    });
+    var nn = layers.length;
+    notes.push((++nn) + "  Water-resistive barrier at the exterior face of the sheathing (no thickness).");
+    notes.push((++nn) + "  Studs " + s.studLabel + " at " + IN(s.sp) + " o.c.");
+    notes.push((++nn) + "  Cavity insulation " + IN(s.ins) + " in a " + IN(s.stud) + " cavity.");
+
+    var keyY = y0 + 18;
+    g += notes.map(function (t, i) {
+      return tx(keyX, keyY + i * 16, t, { size: 9.5, fill: "#4a443b" });
+    }).join("");
+
+    /* dimension strings — layer by layer, then the overall assembly */
+    layers.forEach(function (l, i) {
+      if (l.t * ppi < 11) return;
+      g += dimH(l._x, l._x + l.t * ppi, yB + 20 + (i % 2) * 17, IN(l.t));
+    });
+    g += dimH(x0, x0 + wpx, yB + 62, "Wall assembly " + IN(total));
+    g += dimV(studCenters[0], studCenters[1], x0 - 52, IN(s.sp) + " o.c.");
+
+    g += tx(x0, y0 - 12, "EXTERIOR", { size: 9, fill: "#8b8175" });
+    g += tx(x0 + wpx, y0 - 12, "INTERIOR", { size: 9, fill: "#8b8175", anchor: "end" });
+
+    var kY = Math.max(yB + 84, keyY + notes.length * 16 + 12);
+    var W = Math.max(keyX + 300, x0 + wpx + 120);
+    g += keynoteBlock(40, kY + 14, [
+      "Horizontal section through the exterior wall. Layer order and thickness are the inputs above.",
+      "Total assembly thickness " + IN(total) + " · framing run shown " + FTIN(run) + " (two bays at " + IN(s.sp) + " o.c.)."
+    ]);
+    var stampY = kY + 40;
+    g += stampBlock(40, stampY, W - 80, scaleLbl,
+      "Illustrative geometry generated from the inputs above. No R-value, fire rating or code compliance is asserted.");
+    return svgWrap(W, stampY + 60, uid, g);
+  }
+
+  /* ======================================== DETAIL 2 — footing / foundation */
+  function drawFooting(s, ppi, uid, scaleLbl) {
+    var Wf = s.fw, Tf = s.ft, Ws = Math.min(s.sw, s.fw), Hs = s.sh, Ts = s.slab, G = s.grav;
+    var D = Math.max(Tf + 4, Math.min(s.depth, Hs + Tf - 4));   /* grade stays between */
+    var exposed = Hs + Tf - D;
+
+    var footL = 150, y0 = 34;
+    var cx = footL + (Wf / 2) * ppi;
+    var footR = footL + Wf * ppi;
+    var stemL = cx - (Ws / 2) * ppi, stemR = cx + (Ws / 2) * ppi;
+    var yStemTop = y0 + 18;
+    var yFootTop = yStemTop + Hs * ppi;
+    var yFootBot = yFootTop + Tf * ppi;
+    var yGrade   = yFootBot - D * ppi;
+    var ySlabTop = yStemTop, ySlabBot = ySlabTop + Ts * ppi;
+    var yGravBot = ySlabBot + G * ppi;
+    var yBase = yFootBot + 16;
+    var xL = footL - 60;
+    var xR = Math.max(stemR + 18 * ppi, footR + 40);
+    var g = "";
+
+    /* earth, then gravel, then everything cast in concrete over the top */
+    g += rc(xL, yGrade, stemL - xL, yBase - yGrade, "url(#" + uid + "-earth)", { stroke: "none", w: 0 });
+    g += rc(stemR, yGravBot, xR - stemR, yBase - yGravBot, "url(#" + uid + "-earth)", { stroke: "none", w: 0 });
+    if (G > 0) g += rc(stemR, ySlabBot, xR - stemR, G * ppi, "url(#" + uid + "-grav)", { stroke: "#a89e8c", w: 0.6 });
+
+    g += rc(footL, yFootTop, Wf * ppi, Tf * ppi, "url(#" + uid + "-conc)", { w: 1.2 });
+    g += rc(stemL, yStemTop, Ws * ppi, Hs * ppi, "url(#" + uid + "-conc)", { w: 1.2 });
+    g += rc(stemR, ySlabTop, xR - stemR, Ts * ppi, "url(#" + uid + "-conc)", { w: 1.2 });
+
+    /* grade line */
+    g += ln(xL, yGrade, stemL, yGrade, { w: 1.8 });
+    for (var i = 0; i < 4; i++) {
+      var gx = xL + 8 + i * ((stemL - xL - 16) / 3);
+      g += ln(gx, yGrade, gx - 7, yGrade + 7, { w: 0.8, stroke: "#8b8175" });
+    }
+
+    /* reinforcing — diagrammatic, and said so in the keynotes */
+    var cov = 3 * ppi;
+    g += '<circle cx="' + (footL + cov) + '" cy="' + (yFootBot - cov) + '" r="3.2" fill="#1d1a16"/>';
+    g += '<circle cx="' + (footR - cov) + '" cy="' + (yFootBot - cov) + '" r="3.2" fill="#1d1a16"/>';
+    g += ln(cx, yFootBot - cov, cx, yStemTop + 2 * ppi, { w: 1.6, stroke: "#1d1a16" });
+    g += ln(cx, yFootBot - cov, cx + 4 * ppi, yFootBot - cov, { w: 1.6, stroke: "#1d1a16" });
+
+    /* dimension strings */
+    g += dimH(footL, footR, yFootBot + 38, IN(Wf));
+    g += dimH(stemL, stemR, yStemTop - 14, IN(Ws));
+    g += dimV(yFootTop, yFootBot, xR + 26, IN(Tf));
+    g += dimV(ySlabTop, ySlabBot, xR + 56, IN(Ts));
+    g += dimV(yStemTop, yFootTop, footL - 80, FTIN(Hs));
+    g += dimV(yGrade, yFootBot, footL - 112, FTIN(D));
+
+    g += tx(xL, yGrade - 8, "FINISH GRADE", { size: 9, fill: "#8b8175" });
+    g += tx(xR - 4, ySlabTop - 8, "SLAB ON GRADE", { size: 9, fill: "#8b8175", anchor: "end" });
+
+    var W = xR + 100;
+    var kY = yFootBot + 58;
+    g += keynoteBlock(40, kY, [
+      "1  Continuous footing " + IN(Wf) + " wide x " + IN(Tf) + " deep.",
+      "2  Stem wall " + IN(Ws) + " wide, " + FTIN(Hs) + " above the footing — " + IN(exposed) + " of it above finish grade.",
+      "3  Slab on grade " + IN(Ts) + (G > 0 ? " over " + IN(G) + " of compacted granular base." : " on prepared subgrade."),
+      "4  Bottom of footing " + FTIN(D) + " below finish grade. That is the number you typed — frost depth is set by the",
+      "    Authority Having Jurisdiction, and this drawing does not assert one.",
+      "5  Reinforcing is diagrammatic. Bar size, grade, lap and spacing belong to the structural engineer."
+    ]);
+    var stampY = kY + 6 * 14 + 12;
+    g += stampBlock(40, stampY, W - 80, scaleLbl,
+      "Illustrative geometry generated from the inputs above. No bearing capacity, frost depth or code compliance is asserted.");
+    return svgWrap(W, stampY + 60, uid, g);
+  }
+
+  /* ================================================== DETAIL 3 — stair section */
+  function drawStair(s, ppi, uid, scaleLbl) {
+    var R = s.rise, T = s.tread, N = Math.round(s.n), NS = s.nosing, SD = s.stringer;
+    var totalRise = N * R, totalRun = (N - 1) * T;
+    var y0 = 40, sx = 150;
+    var yTop = y0, yBot = yTop + totalRise * ppi;
+    var g = "";
+
+    /* the stepped profile: N risers, N-1 treads, last riser lands on the floor above */
+    var pts = [[sx, yBot]], cxp = sx, cyp = yBot, i;
+    for (i = 1; i <= N; i++) {
+      cyp -= R * ppi; pts.push([cxp, cyp]);
+      if (i < N) { cxp += T * ppi; pts.push([cxp, cyp]); }
+    }
+    g += '<polyline points="' + pts.map(function (p) { return p[0] + "," + p[1]; }).join(" ") +
+         '" fill="none" stroke="#1d1a16" stroke-width="1.6"/>';
+
+    /* nosing projection on every tread */
+    if (NS > 0) {
+      for (i = 1; i < N; i++) {
+        var rx = sx + (i - 1) * T * ppi, ry = yBot - i * R * ppi;
+        g += ln(rx - NS * ppi, ry, rx, ry, { w: 1.4 });
+        g += ln(rx - NS * ppi, ry, rx - NS * ppi, ry + 1 * ppi, { w: 1.2 });
+      }
+    }
+
+    /* pitch line and the structural depth below it */
+    g += ln(sx, yBot, sx + totalRun * ppi, yTop, { w: 0.8, stroke: "#a8762c", dash: "8 4" });
+    g += ln(sx, yBot + SD * ppi, sx + totalRun * ppi, yTop + SD * ppi, { w: 1.4, stroke: "#4a443b" });
+    g += ln(sx, yBot, sx, yBot + SD * ppi, { w: 1.4, stroke: "#4a443b" });
+    g += ln(sx + totalRun * ppi, yTop, sx + totalRun * ppi, yTop + SD * ppi, { w: 1.4, stroke: "#4a443b" });
+
+    /* floor plates */
+    g += rc(sx - 60, yBot, 60, 10 * ppi, "url(#" + uid + "-conc)", { w: 1.2 });
+    g += rc(sx + totalRun * ppi, yTop, 24 * ppi, 10 * ppi, "url(#" + uid + "-conc)", { w: 1.2 });
+
+    /* dimension strings */
+    g += dimV(yBot - R * ppi, yBot, sx - 26, IN(R));
+    g += dimH(sx, sx + T * ppi, yBot + 34, IN(T));
+    g += dimH(sx, sx + totalRun * ppi, yBot + 58, FTIN(totalRun) + " total run");
+    g += dimV(yTop, yBot, sx + totalRun * ppi + 24 * ppi + 40, FTIN(totalRise) + " total rise");
+
+    g += tx(sx - 60, yBot - 8, "LOWER FLOOR", { size: 9, fill: "#8b8175" });
+    g += tx(sx + totalRun * ppi + 4, yTop - 8, "UPPER FLOOR", { size: 9, fill: "#8b8175" });
+
+    var deg = Math.atan((R / T)) * 180 / Math.PI;
+    var blondel = 2 * R + T;
+    var W = sx + totalRun * ppi + 24 * ppi + 130;
+    var kY = yBot + 10 * ppi + 40;
+    g += keynoteBlock(40, kY, [
+      "1  " + N + " risers at " + IN(R) + " = " + FTIN(totalRise) + " total rise.",
+      "2  " + (N - 1) + " treads at " + IN(T) + " = " + FTIN(totalRun) + " total run. Nosing projection " + IN(NS) + ".",
+      "3  Pitch " + deg.toFixed(1) + " degrees from horizontal.",
+      "4  2R + T = " + frac(blondel) + '" — Blondel’s rule of thumb (commonly cited near 24–25"), a comfort check, not a code requirement.',
+      "5  Structural depth below the pitch line shown at " + IN(SD) + ", diagrammatic. Stringer sizing is the structural engineer's.",
+      "6  Riser and tread limits, handrail, guard and headroom requirements come from the adopted code — verify with the",
+      "    Architect of Record and the Authority Having Jurisdiction before this is drawn into a set."
+    ]);
+    var stampY = kY + 7 * 14 + 12;
+    g += stampBlock(40, stampY, W - 80, scaleLbl,
+      "Illustrative geometry generated from the inputs above. No code compliance for rise, run, headroom or guards is asserted.");
+    return svgWrap(W, stampY + 60, uid, g);
+  }
+
+  /* ==================================================== the studio machinery */
+  function buildDetail(cfg) {
+    var state = {};
+    cfg.fields.forEach(function (f) { state[f.k] = f.value; });
+    state.scale = cfg.scale;
+    if (cfg.derive) cfg.derive(state);
+
+    var card = B.card(
+      '<h2>' + B.esc(cfg.title) + '</h2>' +
+      '<div class="card-sub">' + cfg.sub + '</div>' +
+      '<div class="grid g4 dfields"></div>' +
+      '<div class="divider"></div>' +
+      '<div class="ddraw" style="overflow:auto;border:1px solid var(--line);border-radius:10px;padding:12px;background:#fffdf8"></div>' +
+      '<div class="row" style="margin-top:12px">' +
+        '<button class="btn brass sm dl">Download the SVG</button>' +
+        '<button class="btn ghost sm rs">Reset the inputs</button>' +
+        '<span class="muted small dstat"></span>' +
+      '</div>' +
+      '<div class="fence" style="margin-top:12px">Every detail this studio draws carries the ' +
+      '<b>Not for construction — verify with the Architect of Record</b> stamp, in the drawing itself, ' +
+      'where it survives being exported, emailed and dropped into someone else\'s set. The geometry is illustrative: ' +
+      'it draws what you typed, and it asserts no code compliance.</div>'
+    );
+    c.appendChild(card);
+
+    var fieldsEl = card.querySelector(".dfields");
+    var drawEl   = card.querySelector(".ddraw");
+    var statEl   = card.querySelector(".dstat");
+
+    function fieldHTML(f) {
+      if (f.type === "select") {
+        return '<div class="field"><label class="f">' + B.esc(f.label) + '</label>' +
+          '<select data-k="' + f.k + '">' + f.options.map(function (o) {
+            return '<option value="' + o.v + '"' + (Number(o.v) === Number(state[f.k]) ? " selected" : "") + '>' +
+              B.esc(o.label) + '</option>';
+          }).join("") + '</select></div>';
+      }
+      return '<div class="field"><label class="f">' + B.esc(f.label) +
+        ' <span class="mono" data-out="' + f.k + '" style="text-transform:none;color:var(--brass-2)">' +
+        B.esc(f.fmt(state[f.k])) + '</span></label>' +
+        '<input type="range" data-k="' + f.k + '" min="' + f.min + '" max="' + f.max +
+        '" step="' + f.step + '" value="' + state[f.k] + '"></div>';
+    }
+
+    function renderFields() {
+      fieldsEl.innerHTML = cfg.fields.map(fieldHTML).join("") +
+        '<div class="field"><label class="f">Drawing scale</label><select data-k="scale">' +
+        SCALES.map(function (s) {
+          return '<option value="' + s.v + '"' + (s.v === Number(state.scale) ? " selected" : "") + '>' +
+            B.esc(s.label) + '</option>';
+        }).join("") + '</select></div>';
+    }
+
+    function redraw() {
+      var ppi = ppiFor(state.scale);
+      drawEl.innerHTML = cfg.draw(state, ppi, cfg.id, scaleLabel(state.scale));
+      statEl.textContent = cfg.readout(state);
+    }
+
+    function onChange(e) {
+      var t = e.target, k = t && t.getAttribute ? t.getAttribute("data-k") : null;
+      if (!k) return;
+      state[k] = Number(t.value);
+      if (cfg.derive) cfg.derive(state);
+      var f = cfg.fields.filter(function (x) { return x.k === k; })[0];
+      var out = fieldsEl.querySelector('[data-out="' + k + '"]');
+      if (f && out) out.textContent = f.fmt(state[k]);
+      /* an input can clamp another one — re-sync every readout */
+      cfg.fields.forEach(function (x) {
+        var o = fieldsEl.querySelector('[data-out="' + x.k + '"]');
+        if (o) o.textContent = x.fmt(state[x.k]);
+        var inp = fieldsEl.querySelector('[data-k="' + x.k + '"]');
+        if (inp && inp.type === "range" && Number(inp.value) !== Number(state[x.k])) inp.value = state[x.k];
+      });
+      redraw();
+    }
+    fieldsEl.addEventListener("input", onChange);
+    fieldsEl.addEventListener("change", onChange);
+
+    card.querySelector(".rs").addEventListener("click", function () {
+      cfg.fields.forEach(function (f) { state[f.k] = f.value; });
+      state.scale = cfg.scale;
+      if (cfg.derive) cfg.derive(state);
+      renderFields();
+      redraw();
+      B.toast(cfg.title + " reset to the studio default.", "");
+    });
+
+    /* Export. A local file write — real, but not a send, so no fence applies. */
+    card.querySelector(".dl").addEventListener("click", function () {
+      var svg = drawEl.querySelector("svg");
+      if (!svg) { B.toast("Nothing drawn yet.", ""); return; }
+      var src = "";
+      try { src = new XMLSerializer().serializeToString(svg); }
+      catch (err) { src = svg.outerHTML || drawEl.innerHTML; }
+      var url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(src);
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = cfg.file + ".svg";
+      a.style.display = "none";
+      document.body.appendChild(a);
+      try { a.click(); } catch (err2) {}
+      if (a.parentNode) a.parentNode.removeChild(a);
+      B.toast(cfg.file + ".svg written to your machine — stamp and all. A local save, not a send, so it clears no fence.", "ok");
+    });
+
+    renderFields();
+    redraw();
+  }
+
+  /* ------------------------------------------------------------- page head */
+  c.appendChild(B.page(
+    "Detail Studio",
+    "Parametric details, drawn to scale from the numbers you give them. Change a stud depth, a footing width, a riser height — " +
+    "the geometry redraws and every dimension string on the sheet follows it. Export the SVG and it goes into the set with its stamp intact.",
+    '<button class="btn brass sm" id="jumpFirst">Draw a wall section</button>'
+  ));
+
+  c.appendChild(B.card(
+    '<h2>What a detail library is actually for</h2>' +
+    '<div class="card-sub">A firm redraws the same wall section every year because the last one is buried in a project folder at the wrong ' +
+    'stud depth. A parametric detail is drawn once and dimensioned by input, so the version that lands in the set is the version the ' +
+    'project needs — and it arrives already carrying the language that keeps an illustrative drawing from being read as an instruction.</div>' +
+    '<div class="row">' +
+      B.tag("Geometry is to scale", "good") +
+      B.tag("Dimensions read the inputs", "good") +
+      B.tag("Every drawing is stamped", "watch") +
+      B.tag("Export is a local file, not a send", "ghost") +
+    '</div>' +
+    '<div class="divider"></div>' +
+    '<div class="fence"><b>The honesty line is part of the product.</b> Nothing here is a code minimum, a bearing capacity, a rating or ' +
+    'an assembly performance claim. The studio draws what you typed at the scale you picked. The Architect of Record owns whether it is right.</div>'
+  ));
+
+  /* ------------------------------------------------------------- detail one */
+  buildDetail({
+    id: "wall", file: "buttress-exterior-wall-section", scale: 1.5,
+    title: "Exterior stud wall — horizontal assembly section",
+    sub: "A section cut through the wall, exterior on the left. Layer thicknesses, framing depth and stud spacing are all inputs, " +
+         "and the assembly dimension at the bottom is the sum of what you set — not a number typed onto a drawing years ago.",
+    fields: [
+      { k: "studDepth", type: "select", label: "Stud size", value: 5.5,
+        options: [{ v: 3.5, label: "2x4 — 3 1/2\" deep" }, { v: 5.5, label: "2x6 — 5 1/2\" deep" }, { v: 7.25, label: "2x8 — 7 1/4\" deep" }] },
+      { k: "sp", type: "select", label: "Stud spacing", value: 16,
+        options: [{ v: 12, label: "12\" o.c." }, { v: 16, label: "16\" o.c." }, { v: 24, label: "24\" o.c." }] },
+      { k: "sh", type: "select", label: "Sheathing", value: 0.5,
+        options: [{ v: 0.4375, label: "7/16\" panel" }, { v: 0.5, label: "1/2\" panel" }, { v: 0.625, label: "5/8\" panel" }] },
+      { k: "gb", type: "select", label: "Gypsum board", value: 0.5,
+        options: [{ v: 0.5, label: "1/2\"" }, { v: 0.625, label: "5/8\"" }] },
+      { k: "ins", type: "range", label: "Cavity insulation", value: 5.5, min: 0, max: 7.25, step: 0.25, fmt: IN },
+      { k: "ci",  type: "range", label: "Continuous insulation", value: 1, min: 0, max: 3, step: 0.25, fmt: IN },
+      { k: "gap", type: "range", label: "Ventilated cavity", value: 0.75, min: 0, max: 1.5, step: 0.125, fmt: IN },
+      { k: "clad", type: "range", label: "Cladding thickness", value: 0.75, min: 0.25, max: 2, step: 0.125, fmt: IN }
+    ],
+    derive: function (s) {
+      s.stud = s.studDepth;
+      s.ins = Math.min(s.ins, s.studDepth);
+      s.studLabel = s.studDepth === 3.5 ? "2x4" : (s.studDepth === 5.5 ? "2x6" : "2x8");
+    },
+    draw: drawWall,
+    readout: function (s) {
+      var total = s.clad + s.gap + s.ci + s.sh + s.stud + s.gb;
+      return "Assembly " + IN(total) + " overall · cavity insulation held to " + IN(s.ins) + " in a " + IN(s.stud) + " cavity.";
+    }
+  });
+
+  /* ------------------------------------------------------------- detail two */
+  buildDetail({
+    id: "foot", file: "buttress-footing-section", scale: 0.75,
+    title: "Footing & foundation — vertical section",
+    sub: "Continuous footing, stem wall and slab on grade. Depth to the bottom of the footing is an input you set against your " +
+         "jurisdiction, not a number this drawing claims to know.",
+    fields: [
+      { k: "fw",    type: "range", label: "Footing width", value: 24, min: 12, max: 48, step: 2, fmt: IN },
+      { k: "ft",    type: "range", label: "Footing thickness", value: 12, min: 6, max: 24, step: 1, fmt: IN },
+      { k: "sw",    type: "range", label: "Stem wall width", value: 8, min: 6, max: 16, step: 1, fmt: IN },
+      { k: "sh",    type: "range", label: "Stem wall height", value: 36, min: 12, max: 84, step: 2, fmt: FTIN },
+      { k: "slab",  type: "range", label: "Slab thickness", value: 4, min: 3, max: 10, step: 0.5, fmt: IN },
+      { k: "grav",  type: "range", label: "Granular base", value: 6, min: 0, max: 12, step: 1, fmt: IN },
+      { k: "depth", type: "range", label: "Bottom of footing below grade", value: 30, min: 12, max: 96, step: 2, fmt: FTIN }
+    ],
+    derive: function (s) {
+      s.sw = Math.min(s.sw, s.fw);
+      s.depth = Math.max(s.ft + 4, Math.min(s.depth, s.sh + s.ft - 4));
+    },
+    draw: drawFooting,
+    readout: function (s) {
+      return "Footing " + IN(s.fw) + " x " + IN(s.ft) + " · " + IN(s.sh + s.ft - s.depth) + " of stem wall above grade.";
+    }
+  });
+
+  /* ----------------------------------------------------------- detail three */
+  buildDetail({
+    id: "stair", file: "buttress-stair-section", scale: 0.5,
+    title: "Stair — vertical section",
+    sub: "A straight flight between two floors. Risers, treads and nosing drive the geometry; total rise and total run are computed " +
+         "from them and dimensioned on the drawing, so the arithmetic that usually goes wrong is done by the drawing itself.",
+    fields: [
+      { k: "n",        type: "range", label: "Number of risers", value: 14, min: 3, max: 22, step: 1,
+        fmt: function (v) { return String(Math.round(v)); } },
+      { k: "rise",     type: "range", label: "Riser height", value: 7, min: 4, max: 8.5, step: 0.125, fmt: IN },
+      { k: "tread",    type: "range", label: "Tread depth", value: 11, min: 8, max: 14, step: 0.25, fmt: IN },
+      { k: "nosing",   type: "range", label: "Nosing projection", value: 1, min: 0, max: 1.5, step: 0.125, fmt: IN },
+      { k: "stringer", type: "range", label: "Depth below the pitch line", value: 8, min: 3, max: 14, step: 0.5, fmt: IN }
+    ],
+    draw: drawStair,
+    readout: function (s) {
+      var n = Math.round(s.n);
+      return n + " risers at " + IN(s.rise) + " = " + FTIN(n * s.rise) + " rise · " +
+             (n - 1) + " treads at " + IN(s.tread) + " = " + FTIN((n - 1) * s.tread) + " run.";
+    }
+  });
+
+  /* ------------------------------------------------------------------ close */
+  c.appendChild(B.card(
+    '<h2>Where these go next</h2>' +
+    '<div class="card-sub">A detail is only worth drawing once. Exported SVGs carry their own dimensions and their own stamp, so the ' +
+    'sheet they land on inherits both — and the sheet index over in Sheet Sets is where the revision and the issue set get tracked.</div>' +
+    '<div class="row">' +
+      '<a class="btn ghost sm" href="sheets.html">Sheet Sets &amp; Issuance →</a>' +
+      '<a class="btn ghost sm" href="specs.html">Specs · MasterFormat →</a>' +
+    '</div>' +
+    B.srcNote("Drawing scales are the standard architectural set (3\", 1 1/2\", 1\", 3/4\", 1/2\" to the foot). Geometry is generated from the inputs on this page and represents nothing beyond them.")
+  ));
+
+  var jf = document.getElementById("jumpFirst");
+  if (jf) jf.addEventListener("click", function () {
+    var first = c.querySelector(".dfields select");
+    if (first) first.focus();
+  });
+})();
+</script>
+</body>
+</html>

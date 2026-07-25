@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Approval Desk · Buttress OS V2.0</title>
+<meta name="description" content="Buttress OS — the architecture practice operating system. Powered by Accelerated Experiences LLC.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="buttress.css">
+</head>
+<body>
+<script src="buttress.js"></script>
+<script>
+(function () {
+  var B = window.Buttress;
+  var c = B.mount({ active: "approvals.html", crumb: "Approval Desk" });
+
+  /* The four fences, and how a staged item's kind maps onto them. */
+  var FENCES = [
+    { k: "A send", d: "Anything that leaves the office — a transmittal, an addendum to planholders, a letter to " +
+         "an owner. Once it is out, it is the record." },
+    { k: "A spend", d: "Committing the firm's money — engaging counsel, a consultant, a service. The org can " +
+         "assemble the case for it; it cannot open the wallet." },
+    { k: "A live price", d: "A fee that goes to a client. Pricing is the principal's judgment about the firm's " +
+         "own worth, and it is never delegated." },
+    { k: "Booking a human", d: "Putting a person in a room at a time — an interview, a site visit, a meeting. " +
+         "The org sets it up; a human shows up, so a human agrees." }
+  ];
+  var KIND = {
+    pricing:     { label: "a live price", tag: "watch" },
+    external:    { label: "a send", tag: "watch" },
+    appointment: { label: "booking a human", tag: "watch" },
+    legal:       { label: "a spend and a send", tag: "bad" },
+    people:      { label: "a person's employment", tag: "bad" },
+    general:     { label: "a fence", tag: "ghost" }
+  };
+  function kindOf(k) { return KIND[k] || { label: "a fence", tag: "ghost" }; }
+
+  /* ------------------------------------------------------------- page head */
+  c.appendChild(B.page(
+    "Approval Desk",
+    "The Ghost Mode fence. Everything the org can honestly clear, it clears — and files, and sets a follow-up on. " +
+    "What lands here is only what a machine should never do on its own: a send, a spend, a live price, or booking " +
+    "a human. Every item arrives with the reason it was stopped attached to it.",
+    '<span class="tag watch mono">GHOST MODE</span>'
+  ));
+
+  c.appendChild(B.card('<div class="statrow" id="statrow"></div>'));
+
+  /* ------------------------------------------------------------ north star */
+  c.appendChild(B.card(
+    '<h2>The north star: this desk trending toward empty</h2>' +
+    '<div class="card-sub">Most software measures how much it did. This one is measured by how little it had to ' +
+    'ask you.</div>' +
+    '<div class="fence"><b>An empty desk is the autonomy scoreboard.</b> A long approval queue is not diligence — ' +
+    'it is a system that has not earned the right to act, handing its uncertainty back to the busiest person in ' +
+    'the building. The org is built to clear everything it honestly can under its own confidence bars, so the only ' +
+    'items that reach the principal are the ones where a human genuinely has to decide. If this page is full, ' +
+    'that is a fault to fix, not a feature to admire.</div>' +
+    '<div class="divider"></div>' +
+    '<div class="grid g2">' +
+      '<div><h2 style="font-size:13px">What crosses the fence and stops here</h2>' +
+        '<table><tbody>' + FENCES.map(function (f) {
+          return '<tr><td style="width:150px">' + B.tag(f.k, "watch") + '</td>' +
+            '<td class="small muted">' + B.esc(f.d) + '</td></tr>';
+        }).join("") + '</tbody></table></div>' +
+      '<div><h2 style="font-size:13px">What never comes here</h2>' +
+        '<div class="card-sub" style="margin-top:6px">Ordinary work, cleared and filed by the department that ' +
+        'owns it — with a follow-up date set on the operations calendar so it cannot drop silently.</div>' +
+        '<div class="row" style="gap:6px">' +
+          [ "Setting ball-in-court on a CA item",
+            "Logging CE hours against a license record",
+            "Moving a service to WATCH",
+            "Changing a matter's risk level",
+            "Filing a released conclusion",
+            "Setting a follow-up date" ].map(function (s) { return B.tag(s, "ghost"); }).join("") +
+        '</div></div>' +
+    '</div>'
+  ));
+
+  /* ---------------------------------------------------------- ghost fence */
+  c.appendChild(B.card(
+    '<div class="fence" style="border-left-color:var(--bad);background:var(--bad-w)">' +
+    '<b>Approving here does not send anything. This is a showroom.</b> A decision on this page is recorded ' +
+    'against the item in this browser and nothing else happens: no addendum reaches a planholder, no fee reaches ' +
+    'a client, no interview is booked, no money moves, no message is written to anyone. In a live build an ' +
+    'approval is the moment the org is permitted to act — here it is the moment you see exactly where that ' +
+    'permission would have been asked for.</div>'
+  ));
+
+  /* --------------------------------------------------------------- the desk */
+  c.appendChild(B.card(
+    '<h2>Waiting on the principal</h2>' +
+    '<div class="card-sub">Each item carries what it is, who staged it, what it would do, and — the line that ' +
+    'matters — which fence it tripped.</div>' +
+    '<div id="pending"></div>'
+  ));
+
+  c.appendChild(B.card(
+    '<h2>Decided in this session</h2>' +
+    '<div class="card-sub">The decision is filed against the item and stays visible, so the record of who let ' +
+    'what through is the same record the org reads back.</div>' +
+    '<div id="decided"></div>'
+  ));
+
+  /* ---------------------------------------------------------------- render */
+  function renderStats() {
+    var all = B.approvals();
+    var pending = all.filter(function (a) { return a.state === "Pending"; });
+    var ok = all.filter(function (a) { return a.state === "Approved"; });
+    var no = all.filter(function (a) { return a.state === "Denied"; });
+    var cleared = all.length ? Math.round((all.length - pending.length) / all.length * 100) : 100;
+    document.getElementById("statrow").innerHTML =
+      B.stat("On the desk", String(pending.length),
+             pending.length ? "Each one is a true fence" : "Empty — that is the goal",
+             pending.length ? "watch" : "good") +
+      B.stat("Approved", String(ok.length), "Recorded here, not sent", "good") +
+      B.stat("Denied", String(no.length), "Recorded with the item", no.length ? "bad" : "") +
+      B.stat("Items staged", String(all.length), "Since this floor was last reset") +
+      B.stat("Desk cleared", B.pct(cleared), "Of everything staged this session",
+             cleared >= 100 ? "good" : "watch") +
+      B.stat("Fences in force", String(FENCES.length),
+             "A send · a spend · a live price · booking a human");
+  }
+
+  function itemRows(list, decided) {
+    return list.map(function (a) {
+      var k = kindOf(a.kind);
+      var right = decided
+        ? B.tag(a.state, a.state === "Approved" ? "good" : "bad") +
+          '<div class="t-sub">recorded in this browser only</div>'
+        : '<div class="row" style="gap:7px;flex-wrap:nowrap">' +
+            '<button class="btn brass sm apGo" data-id="' + B.esc(a.id) + '" data-dec="Approved">Approve</button>' +
+            '<button class="btn ghost sm apGo" data-id="' + B.esc(a.id) + '" data-dec="Denied">Deny</button>' +
+          '</div>';
+      return '<tr>' +
+        '<td><div class="t-main">' + B.esc(a.title) + '</div>' +
+          '<div class="t-sub">' + B.esc(a.summary) + '</div>' +
+          '<div class="fence" style="margin-top:9px"><b>Why it stopped here:</b> ' + B.esc(a.why) + '</div></td>' +
+        '<td>' + B.tag(a.kind, k.tag) + '<div class="t-sub">' + B.esc(k.label) + '</div></td>' +
+        '<td class="small muted">' + B.esc(a.by) + '</td>' +
+        '<td>' + right + '</td>' +
+      '</tr>';
+    }).join("");
+  }
+
+  function renderDesk() {
+    var all = B.approvals();
+    var pending = all.filter(function (a) { return a.state === "Pending"; });
+    var decided = all.filter(function (a) { return a.state !== "Pending"; });
+
+    document.getElementById("pending").innerHTML =
+      '<table><thead><tr><th>Item</th><th>Fence</th><th>Staged by</th><th>Decision</th></tr></thead><tbody>' +
+      (pending.length ? itemRows(pending, false)
+        : '<tr><td colspan="4" class="empty">The desk is empty. That is the goal — the org cleared everything ' +
+          'it could honestly clear, and nothing tripped a fence.</td></tr>') +
+      '</tbody></table>';
+
+    document.getElementById("decided").innerHTML =
+      '<table><thead><tr><th>Item</th><th>Fence</th><th>Staged by</th><th>Decision</th></tr></thead><tbody>' +
+      (decided.length ? itemRows(decided, true)
+        : '<tr><td colspan="4" class="empty">Nothing has been decided yet in this session.</td></tr>') +
+      '</tbody></table>' +
+      '<div class="srcnote" style="font-style:normal">Decisions live in this browser tab and reset with the floor. ' +
+      'Approving an item here has not sent, published, booked or spent anything.</div>';
+
+    Array.prototype.forEach.call(document.querySelectorAll(".apGo"), function (el) {
+      el.addEventListener("click", function () {
+        var id = this.getAttribute("data-id"), dec = this.getAttribute("data-dec");
+        var item = B.approvals().filter(function (a) { return a.id === id; })[0];
+        B.decideApproval(id, dec);
+        render();
+        var left = B.approvals().filter(function (a) { return a.state === "Pending"; }).length;
+        B.toast((dec === "Approved" ? "Approved" : "Denied") + ": " + (item ? item.title : "item") +
+          ". Recorded only — nothing was sent, spent or booked. " +
+          (left ? left + " left on the desk." : "The desk is empty."), "ok");
+      });
+    });
+  }
+
+  function render() {
+    renderStats();
+    renderDesk();
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>
