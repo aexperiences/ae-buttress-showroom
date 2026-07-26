@@ -1041,11 +1041,7 @@
     var side = document.createElement("aside"); side.className = "sidebar";
     side.appendChild(el(
       '<a href="dashboard.html" class="brand">' +
-        '<div class="bmark" aria-hidden="true">' +
-          '<svg viewBox="0 0 32 32" width="26" height="26"><g fill="none" stroke="currentColor" stroke-width="1.6">' +
-          '<path d="M4 27 L16 5 L28 27"/><path d="M9.5 27 L16 14.5 L22.5 27"/><path d="M2 27 H30"/>' +
-          '</g></svg>' +
-        '</div>' +
+        '<div class="bmark art" aria-hidden="true"><img src="https://www.aexperiences.com/Buttress_OS.png" alt="" width="38" height="38"></div>' +
         '<div><div class="bt">Buttress OS</div><div class="bs">Architecture Practice OS</div></div>' +
       '</a>'
     ));
