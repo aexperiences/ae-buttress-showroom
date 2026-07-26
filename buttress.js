@@ -17,6 +17,9 @@
 
   /* ------------------------------------------------------------------ store */
   var KEY = "buttress_showroom_v1";
+  /* Where the exit lands. The store, not the homepage. */
+  var STORE_URL = "https://www.aexperiences.com/hubs/architecture.html";
+  var SHOP_URL  = "https://www.aexperiences.com/shop.html";
   var IDLE_MS = 20 * 60 * 1000;         // reset the floor 20 min after they walk away
   var STORE = sessionStorage;
 
@@ -1070,6 +1073,22 @@
       });
     });
     side.appendChild(nav);
+
+    /* ---------------------------------------------------------------- the way out
+       Every showroom needs a door that isn't the browser back button. This one lands
+       the visitor in the STORE — on this product's own pricing sheet — never on the
+       marketing homepage. Someone who just walked the floor is further along than the
+       homepage assumes; sending them back to the top of the funnel wastes the walk. */
+    side.appendChild(el(
+      '<div class="sideout">' +
+        '<a class="so-main" href="' + STORE_URL + '">' +
+          '<span><span class="so-k">Buttress OS</span>' +
+          '<span class="so-t">See pricing &amp; packages</span></span>' +
+          '<span class="so-a">&rarr;</span>' +
+        '</a>' +
+        '<a class="so-sub" href="' + SHOP_URL + '">All Accelerated Experiences products &rarr;</a>' +
+      '</div>'
+    ));
     return side;
   }
 

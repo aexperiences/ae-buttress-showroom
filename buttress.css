@@ -376,3 +376,28 @@ input[type=range]{padding:0; border:none; background:transparent; accent-color:v
 .divider{height:1px; background:var(--line-2); margin:13px 0}
 .bar{height:6px; background:var(--sunk); border-radius:3px; overflow:hidden}
 .bar i{display:block; height:100%; background:var(--brass); border-radius:3px}
+
+/* ── the way out ─────────────────────────────────────────────────────────────
+   Pinned to the foot of the rail on every page. Lands in the store, on this
+   product's own pricing sheet — deliberately not the marketing homepage. */
+.sideout{ margin:14px 10px 18px; padding-top:14px; border-top:1px solid rgba(255,255,255,.075); }
+.so-main{
+  display:flex; align-items:center; gap:8px; padding:11px 12px;
+  border-radius:11px; text-decoration:none;
+  background:linear-gradient(180deg, rgba(168,118,44,.20), rgba(168,118,44,.11));
+  border:1px solid rgba(168,118,44,.42);
+  transition:background .16s ease, border-color .16s ease, transform .16s ease;
+}
+.so-main:hover{ background:linear-gradient(180deg, rgba(168,118,44,.30), rgba(168,118,44,.17));
+  border-color:rgba(168,118,44,.62); transform:translateY(-1px); }
+.so-k{ font-family:var(--mono,"IBM Plex Mono",monospace); font-size:9.5px; letter-spacing:.13em;
+  text-transform:uppercase; color:var(--brass-3,#d8a552); opacity:.92; display:block; }
+.so-t{ flex:1; display:block; font-size:13px; font-weight:620; color:#f4efe4; line-height:1.25; margin-top:1px; }
+.so-main .so-k, .so-main .so-t{ min-width:0; }
+.so-main > .so-a{ font-size:15px; color:var(--brass-3,#d8a552); flex:none; }
+.so-main span:first-child{ flex:1; min-width:0; }
+.so-sub{
+  display:block; margin-top:9px; text-align:center; font-size:11.5px;
+  color:rgba(240,235,224,.52); text-decoration:none; letter-spacing:.005em;
+}
+.so-sub:hover{ color:rgba(240,235,224,.86); text-decoration:underline; }
