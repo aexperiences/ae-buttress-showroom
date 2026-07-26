@@ -401,3 +401,9 @@ input[type=range]{padding:0; border:none; background:transparent; accent-color:v
   color:rgba(240,235,224,.52); text-decoration:none; letter-spacing:.005em;
 }
 .so-sub:hover{ color:rgba(240,235,224,.86); text-decoration:underline; }
+
+/* — the product mark ————————————————————————————————————————
+   The real Buttress OS icon from the AE icon set, not a drawn stand-in.
+   Served from the .com so one file updates every property. */
+.bmark.art{ background:none; box-shadow:none; border-radius:10px; overflow:hidden; }
+.bmark.art img{ width:100%; height:100%; object-fit:contain; display:block; }
