@@ -53,7 +53,7 @@
   /* ----------------------------------------------------------------- stats */
   var statCard = B.card(
     '<h2>The project manual, by the numbers</h2>' +
-    '<div class="card-sub">Counted off this hub\'s own sections and its own CA log — the two things that are supposed to agree and usually do not.</div>' +
+    '<div class="card-sub">Counted off this OS\'s own sections and its own CA log — the two things that are supposed to agree and usually do not.</div>' +
     '<div class="statrow" id="statRow"></div>'
   );
   c.appendChild(statCard);
@@ -97,7 +97,7 @@
     '<div class="fence" style="margin-top:13px">The window above sets the response date Buttress puts on each generated submittal. ' +
     'It is an office default you choose here — not a code requirement and not a contract term. ' +
     'The real review period is whatever the executed agreement and Division 01 say it is.</div>' +
-    B.srcNote("CSI MasterFormat division structure and the section list carried in this hub's engine (B.MF_DIVISIONS, B.db().specs). Generated submittals are written to the same CA log the RFIs live in.")
+    B.srcNote("CSI MasterFormat division structure and the section list carried in this OS's engine (B.MF_DIVISIONS, B.db().specs). Generated submittals are written to the same CA log the RFIs live in.")
   );
   c.appendChild(killCard);
 
@@ -109,7 +109,7 @@
     B.MF_DIVISIONS.forEach(function (m) {
       var n = used[m.n] || 0;
       html += '<button class="btn ' + (filterDiv === m.n ? "brass" : "ghost") + ' sm divchip" data-div="' + B.esc(m.n) + '"' +
-        (n ? "" : ' title="No section in this hub yet"') + '>' +
+        (n ? "" : ' title="No section in this OS yet"') + '>' +
         B.esc(m.n) + ' · ' + B.esc(m.name) + (n ? ' <span class="tag mono">' + n + '</span>' : '') + '</button>';
     });
     killCard.querySelector("#divChips").innerHTML = html;
@@ -153,7 +153,7 @@
     killCard.querySelector("#specBody").innerHTML =
       '<table><thead><tr><th>Section</th><th>Title</th><th>Status</th>' +
       '<th>Part 1 submittal requirements</th><th class="num">Build</th></tr></thead><tbody>' +
-      (rows || '<tr><td colspan="5" class="empty">No section in this hub sits in that division yet.</td></tr>') +
+      (rows || '<tr><td colspan="5" class="empty">No section in this OS sits in that division yet.</td></tr>') +
       '</tbody></table>';
 
     Array.prototype.forEach.call(killCard.querySelectorAll(".gen"), function (b) {
@@ -194,7 +194,7 @@
             costImpact: false,
             timeImpact: false,
             note: "Generated from the Part 1 submittal requirements of Section " + s.sec + " " + s.title +
-                  ". Response date set on this hub's " + win + "-day office default."
+                  ". Response date set on this OS's " + win + "-day office default."
           });
           created++;
           sections[s.sec] = 1;
@@ -269,7 +269,7 @@
       B.tag(B.MF_DIVISIONS.length + " divisions carried here — the ones a building project actually touches", "ghost") +
       B.tag("Section numbers are Division · Level 2 · Level 3", "ghost") +
     '</div>' +
-    B.srcNote("CSI MasterFormat 50-division structure and the three-part section format. Division list as carried in this hub's engine; a full commercial project manual reaches divisions this showroom does not seed.")
+    B.srcNote("CSI MasterFormat 50-division structure and the three-part section format. Division list as carried in this OS's engine; a full commercial project manual reaches divisions this showroom does not seed.")
   ));
 
   /* ---------------------------------------------------------- what it costs */

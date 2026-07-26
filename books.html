@@ -77,7 +77,7 @@
     'it is on the wall. Nothing here is typed in at month end — it is read off the record as it stands right now.</div>' +
     '<div class="statrow" id="board"></div>' +
     B.srcNote("Benchmarks: Deltek Clarity (A/E), BQE A/E benchmark set, Northstar target bands. " +
-              "Values computed live from this hub’s commissions, labor and invoices.")
+              "Values computed live from this OS’s commissions, labor and invoices.")
   ));
 
   /* ----------------------------------------------- formulas + benchmark table */
@@ -105,7 +105,7 @@
     '<div class="divider"></div>' +
     '<div class="fence" id="principalNote"></div>' +
     B.srcNote("Firm-wide utilization band: " + B.BENCH.utilization.src +
-              ". The per-seat targets above are this hub’s own settings, not a published benchmark.")
+              ". The per-seat targets above are this OS’s own settings, not a published benchmark.")
   ));
 
   /* --------------------------------------------------------------- what-if */
@@ -241,13 +241,13 @@
     document.getElementById("principalNote").innerHTML =
       '<b>A principal runs a much lower utilization target than technical staff, and that is deliberate.</b> ' +
       (principals.length
-        ? B.esc(principals[0].name) + ' carries a ' + B.pct(principals[0].target) + ' target in this hub while the ' +
+        ? B.esc(principals[0].name) + ' carries a ' + B.pct(principals[0].target) + ' target in this OS while the ' +
           'technical seats carry ' + B.pct(lo) + '–' + B.pct(hi) + '. '
         : "") +
       'The principal seat is selling the next commission, sealing the set, managing the owner and carrying the ' +
       'firm’s risk — real work, none of it billable to a project. Judging that seat against a production target ' +
       'produces exactly the wrong behaviour: a principal who bills more and sells nothing. The firm-wide band is ' +
-      'the sourced number; the per-seat targets are a management decision this hub makes explicit instead of ' +
+      'the sourced number; the per-seat targets are a management decision this OS makes explicit instead of ' +
       'leaving implied.';
   }
 

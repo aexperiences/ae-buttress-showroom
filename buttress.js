@@ -1151,7 +1151,7 @@
 
   function ribbon() {
     return el('<div class="ribbon"><span class="live">LIVE SHOWROOM</span>' +
-      ' — this is the real hub, not a slideshow. Everything you type stays in your browser and resets when you leave. ' +
+      ' — this is the real OS, not a slideshow. Everything you type stays in your browser and resets when you leave. ' +
       '<a href="javascript:void(0)" id="resetFloor">Reset the floor</a></div>');
   }
   function footer() {

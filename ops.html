@@ -26,7 +26,7 @@
 
   /* Seed the follow-up calendar from the record itself the first time this
      room is opened. Every item below is a due date already carried somewhere
-     else in the hub — nothing here is invented. */
+     else in the OS — nothing here is invented. */
   function seedFollowups(d) {
     if (d.followups) return;
     var items = [];
@@ -227,7 +227,7 @@
         : '<div class="fence"><b>Nobody outside the office is waiting on us.</b> Every lane where a third party ' +
           'depends on our next move is clear, and the calendar is carrying the follow-ups.</div>') +
       '<div class="srcnote" style="font-style:normal">Every figure on this page is pulled live from the other ' +
-      'rooms of this hub — the CA log, the permit cycles, the Approval Desk and the commission spine. Nothing on ' +
+      'rooms of this OS — the CA log, the permit cycles, the Approval Desk and the commission spine. Nothing on ' +
       'this page is entered twice.</div>';
   }
 
@@ -316,7 +316,7 @@
       '<table><thead><tr><th></th><th>Follow-up</th><th>Date</th><th>State</th></tr></thead>' +
       '<tbody>' + rows + '</tbody></table>' +
       '<div class="srcnote" style="font-style:normal">The opening list is derived from dates already carried ' +
-      'elsewhere in this hub — permit cycle due dates and CA items in our court. Anything you add joins them and ' +
+      'elsewhere in this OS — permit cycle due dates and CA items in our court. Anything you add joins them and ' +
       'persists in this browser.</div>';
 
     /* Toggling updates the row in place and refreshes the counters — the list is
@@ -414,7 +414,7 @@
       });
       document.getElementById("fuText").value = "";
       render();
-      B.toast("Follow-up set for " + dt + " and filed to this hub's record.", "ok");
+      B.toast("Follow-up set for " + dt + " and filed to this OS's record.", "ok");
     });
 
     document.getElementById("fuClear").addEventListener("click", function () {

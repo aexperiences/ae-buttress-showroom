@@ -93,7 +93,7 @@
       B.tag("Ability to seal", "good") +
     '</div>' +
     '<div class="srcnote" style="font-style:normal;margin-top:10px">License numbers, expiry dates and the CE ' +
-    'requirement shown on this page are the ones carried on each seat\'s record in this hub. What a given ' +
+    'requirement shown on this page are the ones carried on each seat\'s record in this OS. What a given ' +
     'jurisdiction requires at renewal is set by that licensing board and is confirmed there, not here.</div>'
   ));
 
@@ -121,7 +121,7 @@
   c.appendChild(B.card(
     '<h2>Log CE hours</h2>' +
     '<div class="card-sub">Booking hours is ordinary work — it clears without a fence. The entry writes to this ' +
-    'hub\'s record and the pace flag recomputes on the spot.</div>' +
+    'OS\'s record and the pace flag recomputes on the spot.</div>' +
     '<div class="grid g3" style="margin-bottom:12px">' +
       '<div><label class="f" for="ceWho">Seat</label><select id="ceWho"></select></div>' +
       '<div><label class="f" for="ceHrs">HSW hours to add</label>' +
@@ -404,7 +404,7 @@
         document.getElementById("ceEcho").innerHTML =
           B.esc(name) + " now carries " + after.done + " of " + after.total + " HSW hours on the record — " +
           (after.done < st ? "still behind" : "at or ahead of") + " a straight-line pace of " + st.toFixed(1) +
-          " hours by today. Written to this hub, in this browser.";
+          " hours by today. Written to this OS, in this browser.";
         B.toast(add + " HSW hour" + (add === 1 ? "" : "s") + " logged for " + name + ".", "ok");
       }
     });
