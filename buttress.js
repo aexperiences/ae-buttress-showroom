@@ -401,16 +401,16 @@
 
   /* The three packages. `includes` is what ships in the box at that price. */
   var TIERS = {
-    lite: { key:"lite", name:"Lite", rank:1, mo:550, build:3500,
+    lite: { key:"lite", name:"Studio", rank:1, mo:550, build:3500,
       desc:"Core practice. Pursuits, fees, the commission spine, the CA desk, details and billing.",
       base:"Single office · up to 5 seats",
       includes:["pursuits","proposal","commissions","ca","details","billing"] },
-    standard: { key:"standard", name:"Standard", rank:2, mo:1200, build:9000,
+    standard: { key:"standard", name:"Firm", rank:2, mo:1200, build:8400,
       desc:"The working firm. Adds sheet control, consultant & AHJ coordination, the multiplier board, HR, IT — and the agent org.",
       base:"Single office · up to 15 seats",
       includes:["pursuits","proposal","commissions","ca","details","billing",
                 "sheets","coord","books","hr","it","org"] },
-    grandsuite: { key:"grandsuite", name:"Grandsuite", rank:3, mo:2800, build:22000,
+    grandsuite: { key:"grandsuite", name:"Multi-office", rank:3, mo:2800, build:14500,
       desc:"The whole practice, nothing held back. Every department, the full ten-chain agent org, specs, contracts and operations.",
       base:"Multi-office · unlimited seats · dedicated environment · data migration",
       includes:["pursuits","proposal","commissions","ca","details","billing",
