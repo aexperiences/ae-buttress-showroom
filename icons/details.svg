@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="100%" height="100%">
+<defs>
+<linearGradient id="tile" x1="0" y1="0" x2="0.35" y2="1">
+<stop offset="0%" stop-color="#7d8288"/><stop offset="46%" stop-color="#474b50"/><stop offset="100%" stop-color="#1a1c1f"/></linearGradient>
+<linearGradient id="glare" x1="0" y1="0" x2="0" y2="1">
+<stop offset="0%" stop-color="#fff" stop-opacity=".20"/><stop offset="44%" stop-color="#fff" stop-opacity="0"/></linearGradient>
+<linearGradient id="pap" x1="0" y1="0" x2="0.3" y2="1">
+<stop offset="0%" stop-color="#ffffff"/><stop offset="100%" stop-color="#ece8dc"/></linearGradient>
+<linearGradient id="trace" x1="0" y1="0" x2="0.3" y2="1">
+<stop offset="0%" stop-color="#fbf7ec"/><stop offset="100%" stop-color="#e7dfc9"/></linearGradient>
+<linearGradient id="brassy" x1="0" y1="0" x2="0" y2="1">
+<stop offset="0%" stop-color="#e2b86c"/><stop offset="100%" stop-color="#9a6f2c"/></linearGradient>
+<linearGradient id="steel" x1="0" y1="0" x2="0" y2="1">
+<stop offset="0%" stop-color="#e3e8ec"/><stop offset="100%" stop-color="#9aa5ad"/></linearGradient>
+
+</defs>
+<rect width="1024" height="1024" fill="url(#tile)"/><rect width="1024" height="1024" fill="url(#glare)"/>
+<ellipse cx="512" cy="900" rx="350" ry="30" fill="#000" opacity=".38"/>
+
+  <rect x="180" y="150" width="664" height="724" rx="18" fill="#000" opacity=".3" transform="translate(12 16)"/>
+  <rect x="180" y="150" width="664" height="724" rx="18" fill="url(#trace)"/>
+  <!-- slab + footing -->
+  <path d="M 250 690 L 250 830 L 780 830 L 780 690 L 600 690 L 600 740 L 250 740 Z" fill="#b8b0a2" stroke="#3b3630" stroke-width="10" stroke-linejoin="round"/>
+  <path d="M 270 740 L 320 830" stroke="#3b3630" stroke-width="4" opacity=".5"/><path d="M 322 740 L 372 830" stroke="#3b3630" stroke-width="4" opacity=".5"/><path d="M 374 740 L 424 830" stroke="#3b3630" stroke-width="4" opacity=".5"/><path d="M 426 740 L 476 830" stroke="#3b3630" stroke-width="4" opacity=".5"/><path d="M 478 740 L 528 830" stroke="#3b3630" stroke-width="4" opacity=".5"/><path d="M 530 740 L 580 830" stroke="#3b3630" stroke-width="4" opacity=".5"/><path d="M 582 740 L 632 830" stroke="#3b3630" stroke-width="4" opacity=".5"/><path d="M 634 740 L 684 830" stroke="#3b3630" stroke-width="4" opacity=".5"/><path d="M 686 740 L 736 830" stroke="#3b3630" stroke-width="4" opacity=".5"/><path d="M 738 740 L 788 830" stroke="#3b3630" stroke-width="4" opacity=".5"/>
+  <!-- the wall, thick enough to read: sheathing · stud · cladding -->
+  <rect x="480" y="230" width="34" height="460" fill="#f2f2ef" stroke="#3b3630" stroke-width="8"/>
+  <rect x="514" y="230" width="86" height="460" fill="#e0c9a2" stroke="#3b3630" stroke-width="8"/>
+  <path d="M 520 250 L 594 290" stroke="#a88a5a" stroke-width="5"/><path d="M 520 294 L 594 334" stroke="#a88a5a" stroke-width="5"/><path d="M 520 338 L 594 378" stroke="#a88a5a" stroke-width="5"/><path d="M 520 382 L 594 422" stroke="#a88a5a" stroke-width="5"/><path d="M 520 426 L 594 466" stroke="#a88a5a" stroke-width="5"/><path d="M 520 470 L 594 510" stroke="#a88a5a" stroke-width="5"/><path d="M 520 514 L 594 554" stroke="#a88a5a" stroke-width="5"/><path d="M 520 558 L 594 598" stroke="#a88a5a" stroke-width="5"/><path d="M 520 602 L 594 642" stroke="#a88a5a" stroke-width="5"/><path d="M 520 646 L 594 686" stroke="#a88a5a" stroke-width="5"/>
+  <path d="M 600 230 L 600 690" stroke="#3b3630" stroke-width="14"/>
+  <rect x="612" y="236" width="60" height="44" fill="#7d8288" stroke="#3b3630" stroke-width="6"/><rect x="612" y="288" width="60" height="44" fill="#7d8288" stroke="#3b3630" stroke-width="6"/><rect x="612" y="340" width="60" height="44" fill="#7d8288" stroke="#3b3630" stroke-width="6"/><rect x="612" y="392" width="60" height="44" fill="#7d8288" stroke="#3b3630" stroke-width="6"/><rect x="612" y="444" width="60" height="44" fill="#7d8288" stroke="#3b3630" stroke-width="6"/><rect x="612" y="496" width="60" height="44" fill="#7d8288" stroke="#3b3630" stroke-width="6"/><rect x="612" y="548" width="60" height="44" fill="#7d8288" stroke="#3b3630" stroke-width="6"/><rect x="612" y="600" width="60" height="44" fill="#7d8288" stroke="#3b3630" stroke-width="6"/><rect x="612" y="652" width="60" height="44" fill="#7d8288" stroke="#3b3630" stroke-width="6"/>
+  <!-- one dimension, brass -->
+  <path d="M 480 190 L 672 190" stroke="#8f6a2a" stroke-width="7"/>
+  <path d="M 480 172 L 480 208 M 672 172 L 672 208" stroke="#8f6a2a" stroke-width="7"/>
+  <!-- the detail bubble, big -->
+  <circle cx="320" cy="330" r="96" fill="#fff" stroke="#3b3630" stroke-width="12"/>
+  <path d="M 224 330 L 416 330" stroke="#3b3630" stroke-width="12"/>
+  <text x="320" y="312" text-anchor="middle" font-family="Helvetica Neue, Arial, sans-serif" font-size="66" font-weight="900" fill="#3b3630">3</text>
+  <text x="320" y="392" text-anchor="middle" font-family="Helvetica Neue, Arial, sans-serif" font-size="40" font-weight="800" fill="#3b3630">A-501</text>
+
+</svg>

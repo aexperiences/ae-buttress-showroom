@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="100%" height="100%">
+<defs>
+<linearGradient id="tile" x1="0" y1="0" x2="0.35" y2="1">
+<stop offset="0%" stop-color="#c7865a"/><stop offset="46%" stop-color="#8a5330"/><stop offset="100%" stop-color="#3a2114"/></linearGradient>
+<linearGradient id="glare" x1="0" y1="0" x2="0" y2="1">
+<stop offset="0%" stop-color="#fff" stop-opacity=".20"/><stop offset="44%" stop-color="#fff" stop-opacity="0"/></linearGradient>
+<linearGradient id="pap" x1="0" y1="0" x2="0.3" y2="1">
+<stop offset="0%" stop-color="#ffffff"/><stop offset="100%" stop-color="#ece8dc"/></linearGradient>
+<linearGradient id="trace" x1="0" y1="0" x2="0.3" y2="1">
+<stop offset="0%" stop-color="#fbf7ec"/><stop offset="100%" stop-color="#e7dfc9"/></linearGradient>
+<linearGradient id="brassy" x1="0" y1="0" x2="0" y2="1">
+<stop offset="0%" stop-color="#e2b86c"/><stop offset="100%" stop-color="#9a6f2c"/></linearGradient>
+<linearGradient id="steel" x1="0" y1="0" x2="0" y2="1">
+<stop offset="0%" stop-color="#e3e8ec"/><stop offset="100%" stop-color="#9aa5ad"/></linearGradient>
+
+</defs>
+<rect width="1024" height="1024" fill="url(#tile)"/><rect width="1024" height="1024" fill="url(#glare)"/>
+<ellipse cx="512" cy="900" rx="350" ry="30" fill="#000" opacity=".38"/>
+<g transform="rotate(0 512.0 520.0)"><rect x="230" y="160" width="564" height="720" rx="14" fill="#000" opacity=".35" transform="translate(12 16)"/><rect x="230" y="160" width="564" height="720" rx="14" fill="url(#pap)"/>
+  <rect x="270" y="210" width="300" height="24" rx="12" fill="#5b6873"/>
+  <rect x="270" y="252" width="200" height="14" rx="7" fill="#a3adb5"/>
+  <rect x="600" y="204" width="160" height="40" rx="10" fill="#8a4b46"/>
+  <text x="680" y="234" text-anchor="middle" font-family="IBM Plex Mono, Menlo, monospace" font-size="26" font-weight="700" fill="#fff">B101</text>
+  <rect x="270" y="300" width="460" height="13" rx="7" fill="#9aa4ac"/><rect x="270" y="336" width="420" height="13" rx="7" fill="#9aa4ac"/><rect x="270" y="372" width="470" height="13" rx="7" fill="#9aa4ac"/><rect x="270" y="408" width="380" height="13" rx="7" fill="#9aa4ac"/><rect x="270" y="444" width="450" height="13" rx="7" fill="#9aa4ac"/><rect x="270" y="480" width="430" height="13" rx="7" fill="#9aa4ac"/>
+  <rect x="270" y="530" width="440" height="13" rx="7" fill="#9aa4ac"/><rect x="270" y="566" width="400" height="13" rx="7" fill="#9aa4ac"/>
+  <!-- signature line + the scrawl -->
+  <path d="M 270 700 L 560 700" stroke="#7d8288" stroke-width="4"/>
+  <path d="M 284 690 c 20 -50 50 -40 40 -6 c 20 -60 40 -40 30 -10 c 30 -50 60 -30 46 -4 c 20 -20 50 -30 90 -10"
+        fill="none" stroke="#1d3d7a" stroke-width="8" stroke-linecap="round"/>
+  <!-- the architect's seal -->
+  <g transform="rotate(-8 660 690)">
+    <circle cx="660" cy="690" r="104" fill="#f7f3ea" stroke="#8a4b46" stroke-width="12"/>
+    <circle cx="660" cy="690" r="80" fill="none" stroke="#8a4b46" stroke-width="5"/>
+    <text x="660" y="680" text-anchor="middle" font-family="Helvetica Neue, Arial, sans-serif" font-size="28" font-weight="900" fill="#8a4b46" letter-spacing="2">LICENSED</text>
+    <text x="660" y="716" text-anchor="middle" font-family="Helvetica Neue, Arial, sans-serif" font-size="24" font-weight="700" fill="#8a4b46" letter-spacing="3">ARCHITECT</text>
+  </g>
+  </g>
+</svg>

@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="100%" height="100%">
+<defs>
+<linearGradient id="tile" x1="0" y1="0" x2="0.35" y2="1">
+<stop offset="0%" stop-color="#c9a25c"/><stop offset="46%" stop-color="#8f6a2a"/><stop offset="100%" stop-color="#3a2a10"/></linearGradient>
+<linearGradient id="glare" x1="0" y1="0" x2="0" y2="1">
+<stop offset="0%" stop-color="#fff" stop-opacity=".20"/><stop offset="44%" stop-color="#fff" stop-opacity="0"/></linearGradient>
+<linearGradient id="pap" x1="0" y1="0" x2="0.3" y2="1">
+<stop offset="0%" stop-color="#ffffff"/><stop offset="100%" stop-color="#ece8dc"/></linearGradient>
+<linearGradient id="trace" x1="0" y1="0" x2="0.3" y2="1">
+<stop offset="0%" stop-color="#fbf7ec"/><stop offset="100%" stop-color="#e7dfc9"/></linearGradient>
+<linearGradient id="brassy" x1="0" y1="0" x2="0" y2="1">
+<stop offset="0%" stop-color="#e2b86c"/><stop offset="100%" stop-color="#9a6f2c"/></linearGradient>
+<linearGradient id="steel" x1="0" y1="0" x2="0" y2="1">
+<stop offset="0%" stop-color="#e3e8ec"/><stop offset="100%" stop-color="#9aa5ad"/></linearGradient>
+
+</defs>
+<rect width="1024" height="1024" fill="url(#tile)"/><rect width="1024" height="1024" fill="url(#glare)"/>
+<ellipse cx="512" cy="900" rx="350" ry="30" fill="#000" opacity=".38"/>
+
+  <rect x="160" y="170" width="704" height="684" rx="18" fill="#000" opacity=".3" transform="translate(12 16)"/>
+  <rect x="160" y="170" width="704" height="684" rx="18" fill="url(#trace)"/>
+  <!-- outer walls -->
+  <rect x="220" y="230" width="584" height="564" fill="none" stroke="#3b3630" stroke-width="16"/>
+  <!-- interior partitions -->
+  <path d="M 520 230 L 520 470 M 220 470 L 640 470 M 640 470 L 640 794" stroke="#3b3630" stroke-width="10"/>
+  <!-- doors -->
+  <path d="M 520 380 A 60 60 0 0 1 580 440" fill="none" stroke="#3b3630" stroke-width="5"/>
+  <path d="M 640 600 A 60 60 0 0 0 700 660" fill="none" stroke="#3b3630" stroke-width="5"/>
+  <!-- desks: the studio -->
+  <rect x="260" y="520" width="110" height="60" rx="6" fill="#c9a25c" stroke="#8f6a2a" stroke-width="4"/><rect x="400" y="520" width="110" height="60" rx="6" fill="#c9a25c" stroke="#8f6a2a" stroke-width="4"/><rect x="260" y="660" width="110" height="60" rx="6" fill="#c9a25c" stroke="#8f6a2a" stroke-width="4"/><rect x="400" y="660" width="110" height="60" rx="6" fill="#c9a25c" stroke="#8f6a2a" stroke-width="4"/>
+  <circle cx="315" cy="610" r="16" fill="#7d8288"/><circle cx="455" cy="610" r="16" fill="#7d8288"/><circle cx="315" cy="750" r="16" fill="#7d8288"/><circle cx="455" cy="750" r="16" fill="#7d8288"/>
+  <!-- conference table -->
+  <rect x="580" y="280" width="170" height="90" rx="45" fill="#5b7f96" stroke="#34546a" stroke-width="4"/>
+  <!-- plotter -->
+  <rect x="260" y="280" width="200" height="70" rx="8" fill="#7d8288" stroke="#3b3630" stroke-width="4"/>
+  <rect x="270" y="262" width="180" height="18" rx="6" fill="#e3e8ec"/>
+  <!-- north arrow -->
+  <path d="M 760 720 L 780 660 L 800 720 L 780 706 Z" fill="#3b3630"/>
+  <text x="780" y="760" text-anchor="middle" font-family="Helvetica Neue, Arial, sans-serif" font-size="28" font-weight="900" fill="#3b3630">N</text>
+  <!-- scale bar -->
+  <rect x="260" y="770" width="200" height="12" fill="#3b3630"/>
+  <rect x="285" y="770" width="25" height="12" fill="#f2efe6"/><rect x="335" y="770" width="25" height="12" fill="#f2efe6"/><rect x="385" y="770" width="25" height="12" fill="#f2efe6"/><rect x="435" y="770" width="25" height="12" fill="#f2efe6"/>
+
+</svg>

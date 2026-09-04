@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="100%" height="100%">
+<defs>
+<linearGradient id="tile" x1="0" y1="0" x2="0.35" y2="1">
+<stop offset="0%" stop-color="#3b4652"/><stop offset="46%" stop-color="#232b34"/><stop offset="100%" stop-color="#0e1216"/></linearGradient>
+<linearGradient id="glare" x1="0" y1="0" x2="0" y2="1">
+<stop offset="0%" stop-color="#fff" stop-opacity=".20"/><stop offset="44%" stop-color="#fff" stop-opacity="0"/></linearGradient>
+<linearGradient id="pap" x1="0" y1="0" x2="0.3" y2="1">
+<stop offset="0%" stop-color="#ffffff"/><stop offset="100%" stop-color="#ece8dc"/></linearGradient>
+<linearGradient id="trace" x1="0" y1="0" x2="0.3" y2="1">
+<stop offset="0%" stop-color="#fbf7ec"/><stop offset="100%" stop-color="#e7dfc9"/></linearGradient>
+<linearGradient id="brassy" x1="0" y1="0" x2="0" y2="1">
+<stop offset="0%" stop-color="#e2b86c"/><stop offset="100%" stop-color="#9a6f2c"/></linearGradient>
+<linearGradient id="steel" x1="0" y1="0" x2="0" y2="1">
+<stop offset="0%" stop-color="#e3e8ec"/><stop offset="100%" stop-color="#9aa5ad"/></linearGradient>
+
+</defs>
+<rect width="1024" height="1024" fill="url(#tile)"/><rect width="1024" height="1024" fill="url(#glare)"/>
+<ellipse cx="512" cy="900" rx="350" ry="30" fill="#000" opacity=".38"/>
+
+  <!-- large-format plotter -->
+  <rect x="200" y="380" width="624" height="200" rx="26" fill="#000" opacity=".3" transform="translate(12 16)"/>
+  <rect x="200" y="380" width="624" height="200" rx="26" fill="#3b4652"/>
+  <rect x="200" y="380" width="624" height="60" rx="26" fill="#4b5966"/>
+  <rect x="230" y="450" width="564" height="24" rx="8" fill="#1a1c1f"/>
+  <!-- the sheet coming out -->
+  <path d="M 240 470 L 784 470 L 784 700 Q 512 760 240 700 Z" fill="url(#pap)"/>
+  <rect x="290" y="520" width="240" height="120" fill="none" stroke="#34546a" stroke-width="6"/>
+  <path d="M 290 580 L 430 580 M 430 520 L 430 640" stroke="#34546a" stroke-width="5"/>
+  <rect x="560" y="520" width="180" height="10" rx="7" fill="#a3adb5"/><rect x="560" y="550" width="140" height="10" rx="7" fill="#a3adb5"/><rect x="560" y="580" width="160" height="10" rx="7" fill="#a3adb5"/>
+  <!-- legs -->
+  <rect x="250" y="580" width="24" height="220" rx="8" fill="#2a323a"/>
+  <rect x="750" y="580" width="24" height="220" rx="8" fill="#2a323a"/>
+  <!-- backup drive with the status lights -->
+  <rect x="560" y="220" width="264" height="120" rx="18" fill="#1a1c1f"/>
+  <rect x="560" y="220" width="264" height="120" rx="18" fill="none" stroke="#5c6167" stroke-width="5"/>
+  <rect x="590" y="248" width="150" height="14" rx="7" fill="#5c6167"/>
+  <rect x="590" y="276" width="100" height="14" rx="7" fill="#5c6167"/>
+  <circle cx="780" cy="258" r="16" fill="#2fd07a"/>
+  <circle cx="780" cy="258" r="30" fill="#2fd07a" opacity=".25"/>
+  <circle cx="780" cy="300" r="12" fill="#5c6167"/>
+  <!-- uptime figure -->
+  <rect x="200" y="220" width="320" height="120" rx="18" fill="#0e1216"/>
+  <circle cx="262" cy="280" r="26" fill="#2fd07a"/><circle cx="262" cy="280" r="44" fill="#2fd07a" opacity=".22"/>
+  <rect x="310" y="262" width="170" height="16" rx="8" fill="#5c6167"/>
+  <rect x="310" y="290" width="110" height="16" rx="8" fill="#5c6167"/>
+
+</svg>

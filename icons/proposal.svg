@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="100%" height="100%">
+<defs>
+<linearGradient id="tile" x1="0" y1="0" x2="0.35" y2="1">
+<stop offset="0%" stop-color="#5b7f96"/><stop offset="46%" stop-color="#34546a"/><stop offset="100%" stop-color="#14232e"/></linearGradient>
+<linearGradient id="glare" x1="0" y1="0" x2="0" y2="1">
+<stop offset="0%" stop-color="#fff" stop-opacity=".20"/><stop offset="44%" stop-color="#fff" stop-opacity="0"/></linearGradient>
+<linearGradient id="pap" x1="0" y1="0" x2="0.3" y2="1">
+<stop offset="0%" stop-color="#ffffff"/><stop offset="100%" stop-color="#ece8dc"/></linearGradient>
+<linearGradient id="trace" x1="0" y1="0" x2="0.3" y2="1">
+<stop offset="0%" stop-color="#fbf7ec"/><stop offset="100%" stop-color="#e7dfc9"/></linearGradient>
+<linearGradient id="brassy" x1="0" y1="0" x2="0" y2="1">
+<stop offset="0%" stop-color="#e2b86c"/><stop offset="100%" stop-color="#9a6f2c"/></linearGradient>
+<linearGradient id="steel" x1="0" y1="0" x2="0" y2="1">
+<stop offset="0%" stop-color="#e3e8ec"/><stop offset="100%" stop-color="#9aa5ad"/></linearGradient>
+
+</defs>
+<rect width="1024" height="1024" fill="url(#tile)"/><rect width="1024" height="1024" fill="url(#glare)"/>
+<ellipse cx="512" cy="900" rx="350" ry="30" fill="#000" opacity=".38"/>
+<g transform="rotate(0 512.0 500.0)"><rect x="180" y="200" width="664" height="600" rx="14" fill="#000" opacity=".35" transform="translate(12 16)"/><rect x="180" y="200" width="664" height="600" rx="14" fill="url(#trace)"/>
+  <rect x="180" y="200" width="664" height="66" rx="14" fill="#34546a"/>
+  <rect x="180" y="246" width="664" height="20" fill="#34546a"/>
+  <rect x="220" y="222" width="240" height="22" rx="11" fill="#dfe8ee" opacity=".9"/>
+  <!-- axes -->
+  <path d="M 250 700 L 250 320" stroke="#7d8288" stroke-width="6" stroke-linecap="round"/>
+  <path d="M 250 700 L 790 700" stroke="#7d8288" stroke-width="6" stroke-linecap="round"/>
+  <!-- the S-curve of fee earned -->
+  <path d="M 250 690 C 380 686, 430 560, 520 470 S 700 340, 790 330" fill="none"
+        stroke="#c9a25c" stroke-width="22" stroke-linecap="round"/>
+  <path d="M 250 690 C 380 686, 430 560, 520 470 S 700 340, 790 330 L 790 700 L 250 700 Z"
+        fill="#c9a25c" opacity=".16"/>
+  <!-- phase gates -->
+  <rect x="358" y="640" width="6" height="60" fill="#7d8288" opacity=".6"/><rect x="466" y="640" width="6" height="60" fill="#7d8288" opacity=".6"/><rect x="574" y="640" width="6" height="60" fill="#7d8288" opacity=".6"/><rect x="682" y="640" width="6" height="60" fill="#7d8288" opacity=".6"/>
+  <rect x="256" y="716" width="96" height="40" rx="8" fill="#8fa58b"/><rect x="362" y="716" width="96" height="40" rx="8" fill="#7ba0a0"/><rect x="470" y="716" width="96" height="40" rx="8" fill="#5b7f96"/><rect x="578" y="716" width="96" height="40" rx="8" fill="#9a84a3"/><rect x="686" y="716" width="104" height="40" rx="8" fill="#c7865a"/>
+  <!-- the number -->
+  <circle cx="520" cy="470" r="30" fill="url(#brassy)" stroke="#fff" stroke-width="8"/>
+  <rect x="556" y="386" width="220" height="60" rx="14" fill="#ffffff" stroke="#c9a25c" stroke-width="6"/>
+  <text x="666" y="428" text-anchor="middle" font-family="Helvetica Neue, Arial, sans-serif"
+        font-size="30" font-weight="900" fill="#3a2a10" letter-spacing="3">FEE · DD</text>
+  </g>
+</svg>
