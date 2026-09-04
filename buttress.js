@@ -400,6 +400,163 @@
   };
 
   /* The three packages. `includes` is what ships in the box at that price. */
+
+  /* ====================================================================
+     THE SKIN MACHINE
+     One palette repaints the whole operating system. Every room is drawn
+     from :root custom properties, so a skin is just a set of values —
+     nothing per-room to maintain, nothing to keep in sync.
+
+     Anthony's ruling: the OS does not open in white. `blueprint` is the
+     house default; the old bone sheet is kept as a skin, not as the floor.
+     ==================================================================== */
+  var SKIN_KEY = "buttress_skin_v1", SKIN_DEFAULT = "blueprint";
+
+  var SKINS = {
+    blueprint: {
+      name:"Blueprint", dark:true,
+      note:"The house default. Deep drafting blue, brass on top.",
+      v:{ "--good":"#6bbd85","--watch":"#e0b06a","--bad":"#e08b86", "--on-accent":"#0f1319","--coord-wash":"rgba(111,157,181,.18)","--standards-wash":"rgba(176,140,178,.18)","--t-coord":"#8fb8cd","--t-standards":"#c6a7c8", "--paper":"#0f1319","--card":"#171e26","--sunk":"#202b36",
+          "--rail":"#090c11","--rail-2":"#131b24",
+          "--ink":"#e7edf3","--ink-2":"#ccd6e0","--mut":"#9db0c0",
+          "--line":"#2a3641","--line-2":"#1f2831",
+          "--on-rail":"#e7edf3","--on-rail-mut":"#93a3b2",
+          "--glass":"rgba(13,17,23,.86)",
+          "--brass":"#c9954a","--brass-2":"#d3a35a","--brass-3":"#e0b06a",
+          "--brass-wash":"rgba(201,149,74,.16)",
+          "--t-brass":"#e0b06a","--t-good":"#6bbd85","--t-watch":"#e0b06a","--t-bad":"#e08b86",
+          "--good-w":"rgba(74,107,79,.22)","--watch-w":"rgba(168,118,44,.22)","--bad-w":"rgba(138,75,70,.22)",
+          "--a-pursuits":"#c2a06a","--a-studio":"#a49b86","--a-ca":"#d2884a",
+          "--a-money":"#6bbd85","--a-standards":"#b08cb2","--a-coord":"#6f9db5",
+          "--a-ops":"#b8a487","--a-law":"#d08a85","--a-it":"#7fb0ab",
+          "--dot-1":"rgba(201,149,74,.05)","--dot-2":"rgba(111,157,181,.05)",
+          "--sh":"0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.7)",
+          "--sh-lg":"0 2px 4px rgba(0,0,0,.45), 0 24px 56px -24px rgba(0,0,0,.8)" } },
+
+    basalt: {
+      name:"Basalt", dark:true,
+      note:"Warm stone. Quieter than blueprint, same brass.",
+      v:{ "--good":"#77c08d","--watch":"#e0b06a","--bad":"#e2908a", "--on-accent":"#14130f","--coord-wash":"rgba(120,163,186,.18)","--standards-wash":"rgba(183,145,185,.18)","--t-coord":"#95bccf","--t-standards":"#cbaccd", "--paper":"#14130f","--card":"#1e1c17","--sunk":"#282419",
+          "--rail":"#0c0b08","--rail-2":"#191712",
+          "--ink":"#efe9dd","--ink-2":"#d6cfc1","--mut":"#a79e8e",
+          "--line":"#332e24","--line-2":"#26221a",
+          "--on-rail":"#efe9dd","--on-rail-mut":"#9d9484",
+          "--glass":"rgba(18,17,13,.86)",
+          "--brass":"#c9954a","--brass-2":"#d3a35a","--brass-3":"#e0b06a",
+          "--brass-wash":"rgba(201,149,74,.16)",
+          "--t-brass":"#e0b06a","--t-good":"#77c08d","--t-watch":"#e0b06a","--t-bad":"#e2908a",
+          "--good-w":"rgba(74,107,79,.22)","--watch-w":"rgba(168,118,44,.22)","--bad-w":"rgba(138,75,70,.22)",
+          "--a-pursuits":"#c9a56d","--a-studio":"#aaa18b","--a-ca":"#d68c4e",
+          "--a-money":"#77c08d","--a-standards":"#b791b9","--a-coord":"#78a3ba",
+          "--a-ops":"#bda98b","--a-law":"#d68f8a","--a-it":"#85b4af",
+          "--dot-1":"rgba(201,149,74,.05)","--dot-2":"rgba(189,169,139,.05)",
+          "--sh":"0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.7)",
+          "--sh-lg":"0 2px 4px rgba(0,0,0,.45), 0 24px 56px -24px rgba(0,0,0,.8)" } },
+
+    ironwood: {
+      name:"Ironwood", dark:true,
+      note:"Espresso and walnut. The late-night set.",
+      v:{ "--good":"#7cc48f","--watch":"#e6b872","--bad":"#e5948d", "--on-accent":"#150f0b","--coord-wash":"rgba(126,169,192,.18)","--standards-wash":"rgba(189,150,191,.18)","--t-coord":"#9ac0d3","--t-standards":"#d0b2d2", "--paper":"#150f0b","--card":"#1f1710","--sunk":"#2a2016",
+          "--rail":"#0d0906","--rail-2":"#1a1310",
+          "--ink":"#f0e6d8","--ink-2":"#d8cab8","--mut":"#aa9a86",
+          "--line":"#362a1f","--line-2":"#281e16",
+          "--on-rail":"#f0e6d8","--on-rail-mut":"#a0907c",
+          "--glass":"rgba(19,13,9,.88)",
+          "--brass":"#d09c50","--brass-2":"#d9aa62","--brass-3":"#e6b872",
+          "--brass-wash":"rgba(208,156,80,.17)",
+          "--t-brass":"#e6b872","--t-good":"#7cc48f","--t-watch":"#e6b872","--t-bad":"#e5948d",
+          "--good-w":"rgba(74,107,79,.23)","--watch-w":"rgba(168,118,44,.23)","--bad-w":"rgba(138,75,70,.23)",
+          "--a-pursuits":"#d0aa70","--a-studio":"#b0a68e","--a-ca":"#dc9152",
+          "--a-money":"#7cc48f","--a-standards":"#bd96bf","--a-coord":"#7ea9c0",
+          "--a-ops":"#c3ae8f","--a-law":"#dc948e","--a-it":"#8bbab5",
+          "--dot-1":"rgba(208,156,80,.05)","--dot-2":"rgba(195,174,143,.05)",
+          "--sh":"0 1px 2px rgba(0,0,0,.42), 0 8px 24px -12px rgba(0,0,0,.72)",
+          "--sh-lg":"0 2px 4px rgba(0,0,0,.46), 0 24px 56px -24px rgba(0,0,0,.82)" } },
+
+    bone: {
+      name:"Bone", dark:false,
+      note:"The original sheet. Trace paper and graphite.",
+      v:{ "--on-accent":"#ffffff","--coord-wash":"rgba(65,102,122,.13)","--standards-wash":"rgba(122,90,124,.13)","--t-coord":"#2f4d5e","--t-standards":"#5d4260", "--paper":"#f4f1ea","--card":"#fffdf8","--sunk":"#eae5da",
+          "--rail":"#221f1b","--rail-2":"#2c2823",
+          "--ink":"#1d1a16","--ink-2":"#4a443b","--mut":"#6d6457",
+          "--line":"#ddd6c8","--line-2":"#efe9dd",
+          "--on-rail":"#e8e2d5","--on-rail-mut":"#9a9186",
+          "--glass":"rgba(255,253,248,.86)",
+          "--brass":"#a8762c","--brass-2":"#8a5f21","--brass-3":"#c9954a",
+          "--brass-wash":"rgba(168,118,44,.10)",
+          "--t-brass":"#7a5417","--t-good":"#35543a","--t-watch":"#7a5417","--t-bad":"#8a4b46",
+          "--good-w":"rgba(74,107,79,.12)","--watch-w":"rgba(168,118,44,.13)","--bad-w":"rgba(138,75,70,.12)",
+          "--a-pursuits":"#8a6a3c","--a-studio":"#6d6350","--a-ca":"#9c5f2e",
+          "--a-money":"#4a6b4f","--a-standards":"#7a5a7c","--a-coord":"#41667a",
+          "--a-ops":"#7b6a55","--a-law":"#8a4b46","--a-it":"#4d6f6b",
+          "--dot-1":"rgba(168,118,44,.05)","--dot-2":"rgba(65,102,122,.05)",
+          "--sh":"0 1px 2px rgba(29,26,22,.05), 0 8px 24px -12px rgba(29,26,22,.18)",
+          "--sh-lg":"0 2px 4px rgba(29,26,22,.06), 0 24px 56px -24px rgba(29,26,22,.32)" } },
+
+    vellum: {
+      name:"Vellum", dark:false,
+      note:"Warmer paper, softer rule lines. Easy in daylight.",
+      v:{ "--on-accent":"#ffffff","--coord-wash":"rgba(62,97,116,.13)","--standards-wash":"rgba(116,86,118,.13)","--t-coord":"#2c4959","--t-standards":"#59405c", "--paper":"#f7f2e6","--card":"#fffef9","--sunk":"#ede6d5",
+          "--rail":"#2a241c","--rail-2":"#362e24",
+          "--ink":"#211c14","--ink-2":"#514839","--mut":"#6f6555",
+          "--line":"#e2d9c4","--line-2":"#f2ecdd",
+          "--on-rail":"#efe7d8","--on-rail-mut":"#a09684",
+          "--glass":"rgba(255,254,249,.88)",
+          "--brass":"#a8762c","--brass-2":"#8a5f21","--brass-3":"#d4a462",
+          "--brass-wash":"rgba(168,118,44,.11)",
+          "--t-brass":"#75500f","--t-good":"#33513a","--t-watch":"#75500f","--t-bad":"#85443f",
+          "--good-w":"rgba(74,107,79,.13)","--watch-w":"rgba(168,118,44,.14)","--bad-w":"rgba(138,75,70,.13)",
+          "--a-pursuits":"#83653a","--a-studio":"#68604e","--a-ca":"#95592b",
+          "--a-money":"#456449","--a-standards":"#745676","--a-coord":"#3e6174",
+          "--a-ops":"#756550","--a-law":"#854741","--a-it":"#496964",
+          "--dot-1":"rgba(168,118,44,.05)","--dot-2":"rgba(62,97,116,.05)",
+          "--sh":"0 1px 2px rgba(33,28,20,.05), 0 8px 24px -12px rgba(33,28,20,.18)",
+          "--sh-lg":"0 2px 4px rgba(33,28,20,.06), 0 24px 56px -24px rgba(33,28,20,.32)" } }
+  };
+
+  function skinRead(){
+    try{ var v=JSON.parse(localStorage.getItem(SKIN_KEY)); if(v&&v.k) return v; }catch(e){}
+    return { k:SKIN_DEFAULT, accent:null };
+  }
+  function skinWrite(v){ try{ localStorage.setItem(SKIN_KEY,JSON.stringify(v)); }catch(e){} }
+  function skinNow(){ var v=skinRead(); return SKINS[v.k]?v:{k:SKIN_DEFAULT,accent:v.accent||null}; }
+
+  function shade(hex,amt){
+    var h=String(hex||"").replace("#","");
+    if(h.length===3) h=h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
+    var n=parseInt(h,16); if(isNaN(n)) return hex;
+    var r=(n>>16)&255,g=(n>>8)&255,b=n&255;
+    function m(x){ return Math.max(0,Math.min(255, Math.round(x+(amt<0?x:255-x)*amt))); }
+    return "#"+[m(r),m(g),m(b)].map(function(x){return ("0"+x.toString(16)).slice(-2);}).join("");
+  }
+
+  function applySkin(){
+    var cur=skinNow(), sk=SKINS[cur.k]||SKINS[SKIN_DEFAULT], root=document.documentElement;
+    Object.keys(SKINS[SKIN_DEFAULT].v).forEach(function(k){ root.style.removeProperty(k); });
+    Object.keys(sk.v).forEach(function(k){ root.style.setProperty(k, sk.v[k]); });
+    if(cur.accent){
+      root.style.setProperty("--brass", cur.accent);
+      root.style.setProperty("--brass-2", shade(cur.accent,-0.22));
+      root.style.setProperty("--brass-3", shade(cur.accent, 0.28));
+      root.style.setProperty("--a-pursuits", cur.accent);
+    } else {
+      ["--brass","--brass-2","--brass-3","--a-pursuits"].forEach(function(k){
+        if(sk.v[k]) root.style.setProperty(k, sk.v[k]);
+      });
+    }
+    try{ root.setAttribute("data-skin", cur.k); }catch(e){}
+    return cur;
+  }
+  function setSkin(k, accent){
+    var cur=skinNow();
+    skinWrite({ k:(k||cur.k), accent:(accent===undefined?cur.accent:accent) });
+    var r=applySkin();
+    try{ document.dispatchEvent(new CustomEvent('buttress:skin',{detail:r})); }catch(e){}
+    return r;
+  }
+  function skinAccent(){ return skinNow().accent || null; }
+  try{ applySkin(); }catch(e){}
+
   var TIERS = {
     lite: { key:"lite", name:"Studio", rank:1, mo:550, build:3500,
       desc:"Core practice. Pursuits, fees, the commission spine, the CA desk, details and billing.",
@@ -452,6 +609,9 @@
     { group:"Governance", items:[
       { href:"law.html",         label:"Law · Contracts",     ic:"⚖", room:"law",         accent:"law" },
       { href:"it.html",          label:"IT · System Health",  ic:"♥", room:"it",          accent:"it" }
+    ]},
+    { group:"The House", items:[
+      { href:"skins.html",       label:"Skin Machine",        ic:"◐" }
     ]},
     { group:"The Org", items:[
       { href:"org.html",         label:"Agent Org · Bus",     ic:"❖", room:"org",         accent:"ops" }
@@ -1183,12 +1343,47 @@
     j.defer=true; document.head.appendChild(j);
   }
 
+
+  function renderSkinPill(){
+    var cur=skinNow(), sk=SKINS[cur.k]||SKINS[SKIN_DEFAULT];
+    var pill=el('<div class="skinpill" title="Change the skin">'+
+      '<span class="sw" style="background:'+(cur.accent||sk.v["--brass"]||"#a8762c")+'"></span>'+
+      '<span>'+esc(sk.name)+'</span><span class="car">&#9650;</span></div>');
+    var menu=el('<div class="skinmenu"></div>');
+    function paint(){
+      var c=skinNow();
+      menu.innerHTML='<h4>Skins</h4>'+Object.keys(SKINS).map(function(k){ var s=SKINS[k];
+        return '<div class="skinopt'+(k===c.k?" on":"")+'" data-skin="'+k+'">'+
+          '<span class="chips"><i style="background:'+s.v["--rail"]+'"></i>'+
+          '<i style="background:'+s.v["--card"]+'"></i>'+
+          '<i style="background:'+s.v["--brass"]+'"></i></span>'+
+          '<span class="nm">'+esc(s.name)+'</span></div>';
+      }).join('')+'<a class="skinmore" href="skins.html">Open the Skin Machine &rarr;</a>';
+      Array.prototype.forEach.call(menu.querySelectorAll('.skinopt'), function(o){
+        o.onclick=function(){ setSkin(o.getAttribute('data-skin')); paint();
+          var s2=SKINS[skinNow().k];
+          pill.querySelector('span:nth-child(2)').textContent=s2.name;
+          pill.querySelector('.sw').style.background=skinAccent()||s2.v["--brass"];
+        };
+      });
+    }
+    paint();
+    pill.onclick=function(e){ e.stopPropagation(); menu.classList.toggle("open"); };
+    document.addEventListener("click", function(){ menu.classList.remove("open"); });
+    var wrap=el('<div class="skinwrap"></div>');
+    wrap.appendChild(menu); wrap.appendChild(pill);
+    return wrap;
+  }
+
+
   function mount(opts) {
     try{ loadFlava(); }catch(e){}
     opts = opts || {};
     db();
     var app = document.createElement("div"); app.className = "app";
+    try{ applySkin(); }catch(e){}
     var side = renderShell(opts.active);
+    try{ side.appendChild(renderSkinPill()); }catch(e){}
     var main = document.createElement("div"); main.className = "main";
     main.appendChild(ribbon());
     main.appendChild(renderTopbar(opts.crumb || "Command Center"));
@@ -1244,6 +1439,8 @@
     ISSUE_SETS:ISSUE_SETS, MF_DIVISIONS:MF_DIVISIONS, BENCH:BENCH, PAIN:PAIN, REPLACES:REPLACES,
     /* tiers, the price book, the configurator + org */
     TIERS:TIERS, ROOMS:ROOMS, DEPTS:DEPTS, SEATS:SEATS, BRAIN:BRAIN,
+    SKINS:SKINS, SKIN_DEFAULT:SKIN_DEFAULT, skinNow:skinNow, setSkin:setSkin,
+    applySkin:applySkin, skinAccent:skinAccent, shade:shade,
     tier:tier, tierRank:tierRank, setTier:setTier, tierByRank:tierByRank,
     activeRooms:activeRooms, hasRoom:hasRoom, toggleRoom:toggleRoom,
     priceNow:priceNow, priceLabel:priceLabel,
@@ -1314,8 +1511,8 @@
     var money=ENG.money||function(n){return '$'+(Math.round(n||0)).toLocaleString();};
     var coo=ENG.SEATS.coo, nd=ENG.SEATS.depts.length;
     var v=isTg
-      ?{surface:'var(--panel,#181E2A)',surf2:'var(--panel-2,#1F2634)',text:'var(--text,#EAEDF4)',mut:'var(--muted,#8B95A9)',line:'var(--line,#2C3547)',prim:'var(--brand,#FF6A2C)',onprim:'#160a04',good:'var(--ok,#4ADE80)',warn:'var(--warn,#FBBF24)'}
-      :{surface:'var(--card,#fff)',surf2:'var(--sunk,#efe9df)',text:'var(--ink,#1a1a1a)',mut:'var(--mut,#888)',line:'var(--line,#ddd)',prim:'var(--mag,#c8501e)',onprim:'#fff',good:'var(--good,#4a8a5a)',warn:'var(--watch,#d19a2b)'};
+      ?{surface:'var(--panel,#181E2A)',surf2:'var(--panel-2,#1F2634)',text:'var(--text,#EAEDF4)',mut:'var(--muted,#8B95A9)',line:'var(--line,#2C3547)',prim:'var(--brass)',onprim:'var(--on-brass)',good:'var(--ok,#4ADE80)',warn:'var(--warn,#FBBF24)'}
+      :{surface:'var(--card,#fff)',surf2:'var(--sunk,#efe9df)',text:'var(--ink,#1a1a1a)',mut:'var(--mut,#888)',line:'var(--line,#ddd)',prim:'var(--brass)',onprim:'var(--on-brass)',good:'var(--good,#4a8a5a)',warn:'var(--watch,#d19a2b)'};
     var st=document.createElement('style'); st.id='aeCooStyle';
     st.textContent=
       '#aeCooFab{position:fixed;right:18px;bottom:18px;z-index:95;width:54px;height:54px;border-radius:50%;border:none;cursor:pointer;background:'+v.prim+';color:'+v.onprim+';box-shadow:0 12px 30px -8px rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;transition:transform .15s}'+
@@ -1584,6 +1781,8 @@
     else content.appendChild(card);
   }
   function boot(){ build(); setTimeout(build,300); setTimeout(build,1200); }
+  document.addEventListener('buttress:skin', function(){
+    var c=document.getElementById('aeChartCard'); if(c) c.remove(); build(); });
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot); else boot();
 })();
 

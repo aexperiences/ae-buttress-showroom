@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Skin Machine · Buttress OS</title>
+<meta name="description" content="Pick the skin the whole studio wears. Powered by Accelerated Experiences LLC.">
+<link rel="icon" href="https://www.aexperiences.com/Buttress_OS.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="buttress.css">
+<style>
+.sk-prev .tile{height:22px;border-radius:6px;margin-top:auto}
+.sk-meta b{display:flex;align-items:center;gap:8px}
+.sk-live{font-size:10px;letter-spacing:.07em;text-transform:uppercase;padding:2px 8px;border-radius:999px}
+.sk-swatches label{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:600;
+  border:1px solid var(--line);border-radius:10px;padding:6px 12px 6px 14px;background:var(--card)}
+.sk-swatches label input{width:34px;height:30px;border:0;background:none;padding:0;cursor:pointer}
+</style>
+</head>
+<body>
+<script src="buttress.js"></script>
+<script>
+(function(){
+var B=window.Buttress, esc=B.esc;
+var c=B.mount({active:"skins.html",crumb:"Skin Machine"});
+var SKINS=B.SKINS;
+
+c.appendChild(B.page("Skin Machine",
+  "One palette repaints the whole operating system &mdash; the rail, the cards, the sheet index, "+
+  "the billing tables. Pick the one your studio wants to look at all day, then drop your own colour on it."));
+
+c.appendChild(B.el('<section class="card"><h2>Dark is the default</h2>'+
+  '<p class="sub">Drawings get marked up in a dim studio and read on site in the glare. A white screen '+
+  'all day is a squint, so <b>Blueprint</b> is what a new build wakes up wearing. The paper skins are '+
+  'still here &mdash; <b>Bone</b> is the original trace-and-graphite sheet, unchanged &mdash; they are just '+
+  'no longer the thing you have to opt out of.</p></section>'));
+
+/* -------------------------------------------------------------- the shelf */
+var shelf=document.createElement("section"); shelf.className="card";
+shelf.appendChild(B.el('<h2>The shelf</h2><p class="sub">Tap one. It changes every floor, immediately, '+
+  'and it remembers.</p>'));
+var grid=document.createElement("div"); grid.className="sk-grid";
+shelf.appendChild(grid); c.appendChild(shelf);
+
+function preview(s,accent){
+  var v=s.v, ac=accent||v["--brass"]||"#a8762c";
+  return '<div class="sk-prev">'+
+    '<div class="rail" style="background:'+v["--rail"]+'"></div>'+
+    '<div class="body" style="background:'+v["--paper"]+'">'+
+      '<div class="bar" style="background:'+v["--card"]+';width:78%"></div>'+
+      '<div class="bar" style="background:'+v["--line"]+';width:56%"></div>'+
+      '<div class="bar" style="background:'+v["--line"]+';width:66%"></div>'+
+      '<div class="tile" style="background:'+v["--card"]+';border-left:5px solid '+ac+'"></div>'+
+    '</div></div>';
+}
+function paintShelf(){
+  var cur=B.skinNow();
+  grid.innerHTML="";
+  Object.keys(SKINS).forEach(function(k){
+    var s=SKINS[k];
+    var on=(k===cur.k);
+    var card=B.el('<div class="sk-card'+(on?" on":"")+'">'+preview(s,cur.accent)+
+      '<div class="sk-meta"><b>'+esc(s.name)+
+      (on?'<span class="sk-live" style="background:var(--brass);color:var(--on-brass)">On</span>':"")+
+      '</b><span>'+esc(s.note)+'</span></div></div>');
+    card.onclick=function(){ B.setSkin(k); B.toast(s.name+" on.","ok"); paintAll(); };
+    grid.appendChild(card);
+  });
+}
+
+/* ------------------------------------------------------------ your colour */
+var brand=document.createElement("section"); brand.className="card";
+c.appendChild(brand);
+function paintBrand(){
+  var cur=B.skinNow(), ac=cur.accent||(SKINS[cur.k]||{}).v["--brass"]||"#a8762c";
+  brand.innerHTML="";
+  brand.appendChild(B.el('<h2>Your colour</h2><p class="sub">The accent runs through every button, the '+
+    'active row, the phase bars and the pursuit board. Put the studio&rsquo;s own on it &mdash; this is the '+
+    'part that stops it looking like our software and starts it looking like yours.</p>'));
+  var row=document.createElement("div"); row.className="sk-swatches";
+  var lab=B.el('<label>Pick it <input type="color" value="'+esc(ac)+'"></label>');
+  lab.querySelector("input").oninput=function(){ B.setSkin(null,this.value); paintShelf(); };
+  row.appendChild(lab);
+  [["#a8762c","Brass"],["#41667a","Drafting blue"],["#4a6b4f","Field green"],
+   ["#8a4b46","Red pencil"],["#7a5a7c","Violet"],["#9c5f2e","Terracotta"],["#6d6350","Graphite"]
+  ].forEach(function(p){
+    var b=B.el('<button title="'+esc(p[1])+'" style="background:'+p[0]+'"'+
+      (ac.toLowerCase()===p[0]?' class="on"':'')+'></button>');
+    b.onclick=function(){ B.setSkin(null,p[0]); paintAll(); };
+    row.appendChild(b);
+  });
+  var clear=B.el('<button class="sk-live" style="margin-left:6px">Back to the skin&rsquo;s own</button>');
+  clear.onclick=function(){ B.setSkin(null,null); paintAll(); };
+  row.appendChild(clear);
+  brand.appendChild(row);
+  brand.appendChild(B.el('<p class="srcnote" style="margin-top:14px">Saved in this browser. '+
+    'A studio&rsquo;s colours, name and web address are set once at handover &mdash; ask and we quote that with you.</p>'));
+}
+
+/* --------------------------------------------------------------- the demo */
+var demo=document.createElement("section"); demo.className="card";
+c.appendChild(demo);
+function paintDemo(){
+  demo.innerHTML="";
+  demo.appendChild(B.el('<h2>What it looks like on a live floor</h2>'+
+    '<p class="sub">Real numbers off this studio&rsquo;s own book, in whatever skin is on right now.</p>'));
+  var wrap=document.createElement("div"); wrap.className="statrow";
+  try{
+    var k=B.kpis?B.kpis():null;
+    if(k){
+      wrap.innerHTML=[
+        B.stat("Earned to date", B.money?B.money(k.earned||0):"—", "", "good"),
+        B.stat("Ready to bill",  B.money?B.money(k.ready||0):"—", "", "watch"),
+        B.stat("Open pursuits",  String(k.pursuits||0), "", "")
+      ].join("");
+    }
+  }catch(e){}
+  if(!wrap.innerHTML){
+    wrap.innerHTML=[B.stat("The rail","Rail",""),B.stat("A card","Card",""),
+                    B.stat("The accent","Accent","","good")].join("");
+  }
+  demo.appendChild(wrap);
+}
+
+function paintAll(){ paintShelf(); paintBrand(); paintDemo(); }
+paintAll();
+})();
+</script>
+</body>
+</html>

@@ -18,11 +18,11 @@
   /* ink */
   --ink:#1d1a16;
   --ink-2:#4a443b;
-  --mut:#8b8175;
+  --mut:#6d6457;
   --line:#ddd6c8;
   --line-2:#efe9dd;
   --on-rail:#e8e2d5;
-  --on-rail-mut:#9a9186;
+  --on-rail-mut:#a79d90;
 
   /* brass — the one accent */
   --brass:#a8762c;
@@ -102,7 +102,7 @@ body::before{
 .nav{display:flex; flex-direction:column; gap:1px}
 .nav-group{
   font-size:9.5px; letter-spacing:.14em; text-transform:uppercase;
-  color:#6f675c; padding:15px 10px 5px; font-weight:640;
+  color:var(--on-rail-mut); padding:15px 10px 5px; font-weight:640;
 }
 .navlink{
   display:flex; align-items:center; gap:9px; padding:8px 10px; border-radius:8px;
@@ -137,9 +137,9 @@ body::before{
 }
 .ribbon .live{
   font-family:var(--mono); font-size:10px; letter-spacing:.1em; font-weight:700;
-  background:var(--ink); color:var(--brass-3); padding:3px 7px; border-radius:5px; margin-right:7px;
+  background:var(--rail); color:var(--brass-3); padding:3px 7px; border-radius:5px; margin-right:7px;
 }
-.ribbon a{color:var(--brass-2); font-weight:600}
+.ribbon a{color:var(--t-brass); font-weight:600}
 
 /* ------------------------------------------------------------------ topbar */
 .topbar{
@@ -169,7 +169,7 @@ body::before{
 .who{display:flex; align-items:center; gap:9px; font-size:12.2px; line-height:1.3}
 .who .av{
   width:32px;height:32px;border-radius:50%; display:grid;place-items:center;
-  background:var(--ink); color:var(--brass-3); font-weight:660; font-size:11.5px; flex:none;
+  background:var(--rail); color:var(--brass-3); font-weight:660; font-size:11.5px; flex:none;
 }
 
 /* ------------------------------------------------------- the configurator */
@@ -259,9 +259,9 @@ body::before{
 .stat .s-l{font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--mut); font-weight:640}
 .stat .s-v{font-size:22px; font-weight:680; letter-spacing:-.028em; margin-top:5px; font-family:var(--mono)}
 .stat .s-n{font-size:11.2px; color:var(--mut); margin-top:4px; line-height:1.45}
-.stat.good{border-left-color:var(--good)} .stat.good .s-v{color:var(--good)}
-.stat.watch{border-left-color:var(--watch)} .stat.watch .s-v{color:var(--brass-2)}
-.stat.bad{border-left-color:var(--bad)} .stat.bad .s-v{color:var(--bad)}
+.stat.good{border-left-color:var(--good)} .stat.good .s-v{color:var(--t-good)}
+.stat.watch{border-left-color:var(--watch)} .stat.watch .s-v{color:var(--t-watch)}
+.stat.bad{border-left-color:var(--bad)} .stat.bad .s-v{color:var(--t-bad)}
 
 /* ------------------------------------------------------------------ tables */
 table{width:100%; border-collapse:collapse; font-size:12.8px}
@@ -283,9 +283,9 @@ td.k{font-family:var(--mono); font-size:11.8px; color:var(--ink-2); white-space:
   display:inline-block; font-size:10.5px; padding:2px 7px; border-radius:5px;
   background:var(--sunk); color:var(--ink-2); font-weight:600; white-space:nowrap;
 }
-.tag.good{background:var(--good-w); color:var(--good)}
-.tag.watch{background:var(--watch-w); color:var(--brass-2)}
-.tag.bad{background:var(--bad-w); color:var(--bad)}
+.tag.good{background:var(--good-w); color:var(--t-good)}
+.tag.watch{background:var(--watch-w); color:var(--t-watch)}
+.tag.bad{background:var(--bad-w); color:var(--t-bad)}
 .tag.mono{font-family:var(--mono); font-size:10px}
 .tag.ghost{background:transparent; border:1px solid var(--line); color:var(--mut)}
 
@@ -307,7 +307,7 @@ input[type=range]{padding:0; border:none; background:transparent; accent-color:v
 .btn:hover{background:#000}
 .btn.ghost{background:transparent; color:var(--ink); border-color:var(--line)}
 .btn.ghost:hover{background:var(--sunk); border-color:var(--brass)}
-.btn.brass{background:var(--brass); border-color:var(--brass); color:#fff}
+.btn.brass{background:var(--brass); border-color:var(--brass); color:var(--on-brass);}
 .btn.brass:hover{background:var(--brass-2); border-color:var(--brass-2)}
 .btn.sm{padding:5px 10px; font-size:12px}
 
@@ -351,7 +351,7 @@ input[type=range]{padding:0; border:none; background:transparent; accent-color:v
   height:fit-content; flex:none; margin-top:2px; font-weight:700;
 }
 .rtag.data{background:var(--good-w); color:var(--good)}
-.rtag.assumption{background:var(--watch-w); color:var(--brass-2)}
+.rtag.assumption{background:var(--watch-w); color:var(--t-watch)}
 
 /* ------------------------------------------------------------------ toasts */
 #toast-wrap{position:fixed; bottom:20px; right:20px; z-index:200; display:flex; flex-direction:column; gap:8px}
@@ -431,3 +431,99 @@ input[type=range]{padding:0; border:none; background:transparent; accent-color:v
 .stat{ min-width:0 }
 .stat .s-v{ font-size:clamp(15px, 4.4vw, 22px); min-width:0; white-space:nowrap; letter-spacing:-.035em }
 .stat.headline .s-v{ font-size:clamp(17px, 5.1vw, 26px) }
+
+
+/* ------------------------------------------------------- the Skin Machine
+   Tokens the skins need that the original bone sheet never had to name,
+   plus the two things that break the moment the floor goes dark:
+   a baked-cream topbar, and form controls with no colour of their own. */
+:root{
+  --glass:rgba(255,253,248,.86);
+  --t-brass:#7a5417; --t-good:#35543a; --t-watch:#7a5417; --t-bad:#8a4b46;
+  --on-brass:#140d04; --chip-ink:var(--ink-2);
+  --dot-1:rgba(168,118,44,.05); --dot-2:rgba(65,102,122,.05);
+}
+.topbar{background:var(--glass)}
+button,input,select,textarea{color:var(--ink)}
+
+.skinwrap{position:relative; margin-top:10px}
+.skinpill{display:flex; align-items:center; gap:9px; cursor:pointer;
+  padding:9px 12px; border-radius:11px; background:var(--rail-2);
+  border:1px solid rgba(255,255,255,.08); color:var(--on-rail);
+  font-size:12.5px; font-weight:600; transition:.14s}
+.skinpill:hover{background:var(--rail); border-color:var(--brass-3)}
+.skinpill .sw{width:14px; height:14px; border-radius:5px; flex:none;
+  box-shadow:0 0 0 1px rgba(255,255,255,.18) inset}
+.skinpill .car{margin-left:auto; font-size:9px; opacity:.6}
+.skinmenu{position:absolute; left:0; right:0; bottom:calc(100% + 8px);
+  background:var(--card); border:1px solid var(--line); border-radius:13px;
+  box-shadow:var(--sh-lg); padding:9px; display:none; z-index:60}
+.skinmenu.open{display:block}
+.skinmenu h4{font-size:10.5px; letter-spacing:.09em; text-transform:uppercase;
+  color:var(--mut); margin:3px 6px 8px}
+.skinopt{display:flex; align-items:center; gap:10px; padding:8px 9px;
+  border-radius:9px; cursor:pointer; color:var(--ink); font-size:13px}
+.skinopt:hover{background:var(--sunk)}
+.skinopt.on{background:var(--brass-wash); font-weight:640}
+.skinopt .chips{display:flex; gap:3px; flex:none}
+.skinopt .chips i{width:11px; height:18px; border-radius:3px; display:block;
+  box-shadow:0 0 0 1px rgba(128,128,128,.25) inset}
+.skinmore{display:block; margin:7px 6px 3px; font-size:12px; color:var(--brass-2);
+  text-decoration:none; font-weight:600}
+.skinmore:hover{text-decoration:underline}
+
+/* the Skin Machine room */
+.sk-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(248px,1fr)); gap:15px}
+.sk-card{border:1px solid var(--line); border-radius:14px; overflow:hidden;
+  background:var(--card); cursor:pointer; transition:.15s}
+.sk-card:hover{transform:translateY(-2px); box-shadow:var(--sh-lg); border-color:var(--brass-3)}
+.sk-card.on{border-color:var(--brass); box-shadow:0 0 0 2px var(--brass-wash)}
+.sk-prev{height:112px; display:flex}
+.sk-prev .rail{width:34%} .sk-prev .body{flex:1; padding:11px; display:flex;
+  flex-direction:column; gap:7px}
+.sk-prev .bar{height:9px; border-radius:5px}
+.sk-meta{padding:12px 14px; border-top:1px solid var(--line-2)}
+.sk-meta b{display:block; font-size:14px; margin-bottom:3px}
+.sk-meta span{font-size:12px; color:var(--ink-2); line-height:1.5}
+.sk-swatches{display:flex; gap:7px; flex-wrap:wrap; margin-top:12px}
+.sk-swatches button{width:34px; height:34px; border-radius:9px; border:2px solid var(--line);
+  cursor:pointer; padding:0}
+.sk-swatches button.on{border-color:var(--ink)}
+.sk-live{background:var(--brass); color:var(--on-brass) !important; border:0;
+  border-radius:10px; padding:10px 15px; font-weight:640; cursor:pointer}
+
+/* ---------------------------------------------- the aliases that were missing
+   Connect, Records, Contacts, Calendar, Meet and the org bus were all written
+   against a palette this OS never had (--blue, --amber, --mag, --indigo,
+   --panel, --text...). Twenty-seven names resolved to nothing, so those rooms
+   have been painting with invalid colours since before the skins existed.
+   Point them at Buttress's own tokens and they inherit every skin for free. */
+:root{
+  --blue:var(--a-coord); --blue-2:var(--t-coord); --blue-3:var(--a-coord);
+  --blue-wash:var(--coord-wash);
+  --amber:var(--brass); --amber-2:var(--t-brass); --amber-3:var(--brass-3);
+  --amber-wash:var(--brass-wash);
+  --mag:var(--a-standards); --mag-2:var(--t-standards); --mag-wash:var(--standards-wash);
+  --gold-3:var(--brass-3);
+  --char:var(--rail); --char2:var(--rail-2);
+  --indigo:var(--a-standards); --indigo2:var(--brass-2); --indigo3:var(--brass-3);
+  --panel:var(--card); --panel-2:var(--sunk);
+  --text:var(--ink); --muted:var(--mut);
+  --ok:var(--good); --warn:var(--watch); --brand:var(--brass);
+  --r-pill:999px;
+  /* washes + text-on-wash the aliases above depend on */
+  --coord-wash:rgba(65,102,122,.13); --standards-wash:rgba(122,90,124,.13);
+  --t-coord:#2f4d5e; --t-standards:#5d4260;
+}
+
+/* accent fills need ink that flips with the skin, not a baked #fff */
+.cn-btn.call{background:var(--a-coord) !important; border-color:var(--a-coord) !important; color:var(--on-accent) !important}
+.cn-btn.call:hover{background:var(--t-coord) !important}
+.cn-btn.amber{background:var(--brass) !important; border-color:var(--brass) !important; color:var(--on-brass) !important}
+.cn-av{color:var(--on-rail) !important}
+.cn-av.me{color:var(--on-brass) !important}
+.cal-views button.on{background:var(--a-standards) !important; color:var(--on-accent) !important}
+
+/* the primary button carried white on brass — 2.46:1, under AA since day one */
+.btn.brass, .btn.brass:hover{color:var(--on-brass) !important}
+.cn-av{background:linear-gradient(160deg,var(--rail-2),var(--rail)) !important}
