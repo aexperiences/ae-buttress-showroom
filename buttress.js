@@ -581,40 +581,40 @@
      Never build up from a stripped base — Article X, the showroom rule. */
   var DEPTS = [
     { group:"Command", items:[
-      { href:"dashboard.html",   label:"Command Center",      ic:"◎" }, { href:"calendar.html", label:"Calendar", ic:"▤" }, { href:"contacts.html", label:"Contacts", ic:"☎" }, { href:"connect.html", label:"Connect · Video", ic:"◉" }, { href:"records.html", label:"Records · Filing", ic:"▤" },
-      { href:"approvals.html",   label:"Approval Desk",       ic:"✓", accent:"ops" }
+      { href:"dashboard.html",   label:"Command Center",      ic:"◎", icon:"icons/command-center.svg" }, { href:"calendar.html", label:"Calendar", ic:"▤", icon:"icons/calendar.svg" }, { href:"contacts.html", label:"Contacts", ic:"☎", icon:"icons/contacts.svg" }, { href:"connect.html", label:"Connect · Video", ic:"◉", icon:"icons/connect.svg" }, { href:"records.html", label:"Records · Filing", ic:"▤", icon:"icons/records.svg" },
+      { href:"approvals.html",   label:"Approval Desk",       ic:"✓", accent:"ops", icon:"icons/approvals.svg" }
     ]},
     { group:"New Business", items:[
-      { href:"pursuits.html",    label:"Pursuits · Go/No-Go", ic:"◆", room:"pursuits",    accent:"pursuits" },
-      { href:"proposal.html",    label:"Fee & Proposal",      ic:"∑", room:"proposal",    accent:"money" }
+      { href:"pursuits.html",    label:"Pursuits · Go/No-Go", ic:"◆", room:"pursuits",    accent:"pursuits", icon:"icons/pursuits.svg" },
+      { href:"proposal.html",    label:"Fee & Proposal",      ic:"∑", room:"proposal",    accent:"money", icon:"icons/proposal.svg" }
     ]},
     { group:"The Work", items:[
-      { href:"commissions.html", label:"Commissions",         ic:"▦", room:"commissions", accent:"studio" },
-      { href:"ca.html",          label:"CA Desk",             ic:"⇄", room:"ca",          accent:"ca" },
-      { href:"sheets.html",      label:"Sheet Sets",          ic:"▤", room:"sheets",      accent:"studio" },
-      { href:"details.html",     label:"Detail Studio",       ic:"◫", room:"details",     accent:"studio" },
-      { href:"specs.html",       label:"Specs · MasterFormat",ic:"§", room:"specs",       accent:"standards" }
+      { href:"commissions.html", label:"Commissions",         ic:"▦", room:"commissions", accent:"studio", icon:"icons/commissions.svg" },
+      { href:"ca.html",          label:"CA Desk",             ic:"⇄", room:"ca",          accent:"ca", icon:"icons/ca.svg" },
+      { href:"sheets.html",      label:"Sheet Sets",          ic:"▤", room:"sheets",      accent:"studio", icon:"icons/sheets.svg" },
+      { href:"details.html",     label:"Detail Studio",       ic:"◫", room:"details",     accent:"studio", icon:"icons/details.svg" },
+      { href:"specs.html",       label:"Specs · MasterFormat",ic:"§", room:"specs",       accent:"standards", icon:"icons/specs.svg" }
     ]},
     { group:"The Team Outside", items:[
-      { href:"coord.html",       label:"Consultants & AHJ",   ic:"⇋", room:"coord",       accent:"coord" }
+      { href:"coord.html",       label:"Consultants & AHJ",   ic:"⇋", room:"coord",       accent:"coord", icon:"icons/coord.svg" }
     ]},
     { group:"Money", items:[
-      { href:"billing.html",     label:"Billing",             ic:"◧", room:"billing",     accent:"money" },
-      { href:"books.html",       label:"Books & Multipliers", ic:"◭", room:"books",       accent:"money" }
+      { href:"billing.html",     label:"Billing",             ic:"◧", room:"billing",     accent:"money", icon:"icons/billing.svg" },
+      { href:"books.html",       label:"Books & Multipliers", ic:"◭", room:"books",       accent:"money", icon:"icons/books.svg" }
     ]},
     { group:"People", items:[
-      { href:"hr.html",          label:"HR · People Ops",     ic:"☷", room:"hr",          accent:"ops" },
-      { href:"ops.html",         label:"Operations",          ic:"⛭", room:"ops",         accent:"ops" }
+      { href:"hr.html",          label:"HR · People Ops",     ic:"☷", room:"hr",          accent:"ops", icon:"icons/hr.svg" },
+      { href:"ops.html",         label:"Operations",          ic:"⛭", room:"ops",         accent:"ops", icon:"icons/ops.svg" }
     ]},
     { group:"Governance", items:[
-      { href:"law.html",         label:"Law · Contracts",     ic:"⚖", room:"law",         accent:"law" },
-      { href:"it.html",          label:"IT · System Health",  ic:"♥", room:"it",          accent:"it" }
+      { href:"law.html",         label:"Law · Contracts",     ic:"⚖", room:"law",         accent:"law", icon:"icons/law-contracts.svg" },
+      { href:"it.html",          label:"IT · System Health",  ic:"♥", room:"it",          accent:"it", icon:"icons/it.svg" }
     ]},
     { group:"The House", items:[
-      { href:"skins.html",       label:"Skin Machine",        ic:"◐" }
+      { href:"skins.html",       label:"Skin Machine",        ic:"◐", icon:"icons/skins.svg" }
     ]},
     { group:"The Org", items:[
-      { href:"org.html",         label:"Agent Org · Bus",     ic:"❖", room:"org",         accent:"ops" }
+      { href:"org.html",         label:"Agent Org · Bus",     ic:"❖", room:"org",         accent:"ops", icon:"icons/org.svg" }
     ]}
   ];
 
@@ -1214,7 +1214,8 @@
         var a = el('<a href="' + (off ? "javascript:void(0)" : it.href) + '" class="navlink ' +
           (it.href === active ? "active" : "") + (off ? " locked" : "") + '"' +
           (it.accent ? ' data-accent="' + it.accent + '"' : "") + '>' +
-          '<span class="ic">' + it.ic + '</span><span class="lb">' + esc(it.label) + '</span>' +
+          (it.icon ? '<img class="ic ic-img" src="' + it.icon + '" alt="">' : '<span class="ic">' + it.ic + '</span>') +
+          '<span class="lb">' + esc(it.label) + '</span>' +
           (off ? '<span class="tier-tag">+' + money(ROOMS[it.room].mo) + '</span>' : '') + '</a>');
         if (off) {
           a.title = "Not in this build — add " + ROOMS[it.room].label +
@@ -1248,10 +1249,15 @@
     return side;
   }
 
-  function renderTopbar(crumb) {
-    var p = priceNow();
+  function iconFor(href) {
+    for (var g = 0; g < DEPTS.length; g++) for (var i = 0; i < DEPTS[g].items.length; i++)
+      if (DEPTS[g].items[i].href === href) return DEPTS[g].items[i].icon || null;
+    return null;
+  }
+  function renderTopbar(crumb, active) {
+    var p = priceNow(), hic = iconFor(active);
     var bar = document.createElement("div"); bar.className = "topbar";
-    bar.innerHTML =
+    bar.innerHTML = (hic ? '<img class="crumb-ic" src="' + hic + '" alt="">' : '') +
       '<div class="crumbs">Buttress OS <span class="mono" style="opacity:.62;font-size:11px">V2.0</span> · <b>' + esc(crumb) + '</b></div>' +
       '<div class="spacer"></div>' +
       '<div class="tierpill" id="tierPillStatic">' +
@@ -1386,7 +1392,7 @@
     try{ side.appendChild(renderSkinPill()); }catch(e){}
     var main = document.createElement("div"); main.className = "main";
     main.appendChild(ribbon());
-    main.appendChild(renderTopbar(opts.crumb || "Command Center"));
+    main.appendChild(renderTopbar(opts.crumb || "Command Center", opts.active));
     var content = document.createElement("div"); content.className = "content"; content.id = "content";
     main.appendChild(content);
     main.appendChild(footer());
