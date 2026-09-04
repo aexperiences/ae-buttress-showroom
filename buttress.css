@@ -156,7 +156,7 @@ body::before{
   border:1px solid var(--line); background:var(--card); padding:6px 11px;
   border-radius:999px; font-size:12.5px; box-shadow:var(--sh);
 }
-.tierpill:hover{border-color:var(--brass); background:#fff}
+.tierpill:hover{border-color:var(--brass); background:var(--field,#fff)}
 .tierpill .dot{width:7px;height:7px;border-radius:50%;background:var(--good); flex:none}
 .tierpill b{font-weight:660}
 .tierpill .cfg{
@@ -201,9 +201,9 @@ body::before{
 .roomrow:hover{background:var(--sunk)}
 .rr-box{
   width:17px;height:17px;border-radius:5px; border:1.5px solid var(--line);
-  display:grid;place-items:center; font-size:10px; color:transparent; background:#fff;
+  display:grid;place-items:center; font-size:10px; color:transparent; background:var(--field,#fff);
 }
-.roomrow.on .rr-box{background:var(--brass); border-color:var(--brass); color:#fff}
+.roomrow.on .rr-box{background:var(--brass); border-color:var(--brass); color:var(--on-brass)}
 .roomrow:not(.on) .rr-box{color:var(--mut)}
 .rr-name{font-weight:560}
 .rr-flag{
@@ -294,7 +294,7 @@ label.f{display:block; font-size:11px; letter-spacing:.07em; text-transform:uppe
   color:var(--mut); font-weight:640; margin-bottom:5px}
 input,select,textarea{
   width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:8px;
-  background:#fff; color:var(--ink); font-family:inherit; font-size:13px;
+  background:var(--field,#fff); color:var(--ink); font-family:inherit; font-size:13px;
 }
 input:focus,select:focus,textarea:focus{outline:none; border-color:var(--brass); box-shadow:0 0 0 3px var(--brass-wash)}
 input[type=range]{padding:0; border:none; background:transparent; accent-color:var(--brass)}
@@ -535,3 +535,8 @@ button,input,select,textarea{color:var(--ink)}
 .crumb-ic{width:40px; height:40px; border-radius:10px; object-fit:cover; flex:none;
   margin-right:12px; box-shadow:var(--sh)}
 @media (max-width:760px){ .crumb-ic{width:32px; height:32px; border-radius:8px; margin-right:8px} }
+input::placeholder,textarea::placeholder{color:var(--mut); opacity:1}
+select option{background:var(--field,#fff); color:var(--ink)}
+input[type=date]::-webkit-calendar-picker-indicator{filter:var(--pick-filter,none)}
+input[type=checkbox],input[type=radio]{accent-color:var(--brass); width:auto}
+:root[data-skin="blueprint"],:root[data-skin="basalt"],:root[data-skin="ironwood"]{color-scheme:dark}

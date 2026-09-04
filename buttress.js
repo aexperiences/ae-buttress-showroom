@@ -416,7 +416,7 @@
     blueprint: {
       name:"Blueprint", dark:true,
       note:"The house default. Deep drafting blue, brass on top.",
-      v:{ "--good":"#6bbd85","--watch":"#e0b06a","--bad":"#e08b86", "--on-accent":"#0f1319","--coord-wash":"rgba(111,157,181,.18)","--standards-wash":"rgba(176,140,178,.18)","--t-coord":"#8fb8cd","--t-standards":"#c6a7c8", "--paper":"#0f1319","--card":"#171e26","--sunk":"#202b36",
+      v:{ "--good":"#6bbd85","--watch":"#e0b06a","--bad":"#e08b86", "--on-accent":"#0f1319","--coord-wash":"rgba(111,157,181,.18)","--standards-wash":"rgba(176,140,178,.18)","--t-coord":"#8fb8cd","--t-standards":"#c6a7c8", "--paper":"#0f1319","--field":"#0a0e13","--pick-filter":"invert(.85)","--card":"#171e26","--sunk":"#202b36",
           "--rail":"#090c11","--rail-2":"#131b24",
           "--ink":"#e7edf3","--ink-2":"#ccd6e0","--mut":"#9db0c0",
           "--line":"#2a3641","--line-2":"#1f2831",
@@ -436,7 +436,7 @@
     basalt: {
       name:"Basalt", dark:true,
       note:"Warm stone. Quieter than blueprint, same brass.",
-      v:{ "--good":"#77c08d","--watch":"#e0b06a","--bad":"#e2908a", "--on-accent":"#14130f","--coord-wash":"rgba(120,163,186,.18)","--standards-wash":"rgba(183,145,185,.18)","--t-coord":"#95bccf","--t-standards":"#cbaccd", "--paper":"#14130f","--card":"#1e1c17","--sunk":"#282419",
+      v:{ "--good":"#77c08d","--watch":"#e0b06a","--bad":"#e2908a", "--on-accent":"#14130f","--coord-wash":"rgba(120,163,186,.18)","--standards-wash":"rgba(183,145,185,.18)","--t-coord":"#95bccf","--t-standards":"#cbaccd", "--paper":"#14130f","--field":"#0e0d0a","--pick-filter":"invert(.85)","--card":"#1e1c17","--sunk":"#282419",
           "--rail":"#0c0b08","--rail-2":"#191712",
           "--ink":"#efe9dd","--ink-2":"#d6cfc1","--mut":"#a79e8e",
           "--line":"#332e24","--line-2":"#26221a",
@@ -456,7 +456,7 @@
     ironwood: {
       name:"Ironwood", dark:true,
       note:"Espresso and walnut. The late-night set.",
-      v:{ "--good":"#7cc48f","--watch":"#e6b872","--bad":"#e5948d", "--on-accent":"#150f0b","--coord-wash":"rgba(126,169,192,.18)","--standards-wash":"rgba(189,150,191,.18)","--t-coord":"#9ac0d3","--t-standards":"#d0b2d2", "--paper":"#150f0b","--card":"#1f1710","--sunk":"#2a2016",
+      v:{ "--good":"#7cc48f","--watch":"#e6b872","--bad":"#e5948d", "--on-accent":"#150f0b","--coord-wash":"rgba(126,169,192,.18)","--standards-wash":"rgba(189,150,191,.18)","--t-coord":"#9ac0d3","--t-standards":"#d0b2d2", "--paper":"#150f0b","--field":"#0f0b08","--pick-filter":"invert(.85)","--card":"#1f1710","--sunk":"#2a2016",
           "--rail":"#0d0906","--rail-2":"#1a1310",
           "--ink":"#f0e6d8","--ink-2":"#d8cab8","--mut":"#aa9a86",
           "--line":"#362a1f","--line-2":"#281e16",
@@ -476,7 +476,7 @@
     bone: {
       name:"Bone", dark:false,
       note:"The original sheet. Trace paper and graphite.",
-      v:{ "--on-accent":"#ffffff","--coord-wash":"rgba(65,102,122,.13)","--standards-wash":"rgba(122,90,124,.13)","--t-coord":"#2f4d5e","--t-standards":"#5d4260", "--paper":"#f4f1ea","--card":"#fffdf8","--sunk":"#eae5da",
+      v:{ "--on-accent":"#ffffff","--coord-wash":"rgba(65,102,122,.13)","--standards-wash":"rgba(122,90,124,.13)","--t-coord":"#2f4d5e","--t-standards":"#5d4260", "--paper":"#f4f1ea","--field":"#ffffff","--pick-filter":"none","--card":"#fffdf8","--sunk":"#eae5da",
           "--rail":"#221f1b","--rail-2":"#2c2823",
           "--ink":"#1d1a16","--ink-2":"#4a443b","--mut":"#6d6457",
           "--line":"#ddd6c8","--line-2":"#efe9dd",
@@ -496,7 +496,7 @@
     vellum: {
       name:"Vellum", dark:false,
       note:"Warmer paper, softer rule lines. Easy in daylight.",
-      v:{ "--on-accent":"#ffffff","--coord-wash":"rgba(62,97,116,.13)","--standards-wash":"rgba(116,86,118,.13)","--t-coord":"#2c4959","--t-standards":"#59405c", "--paper":"#f7f2e6","--card":"#fffef9","--sunk":"#ede6d5",
+      v:{ "--on-accent":"#ffffff","--coord-wash":"rgba(62,97,116,.13)","--standards-wash":"rgba(116,86,118,.13)","--t-coord":"#2c4959","--t-standards":"#59405c", "--paper":"#f7f2e6","--field":"#fffef9","--pick-filter":"none","--card":"#fffef9","--sunk":"#ede6d5",
           "--rail":"#2a241c","--rail-2":"#362e24",
           "--ink":"#211c14","--ink-2":"#514839","--mut":"#6f6555",
           "--line":"#e2d9c4","--line-2":"#f2ecdd",
