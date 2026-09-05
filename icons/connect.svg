@@ -1,30 +1,65 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="100%" height="100%">
 <defs>
-<linearGradient id="gcn" x1="0" y1="0" x2="0.65" y2="1">
-<stop offset="0%" stop-color="#a1ec8c"/><stop offset="55%" stop-color="#45ad28"/><stop offset="100%" stop-color="#18450c"/></linearGradient>
-<radialGradient id="glcn" cx="32%" cy="6%" r="80%">
-<stop offset="0%" stop-color="#ffffff" stop-opacity=".26"/><stop offset="100%" stop-color="#ffffff" stop-opacity="0"/></radialGradient>
-
+<linearGradient id="tile" x1="0" y1="0" x2="0.35" y2="1">
+<stop offset="0%" stop-color="#8fa58b"/><stop offset="46%" stop-color="#5b7358"/><stop offset="100%" stop-color="#24301f"/></linearGradient>
+<linearGradient id="glare" x1="0" y1="0" x2="0" y2="1">
+<stop offset="0%" stop-color="#fff" stop-opacity=".20"/><stop offset="44%" stop-color="#fff" stop-opacity="0"/></linearGradient>
+<linearGradient id="pap" x1="0" y1="0" x2="0.3" y2="1">
+<stop offset="0%" stop-color="#ffffff"/><stop offset="100%" stop-color="#ece8dc"/></linearGradient>
+<linearGradient id="trace" x1="0" y1="0" x2="0.3" y2="1">
+<stop offset="0%" stop-color="#fbf7ec"/><stop offset="100%" stop-color="#e7dfc9"/></linearGradient>
+<linearGradient id="brassy" x1="0" y1="0" x2="0" y2="1">
+<stop offset="0%" stop-color="#e2b86c"/><stop offset="100%" stop-color="#9a6f2c"/></linearGradient>
+<linearGradient id="steel" x1="0" y1="0" x2="0" y2="1">
+<stop offset="0%" stop-color="#e3e8ec"/><stop offset="100%" stop-color="#9aa5ad"/></linearGradient>
+<linearGradient id="paneA" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".12"/><stop offset="1" stop-color="#000" stop-opacity=".25"/></linearGradient>
+<linearGradient id="paneB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".12"/><stop offset="1" stop-color="#000" stop-opacity=".25"/></linearGradient>
 </defs>
-<rect x="0" y="0" width="1024" height="1024" fill="url(#gcn)"/>
-<g id="art" transform="translate(27.61,20.04) scale(1.8922)">
+<rect width="1024" height="1024" fill="url(#tile)"/><rect width="1024" height="1024" fill="url(#glare)"/>
+<ellipse cx="512" cy="900" rx="350" ry="30" fill="#000" opacity=".38"/>
 
-
-<!-- the tail, laid down first so the bubble's corner closes the joint -->
-<path d="M180 300 L180 424 L288 338 Z" fill="#fdfbf6"/>
-
-<!-- the bubble -->
-<rect x="52" y="96" width="408" height="264" rx="58" fill="#fdfbf6"/>
-<rect x="52" y="96" width="408" height="264" rx="58" fill="none" stroke="#e4dccb" stroke-width="4"/>
-
-<!-- a camera sitting in it: this room is talking AND faces -->
-<rect x="118" y="166" width="178" height="124" rx="30" fill="#2a201a"/>
-<path d="M312 196 L394 152 L394 304 L312 260 Z" fill="#2a201a"/>
-
-<!-- the live dot -->
-<circle cx="160" cy="228" r="15" fill="#e2673f"/>
-
-</g>
-<rect x="0" y="0" width="1024" height="1024" fill="url(#glcn)"/>
+  <!-- monitor -->
+  <rect x="150" y="190" width="724" height="470" rx="30" fill="#000" opacity=".35" transform="translate(14 18)"/>
+  <rect x="150" y="190" width="724" height="470" rx="30" fill="#1f2326"/>
+  <rect x="176" y="216" width="672" height="404" rx="16" fill="#0f1319"/>
+  <!-- the call: two panes -->
+  <rect x="196" y="236" width="316" height="300" rx="14" fill="#34546a"/>
+  <rect x="196" y="236" width="316" height="300" rx="14" fill="url(#paneA)"/>
+  <rect x="512" y="236" width="316" height="300" rx="14" fill="#5b7358"/>
+  <rect x="512" y="236" width="316" height="300" rx="14" fill="url(#paneB)"/>
+  <!-- left pane: the drawing being shared -->
+  <rect x="222" y="262" width="264" height="220" rx="8" fill="#eef3f6"/>
+  <g stroke="#34546a" stroke-width="6" fill="none" stroke-linejoin="round">
+    <rect x="250" y="290" width="208" height="164"/>
+    <path d="M250 372 L350 372 L350 454 M350 290 L350 330 M400 372 L458 372 M400 330 L400 454"/>
+  </g>
+  <path d="M290 372 A40 40 0 0 1 350 412" stroke="#c2482e" stroke-width="5" fill="none"/>
+  <!-- right pane: the person on the call, as a silhouette -->
+  <circle cx="670" cy="360" r="44" fill="#e8e2d6"/>
+  <path d="M584 486 C584 420 626 402 670 402 C714 402 756 420 756 486 Z" fill="#e8e2d6"/>
+  <!-- name plates -->
+  <rect x="212" y="494" width="150" height="26" rx="13" fill="#000" opacity=".45"/><rect x="226" y="503" width="90" height="8" rx="4" fill="#e8e2d6"/>
+  <rect x="528" y="494" width="150" height="26" rx="13" fill="#000" opacity=".45"/><rect x="542" y="503" width="110" height="8" rx="4" fill="#e8e2d6"/>
+  <!-- call bar -->
+  <rect x="196" y="556" width="632" height="46" rx="23" fill="#1a1f24"/>
+  <circle cx="470" cy="579" r="16" fill="#2fd07a"/>
+  <circle cx="512" cy="579" r="16" fill="#e8e2d6"/>
+  <circle cx="554" cy="579" r="16" fill="#c2482e"/>
+  <rect x="470" y="574" width="84" height="0" fill="none"/>
+  <!-- live dot -->
+  <circle cx="808" cy="256" r="12" fill="#c2482e"/><circle cx="808" cy="256" r="20" fill="#c2482e" opacity=".3"/>
+  <!-- webcam -->
+  <rect x="482" y="164" width="60" height="34" rx="12" fill="#1f2326"/>
+  <circle cx="512" cy="181" r="9" fill="#5b7f96"/><circle cx="512" cy="181" r="4" fill="#0f1319"/>
+  <!-- stand -->
+  <rect x="472" y="660" width="80" height="80" rx="12" fill="#1f2326"/>
+  <rect x="332" y="736" width="360" height="30" rx="15" fill="#000" opacity=".35" transform="translate(8 12)"/>
+  <rect x="332" y="736" width="360" height="30" rx="15" fill="#2b3034"/>
+  <!-- the message coming in -->
+  <path d="M600 610 L896 610 A28 28 0 0 1 924 638 L924 760 A28 28 0 0 1 896 788 L700 788 L650 836 L660 788 L628 788 A28 28 0 0 1 600 760 Z" fill="#000" opacity=".3" transform="translate(10 12)"/>
+  <path d="M600 610 L896 610 A28 28 0 0 1 924 638 L924 760 A28 28 0 0 1 896 788 L700 788 L650 836 L660 788 L628 788 A28 28 0 0 1 600 760 Z" fill="#fdfbf6"/>
+  <rect x="636" y="654" width="200" height="16" rx="8" fill="#2a1810"/>
+  <rect x="636" y="690" width="240" height="14" rx="7" fill="#9aa9b5"/>
+  <rect x="636" y="722" width="160" height="14" rx="7" fill="#9aa9b5"/>
 
 </svg>

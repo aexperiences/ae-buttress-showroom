@@ -17,24 +17,43 @@
 <rect width="1024" height="1024" fill="url(#tile)"/><rect width="1024" height="1024" fill="url(#glare)"/>
 <ellipse cx="512" cy="900" rx="350" ry="30" fill="#000" opacity=".38"/>
 
-  <rect x="180" y="150" width="664" height="724" rx="18" fill="#000" opacity=".3" transform="translate(12 16)"/>
-  <rect x="180" y="150" width="664" height="724" rx="18" fill="url(#trace)"/>
-  <!-- slab + footing -->
-  <path d="M 250 690 L 250 830 L 780 830 L 780 690 L 600 690 L 600 740 L 250 740 Z" fill="#b8b0a2" stroke="#3b3630" stroke-width="10" stroke-linejoin="round"/>
-  <path d="M 270 740 L 320 830" stroke="#3b3630" stroke-width="4" opacity=".5"/><path d="M 322 740 L 372 830" stroke="#3b3630" stroke-width="4" opacity=".5"/><path d="M 374 740 L 424 830" stroke="#3b3630" stroke-width="4" opacity=".5"/><path d="M 426 740 L 476 830" stroke="#3b3630" stroke-width="4" opacity=".5"/><path d="M 478 740 L 528 830" stroke="#3b3630" stroke-width="4" opacity=".5"/><path d="M 530 740 L 580 830" stroke="#3b3630" stroke-width="4" opacity=".5"/><path d="M 582 740 L 632 830" stroke="#3b3630" stroke-width="4" opacity=".5"/><path d="M 634 740 L 684 830" stroke="#3b3630" stroke-width="4" opacity=".5"/><path d="M 686 740 L 736 830" stroke="#3b3630" stroke-width="4" opacity=".5"/><path d="M 738 740 L 788 830" stroke="#3b3630" stroke-width="4" opacity=".5"/>
-  <!-- the wall, thick enough to read: sheathing · stud · cladding -->
-  <rect x="480" y="230" width="34" height="460" fill="#f2f2ef" stroke="#3b3630" stroke-width="8"/>
-  <rect x="514" y="230" width="86" height="460" fill="#e0c9a2" stroke="#3b3630" stroke-width="8"/>
-  <path d="M 520 250 L 594 290" stroke="#a88a5a" stroke-width="5"/><path d="M 520 294 L 594 334" stroke="#a88a5a" stroke-width="5"/><path d="M 520 338 L 594 378" stroke="#a88a5a" stroke-width="5"/><path d="M 520 382 L 594 422" stroke="#a88a5a" stroke-width="5"/><path d="M 520 426 L 594 466" stroke="#a88a5a" stroke-width="5"/><path d="M 520 470 L 594 510" stroke="#a88a5a" stroke-width="5"/><path d="M 520 514 L 594 554" stroke="#a88a5a" stroke-width="5"/><path d="M 520 558 L 594 598" stroke="#a88a5a" stroke-width="5"/><path d="M 520 602 L 594 642" stroke="#a88a5a" stroke-width="5"/><path d="M 520 646 L 594 686" stroke="#a88a5a" stroke-width="5"/>
-  <path d="M 600 230 L 600 690" stroke="#3b3630" stroke-width="14"/>
-  <rect x="612" y="236" width="60" height="44" fill="#7d8288" stroke="#3b3630" stroke-width="6"/><rect x="612" y="288" width="60" height="44" fill="#7d8288" stroke="#3b3630" stroke-width="6"/><rect x="612" y="340" width="60" height="44" fill="#7d8288" stroke="#3b3630" stroke-width="6"/><rect x="612" y="392" width="60" height="44" fill="#7d8288" stroke="#3b3630" stroke-width="6"/><rect x="612" y="444" width="60" height="44" fill="#7d8288" stroke="#3b3630" stroke-width="6"/><rect x="612" y="496" width="60" height="44" fill="#7d8288" stroke="#3b3630" stroke-width="6"/><rect x="612" y="548" width="60" height="44" fill="#7d8288" stroke="#3b3630" stroke-width="6"/><rect x="612" y="600" width="60" height="44" fill="#7d8288" stroke="#3b3630" stroke-width="6"/><rect x="612" y="652" width="60" height="44" fill="#7d8288" stroke="#3b3630" stroke-width="6"/>
-  <!-- one dimension, brass -->
-  <path d="M 480 190 L 672 190" stroke="#8f6a2a" stroke-width="7"/>
-  <path d="M 480 172 L 480 208 M 672 172 L 672 208" stroke="#8f6a2a" stroke-width="7"/>
-  <!-- the detail bubble, big -->
-  <circle cx="320" cy="330" r="96" fill="#fff" stroke="#3b3630" stroke-width="12"/>
-  <path d="M 224 330 L 416 330" stroke="#3b3630" stroke-width="12"/>
-  <text x="320" y="312" text-anchor="middle" font-family="Helvetica Neue, Arial, sans-serif" font-size="66" font-weight="900" fill="#3b3630">3</text>
-  <text x="320" y="392" text-anchor="middle" font-family="Helvetica Neue, Arial, sans-serif" font-size="40" font-weight="800" fill="#3b3630">A-501</text>
-
+  <!-- the sheet behind, small drawing on it -->
+  <rect x="120" y="120" width="784" height="784" rx="24" fill="#000" opacity=".3" transform="translate(12 16)"/>
+  <rect x="120" y="120" width="784" height="784" rx="24" fill="url(#trace)"/>
+  <!-- the small elevation, top right -->
+  <g stroke="#3b3630" stroke-width="4" fill="none">
+    <rect x="600" y="180" width="240" height="150"/>
+    <rect x="630" y="210" width="44" height="50"/><rect x="700" y="210" width="44" height="50"/><rect x="770" y="210" width="44" height="50"/>
+    <rect x="650" y="280" width="50" height="50"/>
+  </g>
+  <!-- the callout circle on the elevation, leader out to the blow-up -->
+  <circle cx="612" cy="330" r="30" fill="none" stroke="#c2482e" stroke-width="6"/>
+  <path d="M 590 350 L 500 420" stroke="#c2482e" stroke-width="6" stroke-linecap="round"/>
+  <!-- the loupe: the wall section, big -->
+  <circle cx="420" cy="520" r="270" fill="#000" opacity=".22" transform="translate(10 14)"/>
+  <circle cx="420" cy="520" r="270" fill="#fdfbf6"/>
+  <clipPath id="loupe"><circle cx="420" cy="520" r="250"/></clipPath>
+  <g clip-path="url(#loupe)">
+    <!-- footing -->
+    <rect x="140" y="560" width="440" height="80" fill="#c9c2b5" stroke="#3b3630" stroke-width="5"/>
+    <line x1="160" y1="560" x2="200" y2="600" stroke="#3b3630" stroke-width="4"/><line x1="186" y1="560" x2="226" y2="600" stroke="#3b3630" stroke-width="4"/><line x1="212" y1="560" x2="252" y2="600" stroke="#3b3630" stroke-width="4"/><line x1="238" y1="560" x2="278" y2="600" stroke="#3b3630" stroke-width="4"/><line x1="264" y1="560" x2="304" y2="600" stroke="#3b3630" stroke-width="4"/><line x1="290" y1="560" x2="330" y2="600" stroke="#3b3630" stroke-width="4"/><line x1="316" y1="560" x2="356" y2="600" stroke="#3b3630" stroke-width="4"/><line x1="342" y1="560" x2="382" y2="600" stroke="#3b3630" stroke-width="4"/><line x1="368" y1="560" x2="408" y2="600" stroke="#3b3630" stroke-width="4"/><line x1="394" y1="560" x2="434" y2="600" stroke="#3b3630" stroke-width="4"/><line x1="420" y1="560" x2="460" y2="600" stroke="#3b3630" stroke-width="4"/><line x1="446" y1="560" x2="486" y2="600" stroke="#3b3630" stroke-width="4"/><line x1="472" y1="560" x2="512" y2="600" stroke="#3b3630" stroke-width="4"/><line x1="498" y1="560" x2="538" y2="600" stroke="#3b3630" stroke-width="4"/><line x1="524" y1="560" x2="564" y2="600" stroke="#3b3630" stroke-width="4"/>
+    <!-- slab -->
+    <rect x="140" y="530" width="180" height="30" fill="#d9d2c4" stroke="#3b3630" stroke-width="5"/>
+    <!-- brick veneer -->
+    <rect x="326" y="232" width="60" height="26" rx="2" fill="#b86a4c" stroke="#3b3630" stroke-width="3"/><rect x="326" y="264" width="60" height="26" rx="2" fill="#b86a4c" stroke="#3b3630" stroke-width="3"/><rect x="326" y="296" width="60" height="26" rx="2" fill="#b86a4c" stroke="#3b3630" stroke-width="3"/><rect x="326" y="328" width="60" height="26" rx="2" fill="#b86a4c" stroke="#3b3630" stroke-width="3"/><rect x="326" y="360" width="60" height="26" rx="2" fill="#b86a4c" stroke="#3b3630" stroke-width="3"/><rect x="326" y="392" width="60" height="26" rx="2" fill="#b86a4c" stroke="#3b3630" stroke-width="3"/><rect x="326" y="424" width="60" height="26" rx="2" fill="#b86a4c" stroke="#3b3630" stroke-width="3"/><rect x="326" y="456" width="60" height="26" rx="2" fill="#b86a4c" stroke="#3b3630" stroke-width="3"/><rect x="326" y="488" width="60" height="26" rx="2" fill="#b86a4c" stroke="#3b3630" stroke-width="3"/><rect x="326" y="520" width="60" height="26" rx="2" fill="#b86a4c" stroke="#3b3630" stroke-width="3"/>
+    <!-- sheathing + stud bay -->
+    <rect x="392" y="220" width="48" height="340" fill="#e2cfa6" stroke="#3b3630" stroke-width="4"/>
+    <rect x="440" y="220" width="56" height="340" fill="#fdfbf6" stroke="#3b3630" stroke-width="4"/>
+    <path d="M 446 236 L 486 252 L 446 268" fill="none" stroke="#c9a25c" stroke-width="7" stroke-linecap="round"/><path d="M 446 268 L 486 284 L 446 300" fill="none" stroke="#c9a25c" stroke-width="7" stroke-linecap="round"/><path d="M 446 300 L 486 316 L 446 332" fill="none" stroke="#c9a25c" stroke-width="7" stroke-linecap="round"/><path d="M 446 332 L 486 348 L 446 364" fill="none" stroke="#c9a25c" stroke-width="7" stroke-linecap="round"/><path d="M 446 364 L 486 380 L 446 396" fill="none" stroke="#c9a25c" stroke-width="7" stroke-linecap="round"/><path d="M 446 396 L 486 412 L 446 428" fill="none" stroke="#c9a25c" stroke-width="7" stroke-linecap="round"/><path d="M 446 428 L 486 444 L 446 460" fill="none" stroke="#c9a25c" stroke-width="7" stroke-linecap="round"/><path d="M 446 460 L 486 476 L 446 492" fill="none" stroke="#c9a25c" stroke-width="7" stroke-linecap="round"/><path d="M 446 492 L 486 508 L 446 524" fill="none" stroke="#c9a25c" stroke-width="7" stroke-linecap="round"/><path d="M 446 524 L 486 540 L 446 556" fill="none" stroke="#c9a25c" stroke-width="7" stroke-linecap="round"/>
+    <!-- interior gyp -->
+    <rect x="496" y="220" width="18" height="340" fill="#f4eede" stroke="#3b3630" stroke-width="4"/>
+    <!-- dimension across -->
+    <path d="M 326 196 L 514 196" stroke="#c9a25c" stroke-width="5"/><path d="M 326 186 L 326 206 M 514 186 L 514 206" stroke="#c9a25c" stroke-width="5"/>
+  </g>
+  <circle cx="420" cy="520" r="250" fill="none" stroke="#3b3630" stroke-width="12"/>
+  <circle cx="420" cy="520" r="270" fill="none" stroke="#c9c2b5" stroke-width="10"/>
+  <!-- loupe handle -->
+  <path d="M 612 712 L 720 820" stroke="#3b3630" stroke-width="44" stroke-linecap="round"/>
+  <path d="M 612 712 L 720 820" stroke="#c9a25c" stroke-width="24" stroke-linecap="round"/>
+  
 </svg>

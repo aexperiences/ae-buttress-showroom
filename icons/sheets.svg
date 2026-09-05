@@ -32,13 +32,10 @@
   <path d="M 290 528 L 290 552 M 580 528 L 580 552 M 470 528 L 470 552" stroke="#c7865a" stroke-width="4"/>
   <!-- sheet number, the thing you actually read -->
   <rect x="636" y="700" width="70" height="66" rx="6" fill="#34546a"/>
-  <text x="671" y="738" text-anchor="middle" font-family="IBM Plex Mono, Menlo, monospace" font-size="30" font-weight="700" fill="#fff">A</text>
-  <text x="671" y="760" text-anchor="middle" font-family="IBM Plex Mono, Menlo, monospace" font-size="22" font-weight="700" fill="#dfe8ee">501</text>
   </g>
   <!-- revision cloud, hand-drawn, red pencil -->
   <path d="M 330 610 q 20 -30 44 -8 q 20 -30 44 -8 q 20 -30 44 -8 q 24 -24 40 8 q 30 -6 20 30 q 30 10 4 36 q 10 32 -24 26 q -6 30 -36 12 q -20 30 -44 6 q -24 22 -40 -8 q -30 10 -22 -24 q -32 -8 -14 -36 q -20 -30 14 -34 z"
         fill="none" stroke="#b23b2f" stroke-width="7" stroke-linejoin="round" transform="rotate(-2 480 520)"/>
   <circle cx="392" cy="644" r="22" fill="#b23b2f" transform="rotate(-2 480 520)"/>
-  <text x="392" y="653" text-anchor="middle" font-family="Helvetica Neue, Arial, sans-serif" font-size="26" font-weight="900" fill="#fff" transform="rotate(-2 480 520)">3</text>
 
 </svg>

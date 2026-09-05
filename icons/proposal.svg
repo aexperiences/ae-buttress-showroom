@@ -12,29 +12,47 @@
 <stop offset="0%" stop-color="#e2b86c"/><stop offset="100%" stop-color="#9a6f2c"/></linearGradient>
 <linearGradient id="steel" x1="0" y1="0" x2="0" y2="1">
 <stop offset="0%" stop-color="#e3e8ec"/><stop offset="100%" stop-color="#9aa5ad"/></linearGradient>
-
+<linearGradient id="beam" x1="1" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#f7f3e8" stop-opacity=".9"/><stop offset="1" stop-color="#f7f3e8" stop-opacity="0"/></linearGradient>
+<linearGradient id="beamwash" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".3"/><stop offset="1" stop-color="#000" stop-opacity=".06"/></linearGradient>
 </defs>
 <rect width="1024" height="1024" fill="url(#tile)"/><rect width="1024" height="1024" fill="url(#glare)"/>
 <ellipse cx="512" cy="900" rx="350" ry="30" fill="#000" opacity=".38"/>
-<g transform="rotate(0 512.0 500.0)"><rect x="180" y="200" width="664" height="600" rx="14" fill="#000" opacity=".35" transform="translate(12 16)"/><rect x="180" y="200" width="664" height="600" rx="14" fill="url(#trace)"/>
-  <rect x="180" y="200" width="664" height="66" rx="14" fill="#34546a"/>
-  <rect x="180" y="246" width="664" height="20" fill="#34546a"/>
-  <rect x="220" y="222" width="240" height="22" rx="11" fill="#dfe8ee" opacity=".9"/>
-  <!-- axes -->
-  <path d="M 250 700 L 250 320" stroke="#7d8288" stroke-width="6" stroke-linecap="round"/>
-  <path d="M 250 700 L 790 700" stroke="#7d8288" stroke-width="6" stroke-linecap="round"/>
-  <!-- the S-curve of fee earned -->
-  <path d="M 250 690 C 380 686, 430 560, 520 470 S 700 340, 790 330" fill="none"
-        stroke="#c9a25c" stroke-width="22" stroke-linecap="round"/>
-  <path d="M 250 690 C 380 686, 430 560, 520 470 S 700 340, 790 330 L 790 700 L 250 700 Z"
-        fill="#c9a25c" opacity=".16"/>
-  <!-- phase gates -->
-  <rect x="358" y="640" width="6" height="60" fill="#7d8288" opacity=".6"/><rect x="466" y="640" width="6" height="60" fill="#7d8288" opacity=".6"/><rect x="574" y="640" width="6" height="60" fill="#7d8288" opacity=".6"/><rect x="682" y="640" width="6" height="60" fill="#7d8288" opacity=".6"/>
-  <rect x="256" y="716" width="96" height="40" rx="8" fill="#8fa58b"/><rect x="362" y="716" width="96" height="40" rx="8" fill="#7ba0a0"/><rect x="470" y="716" width="96" height="40" rx="8" fill="#5b7f96"/><rect x="578" y="716" width="96" height="40" rx="8" fill="#9a84a3"/><rect x="686" y="716" width="104" height="40" rx="8" fill="#c7865a"/>
-  <!-- the number -->
-  <circle cx="520" cy="470" r="30" fill="url(#brassy)" stroke="#fff" stroke-width="8"/>
-  <rect x="556" y="386" width="220" height="60" rx="14" fill="#ffffff" stroke="#c9a25c" stroke-width="6"/>
-  <text x="666" y="428" text-anchor="middle" font-family="Helvetica Neue, Arial, sans-serif"
-        font-size="30" font-weight="900" fill="#3a2a10" letter-spacing="3">FEE · DD</text>
+
+  <!-- the pull-down screen -->
+  <rect x="120" y="120" width="620" height="34" rx="12" fill="#2b2521"/>
+  <rect x="146" y="150" width="568" height="420" fill="#000" opacity=".25" transform="translate(8 12)"/>
+  <rect x="146" y="150" width="568" height="420" fill="#f7f3e8"/>
+  <rect x="146" y="150" width="568" height="420" fill="url(#beamwash)"/>
+  <rect x="120" y="566" width="620" height="22" rx="11" fill="#2b2521"/>
+  <circle cx="430" cy="600" r="12" fill="#2b2521"/>
+  <!-- the slide: the fee, as the dollar -->
+  <rect x="196" y="190" width="240" height="22" rx="11" fill="#34546a"/>
+  <g transform="translate(430 370)">
+    <path d="M 62 -78 C 40 -112 -66 -110 -66 -50 C -66 10 66 -4 66 56 C 66 116 -50 116 -70 78" fill="none" stroke="#c9a25c" stroke-width="34" stroke-linecap="round"/>
+    <rect x="-13" y="-132" width="26" height="264" rx="13" fill="#c9a25c"/>
   </g>
+  <rect x="214" y="516" width="82" height="28" rx="8" fill="#8fa58b"/><rect x="304" y="516" width="82" height="28" rx="8" fill="#7ba0a0"/><rect x="394" y="516" width="82" height="28" rx="8" fill="#5b7f96"/><rect x="484" y="516" width="82" height="28" rx="8" fill="#9a84a3"/><rect x="574" y="516" width="86" height="28" rx="8" fill="#c7865a"/>
+  <!-- the beam -->
+  <path d="M 780 700 L 146 150 L 146 570 Z" fill="url(#beam)" opacity=".55"/>
+  <path d="M 780 700 L 146 150 L 146 570 Z" fill="none"/>
+  <!-- the table -->
+  <rect x="560" y="780" width="380" height="24" rx="12" fill="#f4eede"/>
+  <path d="M 578 804 L 922 804 L 910 860 L 590 860 Z" fill="#6b4a2e"/>
+  <!-- the carousel projector -->
+  <rect x="620" y="700" width="280" height="84" rx="20" fill="#000" opacity=".3" transform="translate(8 10)"/>
+  <rect x="620" y="700" width="280" height="84" rx="20" fill="#3a332d"/>
+  <rect x="620" y="700" width="280" height="30" rx="14" fill="#4b433c"/>
+  <!-- carousel tray -->
+  <ellipse cx="760" cy="700" rx="130" ry="30" fill="#2b2521"/>
+  <ellipse cx="760" cy="694" rx="130" ry="30" fill="#5a5049"/>
+  <ellipse cx="760" cy="694" rx="44" ry="11" fill="#2b2521"/>
+  <rect x="640" y="684" width="6" height="18" rx="2" fill="#2b2521" transform="rotate(0 760 694)"/><rect x="640" y="684" width="6" height="18" rx="2" fill="#2b2521" transform="rotate(20 760 694)"/><rect x="640" y="684" width="6" height="18" rx="2" fill="#2b2521" transform="rotate(40 760 694)"/><rect x="640" y="684" width="6" height="18" rx="2" fill="#2b2521" transform="rotate(140 760 694)"/><rect x="640" y="684" width="6" height="18" rx="2" fill="#2b2521" transform="rotate(160 760 694)"/><rect x="640" y="684" width="6" height="18" rx="2" fill="#2b2521" transform="rotate(180 760 694)"/><rect x="640" y="684" width="6" height="18" rx="2" fill="#2b2521" transform="rotate(200 760 694)"/><rect x="640" y="684" width="6" height="18" rx="2" fill="#2b2521" transform="rotate(220 760 694)"/><rect x="640" y="684" width="6" height="18" rx="2" fill="#2b2521" transform="rotate(320 760 694)"/><rect x="640" y="684" width="6" height="18" rx="2" fill="#2b2521" transform="rotate(340 760 694)"/>
+  <!-- lens, pointed at the screen -->
+  <rect x="580" y="726" width="56" height="44" rx="12" fill="#2b2521"/>
+  <circle cx="586" cy="748" r="24" fill="#1a1512"/><circle cx="586" cy="748" r="16" fill="#7fa7c0"/><circle cx="586" cy="748" r="8" fill="#f7f3e8" opacity=".8"/>
+  <!-- the glow off the lens -->
+  <circle cx="586" cy="748" r="40" fill="#f7f3e8" opacity=".25"/>
+  <!-- cord and remote -->
+  <path d="M 900 760 C 940 760 950 800 930 840" stroke="#2b2521" stroke-width="6" fill="none" stroke-linecap="round"/>
+  
 </svg>
