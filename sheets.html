@@ -122,6 +122,11 @@
       '<div class="field"><label class="f">Sequence 01–99</label><input id="dSeq" type="number" min="1" max="99" value="1"></div>' +
     '</div>' +
     '<div id="decOut"></div>' +
+    '<div class="row" id="addRow" style="align-items:flex-end;margin-top:12px;display:none">' +
+      '<div style="flex:1;min-width:220px"><label class="f">Sheet title</label><input id="addTitle"></div>' +
+      '<div style="min-width:220px"><label class="f">Project</label><select id="addProj"></select></div>' +
+      '<button class="btn brass sm" id="addSheetBtn">Add to the index</button>' +
+    '</div>' +
     B.srcNote("US National CAD Standard sheet identification — discipline designators and sheet-type digits as carried in this OS's engine (B.DISCIPLINES, B.SHEET_TYPES).")
   );
   c.appendChild(decCard);
@@ -151,6 +156,29 @@
         : '<div class="fence"><b>' + B.esc(num) + ' is not in the index yet.</b> ' +
           'The number is well-formed under the standard — it just has not been drawn on this project. ' +
           'That is the point of a numbering convention: the gap is visible before a consultant finds it.</div>');
+    var addRow = decCard.querySelector("#addRow");
+    addRow.style.display = match ? "none" : "";
+    addRow.querySelector("#addSheetBtn").textContent = "Add " + num + " to the index";
+    addRow.querySelector("#addTitle").placeholder = typeName(tg);
+    if (!addRow.querySelector("#addProj").options.length) addRow.querySelector("#addProj").innerHTML = projOpts();
+    addRow.setAttribute("data-num", num); addRow.setAttribute("data-disc", dk);
+  }
+  function projOpts(sel) {
+    return B.db().commissions.map(function (p) {
+      return '<option value="' + B.esc(p.name) + '"' + (p.name === sel ? " selected" : "") + '>' + B.esc(p.name) + '</option>';
+    }).join("");
+  }
+  function addSheet() {
+    var row = decCard.querySelector("#addRow"), num = row.getAttribute("data-num"), dk = row.getAttribute("data-disc");
+    var title = (decCard.querySelector("#addTitle").value || "").trim() || typeName(typeDigit(num));
+    var proj  = decCard.querySelector("#addProj").value;
+    B.save(function (d) {
+      d.sheets.push({ id: "s" + Date.now(), num: num, title: title, project: proj, disc: dk,
+                      rev: 0, issued: "Not issued", date: today(), history: [] });
+    });
+    decCard.querySelector("#addTitle").value = "";
+    B.toast(num + " added to the " + proj + " index at revision 0. It has never been issued — issue it below.", "ok");
+    renderStats(); renderDecode(); renderIndex(); renderStandard(); renderRevBlock(); renderCompare();
   }
 
   /* ------------------------------------------------- the index + issuance */
@@ -206,6 +234,8 @@
         '<button class="btn ghost sm" id="selAll">Select all</button>' +
         '<button class="btn ghost sm" id="selNone">Clear</button>' +
         '<button class="btn brass" id="issueBtn">Issue the set</button>' +
+        '<button class="btn ghost sm" id="transBtn">Write a transmittal</button>' +
+        '<button class="btn ghost sm" id="csvBtn">Download the drawing list</button>' +
       '</div>' +
       '<div class="fence" style="margin-top:13px" id="issNote"></div>';
 
@@ -229,6 +259,56 @@
       Array.prototype.forEach.call(indexCard.querySelectorAll(".pick"), function (x) { x.checked = false; });
     });
     indexCard.querySelector("#issueBtn").addEventListener("click", issueSet);
+    indexCard.querySelector("#transBtn").addEventListener("click", writeTransmittal);
+    indexCard.querySelector("#csvBtn").addEventListener("click", downloadList);
+  }
+
+  /* ------------------------------------------------ transmittal → CA log */
+  function pickedSheets() {
+    var ids = [];
+    Array.prototype.forEach.call(indexCard.querySelectorAll(".pick"), function (x) { if (x.checked) ids.push(x.value); });
+    return B.db().sheets.filter(function (s) { return ids.indexOf(s.id) >= 0; });
+  }
+  function nextNum(prefix) {
+    var n = 0;
+    (B.db().ca || []).forEach(function (t) {
+      var m = String(t.num || "").match(new RegExp("^" + prefix + "-(\\d+)$"));
+      if (m) n = Math.max(n, Number(m[1]));
+    });
+    return prefix + "-" + ("00" + (n + 1)).slice(-3);
+  }
+  function writeTransmittal() {
+    var rows = pickedSheets();
+    if (!rows.length) { B.toast("Tick the sheets the transmittal covers first.", ""); return; }
+    var set = indexCard.querySelector("#issSet").value;
+    var to  = OUTWARD[set] || "the project team";
+    var projects = {}; rows.forEach(function (r) { projects[r.project] = 1; });
+    var proj = Object.keys(projects).join(", ");
+    var num = nextNum("TR");
+    var list = rows.slice().sort(byNum).map(function (r) { return r.num + " rev " + r.rev; }).join(", ");
+    B.save(function (d) {
+      d.ca.push({ id: "t" + Date.now(), num: num, type: "TRANSMITTAL", subject: set + " — " + rows.length + " sheet" + (rows.length === 1 ? "" : "s") + " to " + to,
+        project: proj, ball: OUTWARD[set] ? (set === "Permit Set" ? "AHJ" : (set === "Record Set" ? "Owner" : "Contractor")) : "Architect",
+        status: "Open", days: 0, due: today(), spec: "—", from: "Architect", costImpact: false, timeImpact: false,
+        note: "Sheets: " + list + ". Written from the Sheet Sets room; the record of what was sent, to whom, when. Nothing has left the office." });
+    });
+    B.toast(num + " written to the CA Desk log — the liability paper trail, on the record before anything moves.", "ok");
+  }
+
+  /* ---------------------------------------------- drawing list → CSV file */
+  function downloadList() {
+    var d = B.db();
+    var lines = ["Project,Sheet,Title,Discipline,Revision,Last issued in,Date"];
+    d.sheets.slice().sort(function (a, b) { return (a.project + a.num) < (b.project + b.num) ? -1 : 1; }).forEach(function (s) {
+      lines.push([s.project, s.num, s.title, discName(s.disc), s.rev, s.issued, s.date].map(function (v) {
+        return '"' + String(v).replace(/"/g, '""') + '"';
+      }).join(","));
+    });
+    var a = document.createElement("a");
+    a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(lines.join("\n"));
+    a.download = "drawing-list.csv"; a.style.display = "none";
+    document.body.appendChild(a); try { a.click(); } catch (e) {} a.parentNode.removeChild(a);
+    B.toast("drawing-list.csv written to your machine — a local save, not a send.", "ok");
   }
 
   function issueSet() {
@@ -271,8 +351,104 @@
 
     renderStats();
     renderIndex();
+    renderStandard();
+    renderRevBlock();
     renderCompare();
   }
+
+  /* --------------------------------------------- the standard set, checked */
+  var stdCard = B.card(
+    '<h2>What a full set usually carries — and what this project is missing</h2>' +
+    '<div class="card-sub">The sheets a construction-document set typically holds, by discipline, under the standard numbering. ' +
+    'The checker reads the index for the project you pick and marks each one present or not yet drawn. ' +
+    'It says <i>usually present</i>, never <i>required</i> — what a set needs is the Architect of Record\'s call, project by project.</div>' +
+    '<div class="row" style="align-items:flex-end;margin-bottom:13px">' +
+      '<div style="min-width:260px"><label class="f">Project</label><select id="stdProj"></select></div>' +
+      '<div id="stdStat" class="muted small"></div>' +
+    '</div>' +
+    '<div id="stdOut"></div>' +
+    B.srcNote("Typical sheet content by discipline under US National CAD Standard numbering, as carried in this OS's engine (B.STANDARD_SET). A convention drawn from practice, not a code or contract requirement.")
+  );
+  c.appendChild(stdCard);
+
+  function renderStandard() {
+    var d = B.db(), sel = stdCard.querySelector("#stdProj");
+    var cur = sel.value;
+    sel.innerHTML = projOpts(cur);
+    var proj = sel.value;
+    var have = d.sheets.filter(function (s) { return s.project === proj; });
+    var present = 0, rows = "";
+    B.STANDARD_SET.forEach(function (st) {
+      var disc = st.num.charAt(0), tdig = st.num.charAt(2);
+      var hit = have.filter(function (s) { return s.num.charAt(0) === disc && typeDigit(s.num) === tdig; });
+      if (hit.length) present++;
+      rows += '<tr>' +
+        '<td class="k">' + B.esc(st.num) + '<div class="t-sub">' + B.esc(discName(st.disc)) + '</div></td>' +
+        '<td><div class="t-main">' + B.esc(st.title) + '</div><div class="t-sub">Usually first drawn in ' + B.esc(st.phase) + '</div></td>' +
+        '<td>' + (hit.length
+          ? B.tag("On the index", "good") + '<div class="t-sub">' + B.esc(hit.map(function (x) { return x.num; }).join(", ")) + '</div>'
+          : B.tag("Not yet drawn", "watch")) + '</td>' +
+      '</tr>';
+    });
+    stdCard.querySelector("#stdStat").textContent = present + " of " + B.STANDARD_SET.length + " typical sheet types on the index for " + proj + ".";
+    stdCard.querySelector("#stdOut").innerHTML =
+      '<table><thead><tr><th>Typical sheet</th><th>What it carries</th><th>This project</th></tr></thead><tbody>' + rows + '</tbody></table>';
+  }
+  stdCard.querySelector("#stdProj").addEventListener("change", renderStandard);
+
+  /* ------------------------------------------------- the revision block */
+  var revCard = B.card(
+    '<h2>The revision block, as it prints in the title block</h2>' +
+    '<div class="card-sub">Pick a sheet. The block below is drawn from that sheet\'s own issue history — the delta, the set, the date — ' +
+    'the way it sits in the lower right corner of the sheet. Issue the sheet again and a new row appears here.</div>' +
+    '<div class="row" style="align-items:flex-end;margin-bottom:13px">' +
+      '<div style="min-width:320px"><label class="f">Sheet</label><select id="revSheet"></select></div>' +
+    '</div>' +
+    '<div id="revOut" style="overflow:auto"></div>'
+  );
+  c.appendChild(revCard);
+
+  function renderRevBlock() {
+    var d = B.db(), sel = revCard.querySelector("#revSheet"), cur = sel.value;
+    sel.innerHTML = d.sheets.slice().sort(byNum).map(function (s) {
+      return '<option value="' + B.esc(s.id) + '"' + (s.id === cur ? " selected" : "") + '>' + B.esc(s.num + " · " + s.title + " · " + s.project) + '</option>';
+    }).join("");
+    var s = d.sheets.filter(function (x) { return x.id === sel.value; })[0];
+    if (!s) { revCard.querySelector("#revOut").innerHTML = '<div class="empty">No sheets on the index yet.</div>'; return; }
+    var h = hist(s).slice().reverse();
+    var W = 560, rowH = 26, top = 54, H = top + Math.max(1, h.length) * rowH + 88;
+    var ink = "#1d1a16", pale = "#8b8175", paper = "#fffdf8";
+    var g = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '" style="font-family:IBM Plex Mono,ui-monospace,monospace;display:block;max-width:100%">' +
+      '<rect x="0.5" y="0.5" width="' + (W - 1) + '" height="' + (H - 1) + '" fill="' + paper + '" stroke="' + ink + '"/>' +
+      '<text x="12" y="20" font-size="9" fill="' + pale + '">REVISIONS</text>' +
+      '<line x1="0" y1="28" x2="' + W + '" y2="28" stroke="' + ink + '" stroke-width="1"/>' +
+      '<text x="14" y="44" font-size="9" fill="' + pale + '">NO.</text>' +
+      '<text x="70" y="44" font-size="9" fill="' + pale + '">DESCRIPTION</text>' +
+      '<text x="440" y="44" font-size="9" fill="' + pale + '">DATE</text>' +
+      '<line x1="0" y1="' + top + '" x2="' + W + '" y2="' + top + '" stroke="' + ink + '" stroke-width="0.6"/>';
+    h.forEach(function (r, i) {
+      var y = top + i * rowH + 17, cy = y - 5;
+      g += '<polygon points="' + (24) + ',' + (cy - 8) + ' ' + (16) + ',' + (cy + 6) + ' ' + (32) + ',' + (cy + 6) + '" fill="none" stroke="' + ink + '" stroke-width="1"/>' +
+           '<text x="24" y="' + (cy + 4.5) + '" font-size="8" text-anchor="middle" fill="' + ink + '" font-weight="700">' + B.esc(String(r.rev)) + '</text>' +
+           '<text x="70" y="' + y + '" font-size="10.5" fill="' + ink + '">' + B.esc(r.set.toUpperCase()) + '</text>' +
+           '<text x="440" y="' + y + '" font-size="10.5" fill="' + ink + '">' + B.esc(r.date) + '</text>' +
+           '<line x1="0" y1="' + (top + (i + 1) * rowH) + '" x2="' + W + '" y2="' + (top + (i + 1) * rowH) + '" stroke="#ddd6c8" stroke-width="0.6"/>';
+    });
+    var by = top + Math.max(1, h.length) * rowH;
+    g += '<line x1="0" y1="' + by + '" x2="' + W + '" y2="' + by + '" stroke="' + ink + '" stroke-width="1"/>' +
+         '<text x="12" y="' + (by + 22) + '" font-size="9" fill="' + pale + '">SHEET TITLE</text>' +
+         '<text x="12" y="' + (by + 44) + '" font-size="13" fill="' + ink + '" font-weight="700">' + B.esc(s.title.toUpperCase()) + '</text>' +
+         '<line x1="400" y1="' + by + '" x2="400" y2="' + H + '" stroke="' + ink + '" stroke-width="1"/>' +
+         '<text x="412" y="' + (by + 22) + '" font-size="9" fill="' + pale + '">SHEET</text>' +
+         '<text x="412" y="' + (by + 58) + '" font-size="26" fill="' + ink + '" font-weight="700">' + B.esc(s.num) + '</text>' +
+         '<text x="12" y="' + (by + 70) + '" font-size="8.5" fill="' + pale + '">' + B.esc(s.project.toUpperCase()) + ' · ' + B.esc(discName(s.disc).toUpperCase()) + '</text>' +
+      '</svg>';
+    var note = (h.length <= 1)
+      ? '<div class="srcnote">Only the last recorded issue is on this sheet\'s history; revisions before this OS came online are on the drawings, not in the record. Every issue from here on lands in the block.</div>'
+      : '<div class="srcnote">' + h.length + ' issues on the record, newest at the top — the order the block reads in the corner of a sheet.</div>';
+    revCard.querySelector("#revOut").innerHTML = '<div style="padding:8px;background:#f3efe6;border-radius:10px;display:inline-block">' + g + '</div>' + note;
+  }
+  revCard.querySelector("#revSheet").addEventListener("change", renderRevBlock);
 
   /* --------------------------------------------------- set-versus-set diff */
   var setOptsA = B.ISSUE_SETS.map(function (k) {
@@ -374,6 +550,7 @@
     elx.addEventListener("change", renderDecode);
     elx.addEventListener("input", renderDecode);
   });
+  decCard.querySelector("#addSheetBtn").addEventListener("click", addSheet);
   cmpCard.querySelector("#cmpA").addEventListener("change", renderCompare);
   cmpCard.querySelector("#cmpB").addEventListener("change", renderCompare);
 
@@ -383,6 +560,8 @@
   renderStats();
   renderDecode();
   renderIndex();
+  renderStandard();
+  renderRevBlock();
   renderCompare();
 })();
 </script>

@@ -49,6 +49,7 @@
       matters:     clone(SEED.matters),
       bus: [],
       approvals:   clone(SEED.approvals),
+      substitutions: clone(SEED.substitutions || []),
       seq: 1
     };
   }
@@ -109,6 +110,33 @@
   ];
   /* Issue sets: addenda modify bid docs PRE-award; ASIs/bulletins are POST-award.
      Getting this distinction right is a tell that we know the business. */
+
+  /* The sheets a full construction-document set typically carries, by discipline,
+     under NCS numbering. A convention drawn from practice, not a rule — the checker
+     below only ever says "usually present", never "required". */
+  var STANDARD_SET = [
+    { num:"G-001", title:"Cover sheet & drawing index",        disc:"G", phase:"SD" },
+    { num:"G-002", title:"Code summary & life safety plan",    disc:"G", phase:"DD" },
+    { num:"C-101", title:"Site & grading plan",                disc:"C", phase:"DD" },
+    { num:"L-101", title:"Landscape plan",                     disc:"L", phase:"DD" },
+    { num:"A-001", title:"General notes, symbols & abbreviations", disc:"A", phase:"CD" },
+    { num:"A-100", title:"Architectural site plan",            disc:"A", phase:"SD" },
+    { num:"A-101", title:"Floor plans",                        disc:"A", phase:"SD" },
+    { num:"A-121", title:"Reflected ceiling plans",            disc:"A", phase:"DD" },
+    { num:"A-131", title:"Roof plan",                          disc:"A", phase:"DD" },
+    { num:"A-201", title:"Exterior elevations",                disc:"A", phase:"SD" },
+    { num:"A-301", title:"Building sections",                  disc:"A", phase:"DD" },
+    { num:"A-401", title:"Enlarged plans & interior elevations", disc:"A", phase:"CD" },
+    { num:"A-501", title:"Wall sections & details",            disc:"A", phase:"CD" },
+    { num:"A-601", title:"Door, window & finish schedules",    disc:"A", phase:"CD" },
+    { num:"S-101", title:"Foundation plan",                    disc:"S", phase:"DD" },
+    { num:"S-201", title:"Framing plans",                      disc:"S", phase:"DD" },
+    { num:"S-501", title:"Structural details",                 disc:"S", phase:"CD" },
+    { num:"M-101", title:"Mechanical plans",                   disc:"M", phase:"DD" },
+    { num:"P-101", title:"Plumbing plans",                     disc:"P", phase:"DD" },
+    { num:"E-101", title:"Electrical plans",                   disc:"E", phase:"DD" },
+    { num:"F-101", title:"Fire protection plans",              disc:"F", phase:"CD" }
+  ];
   var ISSUE_SETS = ["SD Set", "DD Set", "Permit Set", "Bid Set", "Addendum", "Construction Set", "Bulletin", "Record Set"];
 
   /* CSI MasterFormat — the 50 divisions (00–49). Showing the ones a building
@@ -124,6 +152,7 @@
     { n:"08", name:"Openings" },
     { n:"09", name:"Finishes" },
     { n:"10", name:"Specialties" },
+    { n:"12", name:"Furnishings" },
     { n:"14", name:"Conveying Equipment" },
     { n:"21", name:"Fire Suppression" },
     { n:"22", name:"Plumbing" },
@@ -131,6 +160,55 @@
     { n:"26", name:"Electrical" },
     { n:"31", name:"Earthwork" },
     { n:"32", name:"Exterior Improvements" }
+  ];
+
+  /* The sections a building project reaches for most often, on the MasterFormat
+     numbering, each with the submittals its Part 1 typically calls for. A starting
+     shelf for the project manual, not the whole catalogue — a firm adds its own. */
+  var MF_SECTIONS = [
+    { sec:"01 33 00", title:"Submittal Procedures",          div:"01", subs:["Submittal schedule"] },
+    { sec:"01 45 00", title:"Quality Control",               div:"01", subs:["Testing agency qualifications"] },
+    { sec:"01 78 00", title:"Closeout Submittals",           div:"01", subs:["O&M manuals","Warranties","Record documents"] },
+    { sec:"03 30 00", title:"Cast-in-Place Concrete",        div:"03", subs:["Mix designs","Reinforcing shop drawings","Test reports"] },
+    { sec:"04 20 00", title:"Unit Masonry",                  div:"04", subs:["Product data","Samples","Mock-up panel"] },
+    { sec:"04 21 13", title:"Brick Masonry",                 div:"04", subs:["Product data","Samples — blends","Mock-up panel"] },
+    { sec:"05 12 00", title:"Structural Steel Framing",      div:"05", subs:["Shop drawings","Mill certs","Welder certs"] },
+    { sec:"05 21 00", title:"Steel Joist Framing",           div:"05", subs:["Shop drawings","Certified calcs","Mill certs"] },
+    { sec:"05 50 00", title:"Metal Fabrications",            div:"05", subs:["Shop drawings","Finish samples"] },
+    { sec:"06 10 00", title:"Rough Carpentry",               div:"06", subs:["Product data","Treated wood certs"] },
+    { sec:"06 40 00", title:"Architectural Woodwork",        div:"06", subs:["Shop drawings","Finish samples","Hardware schedule"] },
+    { sec:"07 21 00", title:"Thermal Insulation",            div:"07", subs:["Product data"] },
+    { sec:"07 27 00", title:"Air Barriers",                  div:"07", subs:["Product data","Installer qualifications","Mock-up"] },
+    { sec:"07 42 13", title:"Metal Wall Panels",             div:"07", subs:["Shop drawings","Finish samples","Warranty"] },
+    { sec:"07 54 23", title:"TPO Roofing",                   div:"07", subs:["Product data","Warranty — 20 yr","Installer cert"] },
+    { sec:"07 62 00", title:"Sheet Metal Flashing & Trim",   div:"07", subs:["Shop drawings","Finish samples"] },
+    { sec:"07 92 00", title:"Joint Sealants",                div:"07", subs:["Product data","Color samples","Adhesion test reports"] },
+    { sec:"08 11 13", title:"Hollow Metal Doors & Frames",   div:"08", subs:["Shop drawings","Door schedule","Product data"] },
+    { sec:"08 14 16", title:"Flush Wood Doors",              div:"08", subs:["Shop drawings","Veneer samples","Warranty"] },
+    { sec:"08 41 13", title:"Aluminum Storefront",           div:"08", subs:["Shop drawings","Finish samples","Structural calcs"] },
+    { sec:"08 44 13", title:"Glazed Aluminum Curtain Walls", div:"08", subs:["Shop drawings","Structural calcs","Finish samples","Mock-up"] },
+    { sec:"08 71 00", title:"Door Hardware",                 div:"08", subs:["Hardware schedule","Keying schedule","Product data"] },
+    { sec:"08 80 00", title:"Glazing",                       div:"08", subs:["Product data","Samples","Warranty"] },
+    { sec:"09 21 16", title:"Gypsum Board Assemblies",       div:"09", subs:["Product data","Fire-rated assembly listings"] },
+    { sec:"09 30 13", title:"Ceramic Tiling",                div:"09", subs:["Product data","Samples","Grout samples"] },
+    { sec:"09 51 13", title:"Acoustical Panel Ceilings",     div:"09", subs:["Product data","Samples","Seismic details"] },
+    { sec:"09 65 13", title:"Resilient Base & Accessories",  div:"09", subs:["Product data","Samples"] },
+    { sec:"09 68 13", title:"Tile Carpeting",                div:"09", subs:["Product data","Samples","Maintenance data"] },
+    { sec:"09 91 23", title:"Interior Painting",             div:"09", subs:["Product data","Color samples","Drawdowns"] },
+    { sec:"10 14 00", title:"Signage",                       div:"10", subs:["Shop drawings","Samples","Message schedule"] },
+    { sec:"10 28 00", title:"Toilet & Bath Accessories",     div:"10", subs:["Product data","Schedule"] },
+    { sec:"10 44 00", title:"Fire Protection Specialties",   div:"10", subs:["Product data"] },
+    { sec:"12 24 00", title:"Window Shades",                 div:"12", subs:["Product data","Fabric samples"] },
+    { sec:"14 21 00", title:"Electric Traction Elevators",   div:"14", subs:["Shop drawings","Product data","Maintenance agreement"] },
+    { sec:"21 13 13", title:"Wet-Pipe Sprinkler Systems",    div:"21", subs:["Shop drawings","Hydraulic calcs","Product data"] },
+    { sec:"22 40 00", title:"Plumbing Fixtures",             div:"22", subs:["Product data","Fixture schedule"] },
+    { sec:"23 31 00", title:"HVAC Ducts & Casings",          div:"23", subs:["Shop drawings","Coordination drawings"] },
+    { sec:"23 81 26", title:"Split-System Air Conditioners", div:"23", subs:["Product data","Wiring diagrams","Warranty"] },
+    { sec:"26 05 33", title:"Raceways & Boxes",              div:"26", subs:["Product data"] },
+    { sec:"26 51 00", title:"Interior Lighting",             div:"26", subs:["Product data","Fixture schedule","Photometrics"] },
+    { sec:"31 20 00", title:"Earth Moving",                  div:"31", subs:["Compaction test reports"] },
+    { sec:"32 13 13", title:"Concrete Paving",               div:"32", subs:["Mix designs","Joint layout"] },
+    { sec:"32 92 00", title:"Turf & Grasses",                div:"32", subs:["Product data","Seed certifications"] }
   ];
 
   /* A/E financial benchmarks. EVERY number here is sourced and tagged — the
@@ -263,6 +341,21 @@
       { id:"sp7", sec:"23 31 00", title:"HVAC Ducts & Casings",     div:"23", project:"Hayden Medical Office",    status:"Draft",   submittals:["Shop drawings","Coordination drawings"] }
     ],
 
+    /* Substitution requests — CSI Form 13.1A before bid, 13.1B after award. A
+       substitution changes what gets built, so accepting one is the Architect of
+       Record's signature and stages at the Approval Desk. */
+    substitutions: [
+      { id:"sr1", num:"SR-003", project:"Riverside Branch Library", sec:"07 54 23", title:"TPO Roofing", form:"13.1B", stage:"Post-award",
+        specified:"60-mil TPO, mechanically attached", proposed:"60-mil TPO, fully adhered, alternate manufacturer", from:"Bennett Construction",
+        received:"2026-07-15", status:"Under review", note:"Same thickness; adhesive attachment changes the deck prep. Warranty term to be confirmed equal." },
+      { id:"sr2", num:"SR-002", project:"Fernan Elementary Addition", sec:"08 71 00", title:"Door Hardware", form:"13.1B", stage:"Post-award",
+        specified:"Mortise lockset, specified series", proposed:"Cylindrical lockset, alternate manufacturer", from:"Bennett Construction",
+        received:"2026-06-02", status:"Rejected", note:"Function and durability grade not equal to the specified series. Rejected on the record." },
+      { id:"sr3", num:"SR-001", project:"Riverside Branch Library", sec:"09 51 13", title:"Acoustical Panel Ceilings", form:"13.1A", stage:"Pre-bid",
+        specified:"Mineral fiber panel, specified NRC and CAC", proposed:"Alternate manufacturer, published NRC and CAC submitted", from:"Planholder",
+        received:"2026-05-20", status:"Accepted", note:"Accepted by addendum before bid — every planholder saw the same change." }
+    ],
+
     /* Consultants under C401, plus the AHJ. The coordination room. */
     consultants: [
       { id:"k1", name:"Summit Structural", disc:"Structural", contact:"R. Alvarez", agreement:"C401", fee:64000, paid:41000, projects:["Riverside Branch Library","Fernan Elementary Addition"], nextDue:"Foundation package — 2026-08-04", status:"Current" },
@@ -320,15 +413,15 @@
         state:"Pending", why:"Booked for a human to take; the org sets it, a person shows up." }
     ],
 
-    /* HR — AI seats and HUMAN seats side by side, plus licensure tracking
+    /* HR — agent seats and HUMAN seats side by side, plus licensure tracking
        (the thing an architecture firm actually gets audited on). */
     team: [
       { id:"h1", name:"Dana Whitfield", role:"Principal / Architect of Record", type:"Human", status:"Active", dept:"Studio", license:"ID AR-4821 · exp 2027-12-31", ce:"18 / 24 HSW hours", note:"Seals the work. The bottleneck seat in every small firm." },
       { id:"h2", name:"Marcus Lang", role:"Project Architect", type:"Human", status:"Active", dept:"Studio", license:"ID AR-6110 · exp 2026-12-31", ce:"9 / 24 HSW hours", note:"⚠ License renews in 5 months, CE is behind pace." },
       { id:"h3", name:"Theo Barnes", role:"Designer (ARE candidate)", type:"Human", status:"Active", dept:"Studio", license:"AXP — 2,940 / 3,740 hrs", ce:"—", note:"Logging AXP hours. 4 of 6 ARE divisions passed." },
-      { id:"h4", name:"Nora", role:"Chief Operating Officer", type:"AI · DeepSeek", status:"Active", dept:"Command", license:"—", ce:"—", note:"The interface machine to the principal." },
-      { id:"h5", name:"Codex", role:"Head of Standards & Specs", type:"AI · DeepSeek", status:"Active", dept:"Standards", license:"—", ce:"—", note:"Owns the spec, the standard details, the code read." },
-      { id:"h6", name:"Wescott", role:"Head of Construction Administration", type:"AI · DeepSeek", status:"Active", dept:"CA", license:"—", ce:"—", note:"Owns the field. Nothing sits in the log unanswered." },
+      { id:"h4", name:"Nora", role:"Chief Operating Officer", type:"Agent · DeepSeek", status:"Active", dept:"Command", license:"—", ce:"—", note:"The interface machine to the principal." },
+      { id:"h5", name:"Codex", role:"Head of Standards & Specs", type:"Agent · DeepSeek", status:"Active", dept:"Standards", license:"—", ce:"—", note:"Owns the spec, the standard details, the code read." },
+      { id:"h6", name:"Wescott", role:"Head of Construction Administration", type:"Agent · DeepSeek", status:"Active", dept:"CA", license:"—", ce:"—", note:"Owns the field. Nothing sits in the log unanswered." },
       { id:"h7", name:"Ines Okafor", role:"Job Captain", type:"Human", status:"Onboarding", dept:"Studio", license:"—", ce:"—", note:"Started this month. W-4 on file, equipment issued." }
     ],
 
@@ -390,7 +483,7 @@
     it:          { label:"IT · System Health",      mo:60,  build:400,
                    why:"CLEAR / WATCH / INTERVENE on the model store, plot queue, portal and backups." },
     org:         { label:"Agent Org · Bus",         mo:145, build:1200,
-                   why:"The ten AI department chains, the event bus, and the confidence gates. This is the engine." },
+                   why:"The ten department chains, the event bus, and the confidence gates. This is the engine." },
     specs:       { label:"Specs · MasterFormat",    mo:120, build:900,
                    why:"50-division sections whose Part 1 requirements auto-build the submittal log." },
     law:         { label:"Law · Contracts",         mo:110, build:800,
@@ -1441,7 +1534,7 @@
     db:db, save:save, resetFloor:resetFloor, fresh:fresh, SEED:SEED,
     /* industry canon */
     PHASES:PHASES, CA_TYPES:CA_TYPES, CA_STATUS:CA_STATUS, BALL:BALL,
-    SUBMITTAL_ACTIONS:SUBMITTAL_ACTIONS, DISCIPLINES:DISCIPLINES, SHEET_TYPES:SHEET_TYPES,
+    SUBMITTAL_ACTIONS:SUBMITTAL_ACTIONS, DISCIPLINES:DISCIPLINES, SHEET_TYPES:SHEET_TYPES, STANDARD_SET:STANDARD_SET, MF_SECTIONS:MF_SECTIONS,
     ISSUE_SETS:ISSUE_SETS, MF_DIVISIONS:MF_DIVISIONS, BENCH:BENCH, PAIN:PAIN, REPLACES:REPLACES,
     /* tiers, the price book, the configurator + org */
     TIERS:TIERS, ROOMS:ROOMS, DEPTS:DEPTS, SEATS:SEATS, BRAIN:BRAIN,
@@ -1555,7 +1648,7 @@
       q=(q||'').toLowerCase();
       function m(){for(var i=0;i<arguments.length;i++){if(q.indexOf(arguments[i])>=0)return true;}return false;}
       if(m('agent org','organization','who runs','who is','the seats','how the org','the org','deliberat','confidence bar','ghost mode','deepseek','ai org','how does the ai','the departments do'))
-        return 'This OS runs on a '+nd+'-department AI agent organization, and I’m '+coo.name+', the COO. You ask; I route it to exactly one department, let its five-seat chain — a head, an admin exec, a pacemaker, and two opposing lenses that never confer — work it under its own confidence bar, then bring you one clean answer with its reasons. Money and compliance calls hold a higher 85% bar and come to you if they aren’t certain. Nothing here acts on its own — that’s Ghost Mode; anything that would send, spend or sign is staged on the Approval Desk. The real engine runs server-side on DeepSeek; this showroom is a faithful local stand-in.';
+        return 'This OS runs on a '+nd+'-department agent organization, and I’m '+coo.name+', the COO. You ask; I route it to exactly one department, let its five-seat chain — a head, an admin exec, a pacemaker, and two opposing lenses that never confer — work it under its own confidence bar, then bring you one clean answer with its reasons. Money and compliance calls hold a higher 85% bar and come to you if they aren’t certain. Nothing here acts on its own — that’s Ghost Mode; anything that would send, spend or sign is staged on the Approval Desk. The real engine runs server-side on DeepSeek; this showroom is a faithful local stand-in.';
       if(m('price','pricing','cost','how much','what do you charge','tier','plan','package','per month','/mo','subscription','quote','expensive')){
         var ts=Object.keys(ENG.TIERS).map(function(k){return ENG.TIERS[k];}).sort(function(a,b){return (a.mo||0)-(b.mo||0);});
         var lines=ts.map(function(t){return '• '+t.name+' — '+money(t.mo)+'/mo licensed'+(t.desc?': '+t.desc:'');}).join('\n');
@@ -1566,9 +1659,9 @@
         return 'It’s fully white-label: your brand, your colors, your departments, and your own data seeded in. Start from a package, then add or take off any department — like '+rs+' — so the build fits your business instead of the other way around. Tap the tier chip at the top to switch departments on and off and watch the price move in real time.';
       }
       if(m('what is this','what does it do','what can you do','what can it do','how does it work','is this real','is it real','showroom','slideshow','a demo','real app'))
-        return 'This is the real OS, running right here in your browser — not a slideshow. Everything you type stays in this tab and resets when you leave. It’s your whole operation as one system, with a '+nd+'-department AI org underneath it. In the live product it runs on a server with your real data; nothing in this showroom sends, spends or signs — anything that would is staged on the Approval Desk for you. Ask me about the org, pricing, or how to customize it — or ask an operational question and I’ll route it to the right department.';
+        return 'This is the real OS, running right here in your browser — not a slideshow. Everything you type stays in this tab and resets when you leave. It’s your whole operation as one system, with a '+nd+'-department agent org underneath it. In the live product it runs on a server with your real data; nothing in this showroom sends, spends or signs — anything that would is staged on the Approval Desk for you. Ask me about the org, pricing, or how to customize it — or ask an operational question and I’ll route it to the right department.';
       if(m('who are you','your name','what are you'))
-        return 'I’m '+coo.name+' — the Chief Operating Officer of this OS. I’m the one seat between you and a '+nd+'-department AI org: I take your question, route it, and bring back a clean answer. Ask me how the system works, what it costs, how to customize it, or anything operational.';
+        return 'I’m '+coo.name+' — the Chief Operating Officer of this OS. I’m the one seat between you and a '+nd+'-department agent org: I take your question, route it, and bring back a clean answer. Ask me how the system works, what it costs, how to customize it, or anything operational.';
       return null;
     }
 

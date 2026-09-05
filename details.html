@@ -349,6 +349,226 @@
     return svgWrap(W, stampY + 60, uid, g);
   }
 
+  /* ================================== DETAIL 4 — parapet & roof edge */
+  function drawParapet(s, ppi, uid, scaleLbl) {
+    var x0 = 60, y0 = 40;
+    var wallT = s.stud + s.sh + s.ci + s.gb;           /* framed wall, gypsum inside */
+    var roofY = y0 + s.ph * ppi + 30;                   /* top of roof membrane at the wall */
+    var wallX = x0 + 220;                               /* exterior face of sheathing/CI */
+    var g = "";
+    /* wall: exterior at right. layers left→right: gyp, stud, sheathing, ci, cladding */
+    var lx = wallX - wallT * ppi;
+    var layers = [
+      { n: "Gypsum board", t: s.gb, fill: "#efeae0" },
+      { n: "Stud framing " + s.studLabel, t: s.stud, fill: "url(#" + uid + "-wood)" },
+      { n: "Sheathing", t: s.sh, fill: "#e6dcc6" },
+      { n: "Continuous insulation", t: s.ci, fill: "url(#" + uid + "-ins)" }
+    ].filter(function (l) { return l.t > 0; });
+    var wallTop = y0 + 10, wallBot = roofY + 90 * 1;
+    layers.forEach(function (l) { g += rc(lx, wallTop, l.t * ppi, wallBot - wallTop, l.fill, { w: 1 }); l._x = lx; lx += l.t * ppi; });
+    var extX = lx;                                      /* exterior face */
+    g += rc(extX, wallTop, s.clad * ppi, wallBot - wallTop, "#d9cdb5", { w: 1 });
+    var cladR = extX + s.clad * ppi;
+    /* roof: deck, insulation, membrane — running in from the left to the wall */
+    var deckTop = roofY + s.rins * ppi + 0;             /* insulation sits on deck */
+    var deckY = deckTop, deckH = s.deck * ppi;
+    g += rc(x0, deckY, wallX - wallT * ppi - x0, deckH, "#e6dcc6", { w: 1 });   /* deck to inside face of wall */
+    g += rc(x0, roofY, wallX - wallT * ppi - x0, s.rins * ppi, "url(#" + uid + "-ins)", { w: 0.8, stroke: "#c9954a" });
+    /* cant strip */
+    var cx = wallX - wallT * ppi, cant = s.cant * ppi;
+    g += '<polygon points="' + (cx - cant) + ',' + roofY + ' ' + cx + ',' + roofY + ' ' + cx + ',' + (roofY - cant) + '" fill="url(#' + uid + '-wood)" stroke="#1d1a16" stroke-width="1"/>';
+    /* membrane: across the roof, up the cant, up the parapet to under the coping */
+    var memb = '<path d="M ' + x0 + ' ' + roofY + ' L ' + (cx - cant) + ' ' + roofY + ' L ' + cx + ' ' + (roofY - cant) +
+      ' L ' + cx + ' ' + (wallTop + 4) + '" fill="none" stroke="#1d1a16" stroke-width="2.4"/>';
+    g += memb;
+    /* base flashing height line */
+    var bfY = roofY - s.bf * ppi;
+    g += ln(cx - 6, bfY, cx + 6, bfY, { w: 0.9 });
+    /* coping: cap over the whole parapet width with drips both sides */
+    var copL = cx - 0.75 * ppi, copR = cladR + 0.75 * ppi, copY = wallTop - 0.5 * ppi;
+    g += '<path d="M ' + copL + ' ' + (copY + 0.75 * ppi) + ' L ' + copL + ' ' + copY + ' L ' + copR + ' ' + copY + ' L ' + copR + ' ' + (copY + 0.75 * ppi) +
+      '" fill="none" stroke="#4a443b" stroke-width="2.2"/>';
+    g += ln(copL, copY, copR, copY, { stroke: "#4a443b", w: 2.2 });
+    g += rc(cx, wallTop, cladR - cx, 0.5 * ppi, "url(#" + uid + "-wood)", { w: 1 });   /* wood nailer / blocking */
+    /* dimensions */
+    g += dimV(roofY, wallTop, x0 + 20, "Parapet " + FTIN(s.ph));
+    g += dimV(roofY, bfY, x0 + 70, "Flashing " + IN(s.bf));
+    g += dimH(cx, cladR, wallBot + 22, "Wall " + IN(wallT + s.clad));
+    g += dimH(copL, copR, copY - 14, "Coping " + IN((copR - copL) / ppi));
+    g += tx(x0, roofY - 8, "ROOF", { size: 9, fill: "#8b8175" });
+    g += tx(cladR + 8, wallBot - 6, "EXTERIOR", { size: 9, fill: "#8b8175" });
+    /* keynotes */
+    var keyX = cladR + 70, keyY = y0 + 10;
+    var notes = [
+      "1  Metal coping over a continuous cleat, drip both sides. Width " + IN((copR - copL) / ppi) + ".",
+      "2  Wood blocking at the top of the parapet framing.",
+      "3  Membrane up the parapet to under the coping; base flashing " + IN(s.bf) + " above the roof.",
+      "4  Cant strip " + IN(s.cant) + " at the roof-to-wall transition.",
+      "5  Roof insulation " + IN(s.rins) + " on " + IN(s.deck) + " deck. Slope and crickets not drawn.",
+      "6  Parapet framing " + s.studLabel + " with " + IN(s.sh) + " sheathing" + (s.ci ? " and " + IN(s.ci) + " continuous insulation" : "") + "."
+    ];
+    g += notes.map(function (t, i) { return tx(keyX, keyY + i * 16, t, { size: 9.5, fill: "#4a443b" }); }).join("");
+    g += bubble(copL + 20, copY - 30, 1) + bubble(cx + (cladR - cx) / 2, wallTop + 0.25 * ppi + 24, 2) +
+         bubble(cx - 18, (roofY + wallTop) / 2, 3) + bubble(cx - cant - 14, roofY - 14, 4) +
+         bubble(x0 + 60, roofY + (s.rins * ppi) / 2, 5) + bubble(cx + (wallT * ppi) / 2, roofY + 50, 6);
+    var W = keyX + 470, kY = wallBot + 50;
+    g += keynoteBlock(40, kY, [
+      "Vertical section at the roof edge, exterior at the right. Parapet, flashing height and insulation are the inputs above.",
+      "Wind uplift, blocking treatment, expansion joints and membrane terminations are the roofing manufacturer's and the engineer's."
+    ]);
+    var stampY = kY + 34;
+    g += stampBlock(40, stampY, W - 80, scaleLbl, "Illustrative geometry generated from the inputs above. No warranty, wind or fire performance is asserted.");
+    return svgWrap(W, stampY + 60, uid, g);
+  }
+
+  /* ===================== DETAIL 5 — window head & sill at masonry veneer */
+  function drawWindow(s, ppi, uid, scaleLbl) {
+    var x0 = 40, y0 = 40;
+    var extX = x0 + 60;                                          /* exterior face of veneer */
+    var veneerR = extX + s.ven * ppi, airR = veneerR + s.air * ppi, ciR = airR + s.ci * ppi, shR = ciR + s.sh * ppi;
+    var studR = shR + s.stud * ppi, gbR = studR + s.gb * ppi;
+    var headY = y0 + 90, sillY = headY + s.oh * ppi;             /* rough opening top and bottom */
+    var top = y0 + 10, bot = sillY + 110;
+    var g = "";
+    function wallBand(y1, y2) {
+      var h = y2 - y1;
+      g += rc(extX, y1, s.ven * ppi, h, "#c98d6a", { w: 1 });
+      for (var yy = y1 + 8; yy < y2 - 2; yy += 2.67 * ppi) g += ln(extX, yy, veneerR, yy, { w: 0.5, stroke: "#8b5a3c" });
+      g += rc(veneerR, y1, s.air * ppi, h, "#fffdf8", { w: 0.8 });
+      if (s.ci) g += rc(airR, y1, s.ci * ppi, h, "url(#" + uid + "-ins)", { w: 0.8, stroke: "#c9954a" });
+      g += rc(ciR, y1, s.sh * ppi, h, "#e6dcc6", { w: 1 });
+      g += rc(shR, y1, s.stud * ppi, h, "#fffdf8", { w: 1 });
+      g += rc(studR, y1, s.gb * ppi, h, "#efeae0", { w: 1 });
+      g += ln(ciR, y1, ciR, y2, { stroke: "#a8762c", w: 2 });
+    }
+    wallBand(top, headY);
+    wallBand(sillY, bot);
+    /* head: steel loose lintel (angle) under the veneer, header in the framing */
+    var legT = 0.3125 * ppi, legL = s.lintel * ppi;
+    g += rc(extX - 0.5 * ppi, headY, s.ven * ppi + 0.5 * ppi, legT, "#5c6167", { w: 0.8 });
+    g += rc(veneerR - legT, headY - legL, legT, legL, "#5c6167", { w: 0.8 });
+    g += rc(shR, headY - 1.5 * ppi - 5.5 * ppi, s.stud * ppi, 5.5 * ppi, "url(#" + uid + "-wood)", { w: 1 });   /* header */
+    /* head flashing with drip + weeps */
+    g += '<path d="M ' + (extX - 0.25 * ppi) + ' ' + (headY + legT + 2) + ' L ' + airR + ' ' + (headY + legT + 2) + ' L ' + airR + ' ' + (headY - 6 * ppi) + '" fill="none" stroke="#a8762c" stroke-width="2"/>';
+    g += '<circle cx="' + (extX + (s.ven * ppi) / 2) + '" cy="' + (headY + legT + 9) + '" r="2.4" fill="none" stroke="#1d1a16" stroke-width="0.8"/>';
+    /* window unit in the opening: frame at the head and the sill, glass between */
+    var fx = airR + 0.5 * ppi, fw = 3.25 * ppi, fd = 1.75 * ppi;
+    g += rc(fx, headY + 0.5 * ppi, fw, fd, "#8d979e", { w: 1 });
+    g += rc(fx, sillY - 0.5 * ppi - fd, fw, fd, "#8d979e", { w: 1 });
+    g += ln(fx + fw / 2, headY + 0.5 * ppi + fd, fx + fw / 2, sillY - 0.5 * ppi - fd, { stroke: "#5b7f96", w: 1.6 });
+    g += ln(fx + fw / 2 + 4, headY + 0.5 * ppi + fd, fx + fw / 2 + 4, sillY - 0.5 * ppi - fd, { stroke: "#5b7f96", w: 1.6 });
+    /* sill: sloped brick rowlock / precast sill with drip, flashing beneath, weeps */
+    var sillH = 2.67 * ppi, slope = s.slope * ppi;
+    g += '<polygon points="' + (extX - 0.75 * ppi) + ',' + (sillY + slope) + ' ' + airR + ',' + sillY + ' ' + airR + ',' + (sillY + sillH) + ' ' + (extX - 0.75 * ppi) + ',' + (sillY + sillH + slope) +
+         '" fill="#b98b6c" stroke="#1d1a16" stroke-width="1"/>';
+    g += '<path d="M ' + (extX - 0.5 * ppi) + ' ' + (sillY + sillH + slope + 2) + ' L ' + airR + ' ' + (sillY + sillH + 2) + ' L ' + airR + ' ' + (sillY - 4 * ppi) + '" fill="none" stroke="#a8762c" stroke-width="2"/>';
+    g += '<circle cx="' + (extX + (s.ven * ppi) / 2) + '" cy="' + (sillY + sillH + slope / 2 + 9) + '" r="2.4" fill="none" stroke="#1d1a16" stroke-width="0.8"/>';
+    /* dimensions */
+    g += dimV(headY, sillY, x0 + 20, "R.O. " + FTIN(s.oh));
+    g += dimH(extX, veneerR, bot + 20, IN(s.ven));
+    g += dimH(veneerR, airR, bot + 37, IN(s.air));
+    g += dimH(shR, studR, bot + 20, IN(s.stud));
+    g += dimH(extX, gbR, bot + 58, "Wall " + IN((gbR - extX) / ppi));
+    g += tx(extX, top - 12, "EXTERIOR", { size: 9, fill: "#8b8175", anchor: "end" });
+    g += tx(gbR, top - 12, "INTERIOR", { size: 9, fill: "#8b8175" });
+    var keyX = gbR + 80, keyY = y0 + 10;
+    var notes = [
+      "1  Brick veneer " + IN(s.ven) + ", " + IN(s.air) + " air space" + (s.ci ? ", " + IN(s.ci) + " continuous insulation" : "") + ".",
+      "2  Loose steel lintel, " + IN(s.lintel) + " vertical leg, bearing on the jambs. Sized by the engineer.",
+      "3  Through-wall flashing at the head, drip and end dams; weeps at " + IN(s.weep) + " o.c.",
+      "4  Header in the framing, drawn 5 1/2\" deep, illustrative. Rough opening " + FTIN(s.oh) + ".",
+      "5  Sloped sill with a drip; flashing beneath, turned up " + IN(4) + " behind; weeps above it.",
+      "6  Window unit shown generically, " + IN(1.75) + " frame set " + IN(0.5) + " in from the sheathing."
+    ];
+    g += notes.map(function (t, i) { return tx(keyX, keyY + i * 16, t, { size: 9.5, fill: "#4a443b" }); }).join("");
+    g += bubble(extX + (s.ven * ppi) / 2, top + 30, 1) + bubble(veneerR + 14, headY - legL / 2, 2) + bubble(airR + 16, headY + 16, 3) +
+         bubble(shR + (s.stud * ppi) / 2, headY - 3.5 * ppi, 4) + bubble(extX - 10, sillY + sillH / 2 + slope, 5) + bubble(fx + fw / 2 + 24, (headY + sillY) / 2, 6);
+    var W = keyX + 470, kY = bot + 82;
+    g += keynoteBlock(40, kY, [
+      "Vertical section through a punched window in a brick-veneer stud wall, exterior at the left. Head above, sill below.",
+      "Flashing laps, end dams, sealant and backer rod are lines and notes here — the manufacturer's details govern the installation."
+    ]);
+    var stampY = kY + 34;
+    g += stampBlock(40, stampY, W - 80, scaleLbl, "Illustrative geometry generated from the inputs above. No structural, thermal or water-penetration performance is asserted.");
+    return svgWrap(W, stampY + 60, uid, g);
+  }
+
+  /* ============================== DETAIL 6 — door frame in a stud partition */
+  function drawDoor(s, ppi, uid, scaleLbl) {
+    var x0 = 60, y0 = 40;
+    var gypT = s.layers * s.gb, wallT = s.stud + 2 * gypT;
+    var hpx = wallT * ppi, yW = y0 + 40;
+    var faceW = 2 * ppi, faceT = 0.75 * ppi, jambD = 0.75 * ppi, stopD = 0.625 * ppi;
+    var frameOpen = (s.dw + 0.25) * ppi;                  /* between the jamb rabbets */
+    var openL = x0 + 170, openR = openL + frameOpen + 2 * jambD;
+    var endX = openR + 170;
+    var g = "";
+    function wallRun(x1, x2) {
+      var w = x2 - x1;
+      g += rc(x1, yW, w, gypT * ppi, "#efeae0", { w: 1 });
+      g += rc(x1, yW + gypT * ppi, w, s.stud * ppi, "#fffdf8", { w: 1 });
+      g += rc(x1, yW + gypT * ppi + s.stud * ppi, w, gypT * ppi, "#efeae0", { w: 1 });
+      for (var k = 1; k < s.layers; k++) {
+        g += ln(x1, yW + k * s.gb * ppi, x2, yW + k * s.gb * ppi, { w: 0.6, stroke: "#8b8175" });
+        g += ln(x1, yW + hpx - k * s.gb * ppi, x2, yW + hpx - k * s.gb * ppi, { w: 0.6, stroke: "#8b8175" });
+      }
+    }
+    wallRun(x0, openL);
+    wallRun(openR, endX);
+    /* double jamb studs each side, inside the cavity, tight to the frame */
+    var studW = Math.min(1.5, s.stud) * ppi;
+    [openL - 2 * studW, openR].forEach(function (sx) {
+      for (var i = 0; i < 2; i++) g += rc(sx + i * studW, yW + gypT * ppi, studW, s.stud * ppi, "url(#" + uid + "-wood)", { w: 1 });
+    });
+    /* hollow metal frames: jamb return the full throat, faces both sides, stop on the pull side of the rabbet */
+    function frame(x, dir) {          /* x = the rabbet (inner) face; dir -1 = left frame, +1 = right frame */
+      var jx = dir < 0 ? x - jambD : x;
+      g += rc(jx, yW - faceT, jambD, hpx + 2 * faceT, "#5c6167", { w: 0.8 });
+      var fx = dir < 0 ? x - jambD - faceW : x + jambD;
+      g += rc(fx, yW - faceT, faceW, faceT, "#5c6167", { w: 0.8 });
+      g += rc(fx, yW + hpx, faceW, faceT, "#5c6167", { w: 0.8 });
+      var sx = dir < 0 ? x : x - stopD;
+      g += rc(sx, yW + hpx / 2 - s.dt * ppi / 2 - 0.5 * ppi, stopD, 0.5 * ppi, "#5c6167", { w: 0.8 });
+    }
+    frame(openL + jambD, -1);
+    frame(openR - jambD, 1);
+    var rabL = openL + jambD, rabR = openR - jambD;
+    /* the leaf: closed position ghosted between the stops; open at 90 degrees toward the pull side; swing arc */
+    var leafY = yW + hpx / 2, doorT = s.dt * ppi, doorW = s.dw * ppi;
+    var hingeX = rabL + 0.125 * ppi;
+    g += rc(hingeX, leafY - doorT / 2, doorW, doorT, "none", { stroke: "#8b8175", w: 0.7 });
+    g += rc(hingeX - doorT / 2, leafY, doorT, doorW, "#d9cdb5", { w: 1 });
+    g += '<path d="M ' + (hingeX + doorW) + ' ' + leafY + ' A ' + doorW + ' ' + doorW + ' 0 0 1 ' + hingeX + ' ' + (leafY + doorW) +
+         '" fill="none" stroke="#8b8175" stroke-width="0.8" stroke-dasharray="4 3"/>';
+    g += '<circle cx="' + hingeX + '" cy="' + leafY + '" r="2.2" fill="#1d1a16"/>';
+    var clearW = (rabR - stopD) - (hingeX + doorT / 2);   /* leaf edge at 90 degrees to the far stop */
+    /* dimensions */
+    g += dimH(hingeX + doorT / 2, rabR - stopD, yW - faceT - 22, "Clear at 90° " + FTIN(clearW / ppi));
+    g += dimH(rabL, rabR, yW - faceT - 42, "Frame opening " + FTIN((rabR - rabL) / ppi));
+    g += dimV(yW, yW + hpx, x0 - 18, "Wall " + IN(wallT));
+    g += dimV(leafY, leafY + doorW, hingeX - doorT / 2 - 28, "Leaf " + FTIN(s.dw));
+    g += tx(x0, yW - faceT - 6, "PUSH SIDE", { size: 9, fill: "#8b8175" });
+    g += tx(x0, yW + hpx + faceT + 14, "PULL SIDE", { size: 9, fill: "#8b8175" });
+    var keyX = endX + 40, keyY = y0 + 10;
+    var notes = [
+      "1  Hollow metal frame, " + IN(2) + " face, throat " + IN(wallT) + ": " + (s.layers === 1 ? "one layer" : "two layers") + " of " + IN(s.gb) + " gypsum each side.",
+      "2  Partition studs " + s.studLabel + "; double jamb studs each side of the opening.",
+      "3  Leaf " + FTIN(s.dw) + " x " + IN(s.dt) + ", open at ninety degrees toward the pull side; swing arc dashed.",
+      "4  Clear " + FTIN(clearW / ppi) + " at ninety degrees, leaf edge to the far stop. Hardware and rating per the door schedule."
+    ];
+    g += notes.map(function (t, i) { return tx(keyX, keyY + i * 16, t, { size: 9.5, fill: "#4a443b" }); }).join("");
+    g += bubble(openL - jambD - faceW / 2, yW + hpx + faceT + 16, 1) + bubble(openL - studW, yW + gypT * ppi + s.stud * ppi / 2, 2) +
+         bubble(hingeX + 26, leafY + doorW / 2, 3) + bubble((rabL + rabR) / 2, leafY + 18, 4);
+    var W = keyX + 520, kY = Math.max(leafY + doorW + 40, keyY + notes.length * 16 + 20);
+    g += keynoteBlock(40, kY, [
+      "Plan section through an interior door in a stud partition, cut at the frame. The frame throat reads the partition it wraps.",
+      "Fire-rated assemblies, hardware, anchors and frame grouting are specified in Division 08, not drawn here."
+    ]);
+    var stampY = kY + 34;
+    g += stampBlock(40, stampY, W - 80, scaleLbl, "Illustrative geometry generated from the inputs above. No fire, acoustic or accessibility compliance is asserted.");
+    return svgWrap(W, stampY + 60, uid, g);
+  }
+
   /* ==================================================== the studio machinery */
   function buildDetail(cfg) {
     var state = {};
@@ -462,7 +682,7 @@
   /* ------------------------------------------------------------- page head */
   c.appendChild(B.page(
     "Detail Studio",
-    "Parametric details, drawn to scale from the numbers you give them. Change a stud depth, a footing width, a riser height — " +
+    "Six parametric details, drawn to scale from the numbers you give them. Change a stud depth, a footing width, a riser height, a parapet, a lintel leg, a door width — " +
     "the geometry redraws and every dimension string on the sheet follows it. Export the SVG and it goes into the set with its stamp intact.",
     '<button class="btn brass sm" id="jumpFirst">Draw a wall section</button>'
   ));
@@ -560,6 +780,77 @@
       return n + " risers at " + IN(s.rise) + " = " + FTIN(n * s.rise) + " rise · " +
              (n - 1) + " treads at " + IN(s.tread) + " = " + FTIN((n - 1) * s.tread) + " run.";
     }
+  });
+
+  /* ------------------------------------------------------------ detail four */
+  buildDetail({
+    id: "parapet", file: "buttress-parapet-roof-edge", scale: 1,
+    title: "Parapet & roof edge — vertical section",
+    sub: "The roof meets the wall and keeps going up. Parapet height, base flashing height, roof insulation and the framing are inputs; " +
+         "the coping width and the wall dimension read the assembly you set.",
+    fields: [
+      { k: "studDepth", type: "select", label: "Parapet framing", value: 5.5,
+        options: [{ v: 3.5, label: "2x4 — 3 1/2\" deep" }, { v: 5.5, label: "2x6 — 5 1/2\" deep" }, { v: 7.25, label: "2x8 — 7 1/4\" deep" }] },
+      { k: "ph",   type: "range", label: "Parapet height above roof", value: 30, min: 12, max: 48, step: 2, fmt: FTIN },
+      { k: "bf",   type: "range", label: "Base flashing height", value: 8, min: 6, max: 14, step: 1, fmt: IN },
+      { k: "rins", type: "range", label: "Roof insulation", value: 4, min: 1, max: 8, step: 0.5, fmt: IN },
+      { k: "deck", type: "select", label: "Roof deck", value: 0.75,
+        options: [{ v: 0.75, label: "3/4\" panel deck" }, { v: 1.5, label: "1 1/2\" metal deck" }] },
+      { k: "cant", type: "range", label: "Cant strip", value: 4, min: 0, max: 6, step: 0.5, fmt: IN },
+      { k: "sh",   type: "select", label: "Sheathing", value: 0.5,
+        options: [{ v: 0.4375, label: "7/16\" panel" }, { v: 0.5, label: "1/2\" panel" }, { v: 0.625, label: "5/8\" panel" }] },
+      { k: "ci",   type: "range", label: "Continuous insulation", value: 1, min: 0, max: 3, step: 0.25, fmt: IN },
+      { k: "clad", type: "range", label: "Cladding thickness", value: 0.75, min: 0.25, max: 2, step: 0.125, fmt: IN },
+      { k: "gb",   type: "select", label: "Gypsum board", value: 0.625, options: [{ v: 0.5, label: "1/2\"" }, { v: 0.625, label: "5/8\"" }] }
+    ],
+    derive: function (s) { s.stud = s.studDepth; s.studLabel = s.studDepth === 3.5 ? "2x4" : (s.studDepth === 5.5 ? "2x6" : "2x8"); },
+    draw: drawParapet,
+    readout: function (s) { return "Parapet " + FTIN(s.ph) + " above the roof · base flashing " + IN(s.bf) + " · wall " + IN(s.stud + s.sh + s.ci + s.gb + s.clad) + " overall."; }
+  });
+
+  /* ------------------------------------------------------------ detail five */
+  buildDetail({
+    id: "window", file: "buttress-window-head-sill-veneer", scale: 0.75,
+    title: "Window head & sill at brick veneer — vertical section",
+    sub: "A punched window in a brick-veneer stud wall. The head carries the loose lintel and the through-wall flashing; the sill slopes " +
+         "and drips. Veneer, air space, insulation and the rough opening are the inputs.",
+    fields: [
+      { k: "ven",   type: "select", label: "Brick veneer", value: 3.625,
+        options: [{ v: 3.625, label: "Modular — 3 5/8\"" }, { v: 2.75, label: "Thin — 2 3/4\"" }] },
+      { k: "air",   type: "range", label: "Air space", value: 2, min: 1, max: 3, step: 0.25, fmt: IN },
+      { k: "ci",    type: "range", label: "Continuous insulation", value: 1.5, min: 0, max: 3, step: 0.25, fmt: IN },
+      { k: "sh",    type: "select", label: "Sheathing", value: 0.5, options: [{ v: 0.5, label: "1/2\" panel" }, { v: 0.625, label: "5/8\" panel" }] },
+      { k: "studDepth", type: "select", label: "Stud size", value: 5.5,
+        options: [{ v: 3.5, label: "2x4 — 3 1/2\" deep" }, { v: 5.5, label: "2x6 — 5 1/2\" deep" }] },
+      { k: "gb",    type: "select", label: "Gypsum board", value: 0.5, options: [{ v: 0.5, label: "1/2\"" }, { v: 0.625, label: "5/8\"" }] },
+      { k: "oh",    type: "range", label: "Rough opening height", value: 48, min: 24, max: 96, step: 2, fmt: FTIN },
+      { k: "lintel",type: "range", label: "Lintel vertical leg", value: 4, min: 3, max: 6, step: 0.5, fmt: IN },
+      { k: "slope", type: "range", label: "Sill slope (drop over the veneer)", value: 1, min: 0.5, max: 2, step: 0.25, fmt: IN },
+      { k: "weep",  type: "select", label: "Weep spacing", value: 24, options: [{ v: 16, label: "16\" o.c." }, { v: 24, label: "24\" o.c." }, { v: 32, label: "32\" o.c." }] }
+    ],
+    derive: function (s) { s.stud = s.studDepth; },
+    draw: drawWindow,
+    readout: function (s) { return "Wall " + IN(s.ven + s.air + s.ci + s.sh + s.stud + s.gb) + " overall · rough opening " + FTIN(s.oh) + " · weeps at " + IN(s.weep) + " o.c."; }
+  });
+
+  /* ------------------------------------------------------------- detail six */
+  buildDetail({
+    id: "door", file: "buttress-door-frame-plan", scale: 1.5,
+    title: "Door frame in a stud partition — plan section",
+    sub: "Cut through the jambs of an interior door. The hollow metal frame throat reads the partition thickness you set, the leaf swings " +
+         "open at ninety degrees, and the clear opening is dimensioned between the stops.",
+    fields: [
+      { k: "studDepth", type: "select", label: "Partition studs", value: 3.5,
+        options: [{ v: 2.5, label: "2 1/2\" metal" }, { v: 3.5, label: "3 1/2\" (2x4 or 3 5/8\" metal)" }, { v: 5.5, label: "5 1/2\" (2x6 or 6\" metal)" }] },
+      { k: "gb",     type: "select", label: "Gypsum board", value: 0.625, options: [{ v: 0.5, label: "1/2\"" }, { v: 0.625, label: "5/8\"" }] },
+      { k: "layers", type: "select", label: "Layers each side", value: 1, options: [{ v: 1, label: "One" }, { v: 2, label: "Two" }] },
+      { k: "dw",     type: "select", label: "Door width", value: 36,
+        options: [{ v: 30, label: "2'-6\"" }, { v: 32, label: "2'-8\"" }, { v: 34, label: "2'-10\"" }, { v: 36, label: "3'-0\"" }, { v: 42, label: "3'-6\"" }] },
+      { k: "dt",     type: "select", label: "Door thickness", value: 1.75, options: [{ v: 1.375, label: "1 3/8\"" }, { v: 1.75, label: "1 3/4\"" }] }
+    ],
+    derive: function (s) { s.stud = s.studDepth; s.studLabel = s.studDepth === 2.5 ? "2 1/2\" metal" : (s.studDepth === 3.5 ? "3 1/2\"" : "5 1/2\""); },
+    draw: drawDoor,
+    readout: function (s) { return "Partition " + IN(s.stud + 2 * s.layers * s.gb) + " · frame throat to match · leaf " + FTIN(s.dw) + " x " + IN(s.dt) + "."; }
   });
 
   /* ------------------------------------------------------------------ close */

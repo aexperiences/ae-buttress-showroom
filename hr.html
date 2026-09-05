@@ -70,7 +70,7 @@
   /* ------------------------------------------------------------- page head */
   c.appendChild(B.page(
     "HR · People Ops",
-    "The roster, human and AI seats side by side, and the one compliance line an architecture practice actually " +
+    "The roster, human and agent seats side by side, and the one compliance line an architecture practice actually " +
     "gets audited on: licensure and continuing education. A lapsed stamp is not an HR nicety — it is a stop-work " +
     "event, because the seat that seals the drawings can no longer seal them.",
     '<button class="btn brass sm" id="consultBtn">Consult HR · People Ops</button>'
@@ -99,9 +99,9 @@
 
   /* ------------------------------------------------------------ the roster */
   c.appendChild(B.card(
-    '<h2>The roster — human and AI seats, one list</h2>' +
+    '<h2>The roster — human and agent seats, one list</h2>' +
     '<div class="card-sub">The org does not keep two org charts. A human seat carries licensure, CE and a ' +
-    'personnel record; an AI seat carries a department, a confidence bar and a fence. Both show up here because ' +
+    'personnel record; an agent seat carries a department, a confidence bar and a fence. Both show up here because ' +
     'both do work the office depends on.</div>' +
     '<div id="roster"></div>'
   ));
@@ -193,7 +193,7 @@
 
     document.getElementById("statrow").innerHTML =
       B.stat("Human seats", String(humans.length), "Carry licensure and a personnel record") +
-      B.stat("AI seats", String(ai.length), "Carry a department, a bar and a fence") +
+      B.stat("Agent seats", String(ai.length), "Carry a department, a bar and a fence") +
       B.stat("Licensed seats", String(licensed.length), "Can seal the work") +
       B.stat("Renewing in " + YEAR, String(renewing.length),
              renewing.length ? B.esc(renewing.map(function (t) { return t.name; }).join(", ")) : "None this calendar year",
@@ -220,7 +220,7 @@
       } else if (isHuman) {
         licCell = '<span class="muted small">No license on the record</span>';
       } else {
-        licCell = '<span class="muted small">Not applicable — AI seat</span>';
+        licCell = '<span class="muted small">Not applicable — agent seat</span>';
       }
       var ceCell = ce
         ? '<span class="mono">' + ce.done + " / " + ce.total + '</span> <span class="muted small">HSW</span>' +

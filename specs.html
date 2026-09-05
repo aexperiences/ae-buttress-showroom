@@ -46,7 +46,7 @@
   c.appendChild(B.page(
     "Specs · MasterFormat",
     "The project manual, held as data instead of as a Word file. Sections are numbered on the CSI MasterFormat structure, " +
-    "and the submittal requirements written into Part 1 of each section build the submittal log directly — no one retypes them, no one remembers them.",
+    "and the submittal requirements written into Part 1 of each section build the submittal log directly — no one retypes them, no one remembers them. " + "Write sections in off the MasterFormat shelf, reconcile the manual against the drawings, and log substitution requests on the record.",
     '<button class="btn brass sm" id="jumpAsk">Consult Standards &amp; Specs</button>'
   ));
 
@@ -249,6 +249,195 @@
       'and without anyone hoping they caught every line of Part 1.</div>';
   }
 
+  /* ------------------------------------------- write a section into the manual */
+  var addCard = B.card(
+    '<h2>Write a section into the project manual</h2>' +
+    '<div class="card-sub">Pick the project and the section off the MasterFormat shelf. It lands as a Draft carrying the submittals its Part 1 ' +
+    'typically calls for — edit them when you write the section, and issue it when it is ready to build the log.</div>' +
+    '<div class="row" style="align-items:flex-end">' +
+      '<div style="min-width:240px"><label class="f">Project</label><select id="addProj"></select></div>' +
+      '<div style="flex:1;min-width:300px"><label class="f">Section</label><select id="addSec"></select></div>' +
+      '<button class="btn brass" id="addSecBtn">Add it as a Draft</button>' +
+    '</div>' +
+    '<div id="addNote" class="srcnote" style="margin-top:10px"></div>' +
+    B.srcNote("Section numbers and titles on the CSI MasterFormat numbering; typical Part 1 submittals as carried in this OS's engine (B.MF_SECTIONS). A starting shelf — a firm adds its own sections.")
+  );
+  c.appendChild(addCard);
+
+  function projOpts(sel) {
+    return B.db().commissions.map(function (p) {
+      return '<option value="' + B.esc(p.name) + '"' + (p.name === sel ? " selected" : "") + '>' + B.esc(p.name) + '</option>';
+    }).join("");
+  }
+  function renderAdd() {
+    var d = B.db();
+    var ps = addCard.querySelector("#addProj"), ss = addCard.querySelector("#addSec");
+    var curP = ps.value, curS = ss.value;
+    ps.innerHTML = projOpts(curP);
+    var proj = ps.value;
+    var have = {};
+    d.specs.forEach(function (x) { if (x.project === proj) have[x.sec] = 1; });
+    var byDiv = {};
+    B.MF_SECTIONS.forEach(function (m) { (byDiv[m.div] = byDiv[m.div] || []).push(m); });
+    ss.innerHTML = Object.keys(byDiv).sort().map(function (dv) {
+      return '<optgroup label="Division ' + B.esc(dv) + ' — ' + B.esc(divName(dv)) + '">' + byDiv[dv].map(function (m) {
+        return '<option value="' + B.esc(m.sec) + '"' + (m.sec === curS ? " selected" : "") + (have[m.sec] ? ' disabled' : '') + '>' +
+          B.esc(m.sec + " · " + m.title) + (have[m.sec] ? " — in the manual" : "") + '</option>';
+      }).join("") + '</optgroup>';
+    }).join("");
+    var m = B.MF_SECTIONS.filter(function (x) { return x.sec === ss.value; })[0];
+    addCard.querySelector("#addNote").innerHTML = m
+      ? "Part 1 of <b>" + B.esc(m.sec + " " + m.title) + "</b> typically calls for: " + m.subs.map(function (r) { return B.tag(r, "ghost"); }).join(" ") +
+        " · " + Object.keys(have).length + " section" + (Object.keys(have).length === 1 ? "" : "s") + " already in the " + B.esc(proj) + " manual."
+      : "";
+  }
+  addCard.querySelector("#addProj").addEventListener("change", renderAdd);
+  addCard.querySelector("#addSec").addEventListener("change", renderAdd);
+  addCard.querySelector("#addSecBtn").addEventListener("click", function () {
+    var proj = addCard.querySelector("#addProj").value, sec = addCard.querySelector("#addSec").value;
+    var m = B.MF_SECTIONS.filter(function (x) { return x.sec === sec; })[0];
+    if (!m) { B.toast("Pick a section first.", ""); return; }
+    B.save(function (d) {
+      d.specs.push({ id: "sp" + Date.now(), sec: m.sec, title: m.title, div: m.div, project: proj, status: "Draft", submittals: m.subs.slice() });
+    });
+    B.toast(m.sec + " " + m.title + " written into the " + proj + " manual as a Draft. Issue it and its Part 1 builds the log.", "ok");
+    renderStats(); renderChips(); renderSpecs(); renderAdd(); renderCoord();
+  });
+
+  /* ---------------------------------------- spec ↔ drawings, reconciled */
+  var coordCard = B.card(
+    '<h2>Where the drawings and the manual disagree</h2>' +
+    '<div class="card-sub">Every RFI, submittal and instruction on the CA Desk carries a section number. Read against the project manual, ' +
+    'two lists fall out: sections the field is referencing that were never written, and sections written that nothing has touched. ' +
+    'Both are the kind of gap that surfaces at bid, or in a claim.</div>' +
+    '<div class="row" style="align-items:flex-end;margin-bottom:12px">' +
+      '<div style="min-width:240px"><label class="f">Project</label><select id="coProj"></select></div>' +
+      '<div id="coStat" class="muted small"></div>' +
+    '</div>' +
+    '<div class="grid g2" id="coOut"></div>' +
+    '<div class="srcnote">Read off this OS\'s own CA log and its own section list. A section can be right and unreferenced — this is a list of questions, not findings.</div>'
+  );
+  c.appendChild(coordCard);
+
+  function renderCoord() {
+    var d = B.db(), ps = coordCard.querySelector("#coProj"), cur = ps.value;
+    ps.innerHTML = projOpts(cur);
+    var proj = ps.value;
+    var manual = {}; d.specs.forEach(function (x) { if (x.project === proj) manual[x.sec] = x; });
+    var refs = {};
+    d.ca.forEach(function (x) {
+      if (x.project !== proj || !x.spec || x.spec === "—") return;
+      (refs[x.spec] = refs[x.spec] || []).push(x);
+    });
+    var missing = Object.keys(refs).filter(function (k) { return !manual[k]; }).sort();
+    var untouched = Object.keys(manual).filter(function (k) { return !refs[k]; }).sort();
+    function shelfTitle(sec) { var m = B.MF_SECTIONS.filter(function (x) { return x.sec === sec; })[0]; return m ? m.title : "—"; }
+    var left = '<div><div class="t-main">Referenced in the field, not in the manual</div>' +
+      (missing.length ? '<table><tbody>' + missing.map(function (k) {
+        return '<tr><td class="k">' + B.esc(k) + '<div class="t-sub">' + B.esc(shelfTitle(k)) + '</div></td><td>' +
+          refs[k].map(function (x) { return B.tag(x.num, "watch"); }).join(" ") +
+          '<div class="t-sub">' + refs[k].length + ' item' + (refs[k].length === 1 ? "" : "s") + ' on the CA Desk cite it</div></td></tr>';
+      }).join("") + '</tbody></table>' : '<div class="empty">Every section the field cites on this project is in the manual.</div>') + '</div>';
+    var right = '<div><div class="t-main">In the manual, never referenced</div>' +
+      (untouched.length ? '<table><tbody>' + untouched.map(function (k) {
+        var x = manual[k];
+        return '<tr><td class="k">' + B.esc(k) + '<div class="t-sub">' + B.esc(x.title) + '</div></td><td>' +
+          B.tag(x.status, x.status === "Issued" ? "good" : "ghost") + '<div class="t-sub">No RFI, submittal or instruction cites it yet</div></td></tr>';
+      }).join("") + '</tbody></table>' : '<div class="empty">Every section in this manual has been referenced from the field.</div>') + '</div>';
+    coordCard.querySelector("#coStat").textContent = Object.keys(manual).length + " sections in the manual · " + Object.keys(refs).length +
+      " sections cited on the CA Desk · " + missing.length + " cited but unwritten · " + untouched.length + " written but uncited.";
+    coordCard.querySelector("#coOut").innerHTML = left + right;
+  }
+  coordCard.querySelector("#coProj").addEventListener("change", renderCoord);
+
+  /* ------------------------------------------------- substitution requests */
+  var SR_STATUS = ["Received", "Under review", "Accepted", "Rejected"];
+  var srCard = B.card(
+    '<h2>Substitution requests</h2>' +
+    '<div class="card-sub">CSI Form 13.1A before bid, 13.1B after award. A request names the section, what was specified and what is proposed. ' +
+    'Accepting one changes what gets built, so acceptance is the Architect of Record\'s signature and stages at the Approval Desk; ' +
+    'a rejection is recorded here, on the record, with the reason.</div>' +
+    '<div id="srBody"></div>' +
+    '<div class="divider"></div>' +
+    '<div class="row" style="align-items:flex-end">' +
+      '<div style="min-width:220px"><label class="f">Project</label><select id="srProj"></select></div>' +
+      '<div style="min-width:220px"><label class="f">Section</label><select id="srSec"></select></div>' +
+      '<div style="min-width:150px"><label class="f">Stage</label><select id="srStage"><option value="Pre-bid">Pre-bid · 13.1A</option><option value="Post-award" selected>Post-award · 13.1B</option></select></div>' +
+      '<div style="flex:1;min-width:200px"><label class="f">Specified</label><input id="srSpec" placeholder="What the section calls for"></div>' +
+      '<div style="flex:1;min-width:200px"><label class="f">Proposed</label><input id="srProp" placeholder="What is being offered instead"></div>' +
+      '<button class="btn brass sm" id="srAdd">Log the request</button>' +
+    '</div>' +
+    B.srcNote("CSI Substitution Request forms 13.1A (prior to bidding) and 13.1B (after the bid). Whether a substitution is accepted is a judgement the Architect of Record makes against the project's own documents.")
+  );
+  c.appendChild(srCard);
+
+  function srList() { return B.db().substitutions || []; }
+  function renderSR() {
+    var d = B.db(), rows = srList().slice().sort(function (a, b) { return a.received < b.received ? 1 : -1; });
+    srCard.querySelector("#srBody").innerHTML =
+      '<table><thead><tr><th>Request</th><th>Section</th><th>Specified → proposed</th><th>Stage</th><th>Status</th><th class="num"></th></tr></thead><tbody>' +
+      (rows.length ? rows.map(function (r) {
+        var kind = r.status === "Accepted" ? "good" : (r.status === "Rejected" ? "bad" : (r.status === "Under review" ? "watch" : "ghost"));
+        var acts = (r.status === "Received" || r.status === "Under review")
+          ? '<button class="btn ghost sm sr-act" data-id="' + B.esc(r.id) + '" data-to="Under review">Review</button> ' +
+            '<button class="btn brass sm sr-act" data-id="' + B.esc(r.id) + '" data-to="Accepted">Accept</button> ' +
+            '<button class="btn ghost sm sr-act" data-id="' + B.esc(r.id) + '" data-to="Rejected">Reject</button>'
+          : '<span class="muted small">On the record</span>';
+        return '<tr>' +
+          '<td class="k">' + B.esc(r.num) + '<div class="t-sub">' + B.esc(r.project) + ' · from ' + B.esc(r.from) + ' · ' + B.esc(r.received) + '</div></td>' +
+          '<td class="k">' + B.esc(r.sec) + '<div class="t-sub">' + B.esc(r.title) + '</div></td>' +
+          '<td><div class="t-main">' + B.esc(r.specified) + '</div><div class="t-sub">→ ' + B.esc(r.proposed) + '</div>' + (r.note ? '<div class="t-sub">' + B.esc(r.note) + '</div>' : '') + '</td>' +
+          '<td>' + B.tag(r.stage + " · " + r.form, "ghost") + '</td>' +
+          '<td>' + B.tag(r.status, kind) + '</td>' +
+          '<td class="num" style="white-space:nowrap">' + acts + '</td></tr>';
+      }).join("") : '<tr><td colspan="6" class="empty">No substitution requests on the record.</td></tr>') +
+      '</tbody></table>';
+    Array.prototype.forEach.call(srCard.querySelectorAll(".sr-act"), function (b) {
+      b.addEventListener("click", function () { srDecide(this.getAttribute("data-id"), this.getAttribute("data-to")); });
+    });
+    var ps = srCard.querySelector("#srProj"), curP = ps.value; ps.innerHTML = projOpts(curP);
+    var ss = srCard.querySelector("#srSec"), curS = ss.value;
+    var secs = d.specs.filter(function (x) { return x.project === ps.value; });
+    ss.innerHTML = secs.length ? secs.map(function (x) {
+      return '<option value="' + B.esc(x.sec) + '"' + (x.sec === curS ? " selected" : "") + '>' + B.esc(x.sec + " · " + x.title) + '</option>';
+    }).join("") : '<option value="">No sections in this manual yet</option>';
+  }
+  function srDecide(id, to) {
+    var r = srList().filter(function (x) { return x.id === id; })[0];
+    if (!r) return;
+    if (to === "Accepted") {
+      B.stage("external", "Accept substitution " + r.num + " — " + r.project,
+        r.sec + " " + r.title + ": " + r.specified + " → " + r.proposed + " (" + r.stage + ", CSI " + r.form + ").",
+        "A substitution changes what gets built against the contract documents. Accepting it is the Architect of Record's signature, not the org's.",
+        "Codex (Standards & Specs)");
+      B.save(function (d) { (d.substitutions || []).forEach(function (x) { if (x.id === id) x.status = "Under review"; }); });
+      B.toast(r.num + " staged at the Approval Desk for acceptance. It stays under review until the principal signs.", "ok");
+    } else {
+      B.save(function (d) { (d.substitutions || []).forEach(function (x) { if (x.id === id) x.status = to; }); });
+      B.toast(r.num + " marked " + to + " on the record.", to === "Rejected" ? "" : "ok");
+    }
+    renderSR();
+  }
+  srCard.querySelector("#srProj").addEventListener("change", renderSR);
+  srCard.querySelector("#srAdd").addEventListener("click", function () {
+    var proj = srCard.querySelector("#srProj").value, sec = srCard.querySelector("#srSec").value;
+    var spec = (srCard.querySelector("#srSpec").value || "").trim(), prop = (srCard.querySelector("#srProp").value || "").trim();
+    var stage = srCard.querySelector("#srStage").value;
+    if (!sec) { B.toast("This manual has no sections yet — write one first.", ""); return; }
+    if (!spec || !prop) { B.toast("Name what was specified and what is proposed.", ""); return; }
+    var x = B.db().specs.filter(function (s) { return s.project === proj && s.sec === sec; })[0] || { title: "" };
+    var n = 0; srList().forEach(function (r) { var m = /^SR-(\d+)$/.exec(r.num || ""); if (m) n = Math.max(n, Number(m[1])); });
+    var num = "SR-" + ("00" + (n + 1)).slice(-3);
+    B.save(function (d) {
+      (d.substitutions = d.substitutions || []).push({ id: "sr" + Date.now(), num: num, project: proj, sec: sec, title: x.title,
+        form: stage === "Pre-bid" ? "13.1A" : "13.1B", stage: stage, specified: spec, proposed: prop,
+        from: stage === "Pre-bid" ? "Planholder" : "Contractor", received: plusDays(0), status: "Received", note: "" });
+    });
+    srCard.querySelector("#srSpec").value = ""; srCard.querySelector("#srProp").value = "";
+    B.toast(num + " logged against " + sec + ". Nothing is decided until someone decides it.", "ok");
+    renderSR();
+  });
+
   /* --------------------------------------------- the 3-part section format */
   c.appendChild(B.card(
     '<h2>Three parts, and only one of them builds the log</h2>' +
@@ -382,6 +571,9 @@
   renderStats();
   renderChips();
   renderSpecs();
+  renderAdd();
+  renderCoord();
+  renderSR();
   renderLog();
 })();
 </script>
