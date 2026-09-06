@@ -9,6 +9,18 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="buttress.css">
+<style>
+.card.sub{border:1px solid var(--line);border-radius:11px;padding:13px 15px;background:var(--sunk);margin:0}
+.card.sub.w2{border-left:3px solid #6f9a6f}
+.card.sub.c99{border-left:3px solid var(--brass,#c9a227)}
+.ml-step{display:flex;gap:10px;align-items:flex-start;padding:6px 0;border-bottom:1px dotted var(--line)}
+.ml-step:last-child{border-bottom:0}
+.ml-n{flex:none;width:19px;height:19px;border-radius:5px;background:var(--line);color:var(--ink);
+  display:grid;place-items:center;font-size:11px;font-weight:700;font-family:IBM Plex Mono,ui-monospace,monospace;margin-top:1px}
+.flowrow{display:flex;flex-wrap:wrap;align-items:center;gap:7px}
+.flowbox{border:1px solid var(--line);border-radius:7px;padding:5px 10px;font-size:12.4px;background:var(--sunk)}
+.flowarrow{color:var(--ink);opacity:.75;font-weight:700}
+</style>
 </head>
 <body>
 <script src="buttress.js"></script>
@@ -105,6 +117,113 @@
     'both do work the office depends on.</div>' +
     '<div id="roster"></div>'
   ));
+
+  /* --------------------------------------------------- the hire fork: 1099 / W-2
+     A hire goes one of two ways and everything downstream reads which one. This
+     is the same fork AEHub runs on, in the shape an architecture practice needs:
+     the certificate of insurance sits where the W-9 does, because a firm will not
+     let an outside consultant near a project without a current one naming the
+     practice as additional insured. */
+  c.appendChild(B.card(
+    '<h2>The fork in the road — every hire goes one of two ways</h2>' +
+    '<div class="card-sub">Contractor or employee. The choice is made once, at the top, and then the payroll run, the ' +
+    'employer burden, the year-end form and the utilization denominator all read it. Getting it wrong is not a filing ' +
+    'error — it is the firm carrying cost and risk it did not agree to carry.</div>' +
+    '<div id="forkWho"></div>' +
+    '<div class="divider"></div>' +
+    '<div class="grid g2" id="forkTracks"></div>' +
+    '<div class="divider"></div>' +
+    '<div class="t-main" style="margin-bottom:6px">How it reaches the money</div>' +
+    '<div id="forkFlow"></div>' +
+    '<div class="divider"></div>' +
+    '<div class="t-main" style="margin-bottom:6px">The document shelf</div>' +
+    '<div id="forkDocs"></div>' +
+    B.srcNote("Form names and the six-hundred-dollar 1099-NEC threshold are the U.S. federal ones. Buttress files nothing " +
+      "and withholds nothing — it holds the record and tells the practice which paper is missing. The firm\'s payroll " +
+      "provider and its accountant do the filing.")
+  ));
+
+  var W2_STEPS = [
+    ["Offer / employment agreement", "Signed by both sides before a start date is set."],
+    ["Form W-4 · federal withholding", "Employee completes. Payroll cannot run without it."],
+    ["Form I-9 · work eligibility", "Within three business days of the first day worked."],
+    ["State new-hire report", "Filed by the firm, on the state\'s clock."],
+    ["Handbook, email, and a seat on this OS", "The seat is what decides which rooms open."],
+    ["Payroll enrollment", "Wages run through the payroll provider, with employer burden on top."],
+    ["Year end — the provider issues a W-2", "Nothing here files it. It holds the record that it is owed."]
+  ];
+  var C_STEPS = [
+    ["Contract / consultant agreement", "Scope, fee and deliverable date. A design consultant signs the C401."],
+    ["Form W-9 · taxpayer ID", "Collected before the first payment, not after it."],
+    ["Certificate of insurance", "Current, and naming the practice as additional insured. This one is architecture\'s."],
+    ["Scope and rate on the record", "So the invoice can be checked against something."],
+    ["Email and a limited seat", "An outside consultant sees the coordination room and nothing else."],
+    ["Paid as an invoice — no burden", "No withholding, no payroll liability. Accounts payable."],
+    ["Year end — 1099-NEC at $600 or more", "The books track the threshold; the accountant files the form."]
+  ];
+  var DOCS = [
+    ["Form W-9", "Contractor taxpayer ID — collected before the first payment."],
+    ["Form W-4", "Employee federal withholding."],
+    ["Form I-9", "Employee work eligibility — three days from the first day worked."],
+    ["1099-NEC", "Year-end contractor form. Six hundred dollars or more, per payer, per year."],
+    ["Certificate of insurance", "Consultant\'s professional liability, naming the practice. Tracked to its expiry."],
+    ["C401 · Consultant Agreement", "The A.I.A. form a design consultant signs to the practice."]
+  ];
+
+  function renderFork(d) {
+    var labor = d.labor || [], onb = d.onboarding || {};
+
+    var who = labor.filter(function (l) { return l.role !== "Agent"; }).map(function (l) {
+      var is99 = (l.type || "w2") === "1099";
+      var st = onb[l.id] || {};
+      var need = is99 ? ["agreement","w9","coi","playbook","login","comp"] : [];
+      var missing = need.filter(function (k) { return !st[k]; });
+      return '<tr>' +
+        '<td><div class="t-main">' + B.esc(l.name) + '</div><div class="t-sub">' + B.esc(l.role) + '</div></td>' +
+        '<td>' + B.tag(is99 ? "Contractor · 1099" : "Employee · W-2", is99 ? "watch" : "good") + '</td>' +
+        '<td class="num mono">' + (l.cost ? B.money(l.cost) + "/h" : "&mdash;") + '</td>' +
+        '<td>' + (is99 ? B.tag("No burden", "ghost") : B.tag("Burden applies", "good")) + '</td>' +
+        '<td>' + (is99
+            ? (missing.length ? B.tag(missing.length + " item" + (missing.length > 1 ? "s" : "") + " open", "bad")
+                              : B.tag("Paperwork complete", "good"))
+            : '<span class="muted small">Through the payroll provider</span>') + '</td>' +
+        '<td class="small muted">' + (is99 ? "1099-NEC at year end" : "W-2 at year end") + '</td>' +
+      '</tr>';
+    }).join("");
+    document.getElementById("forkWho").innerHTML =
+      '<table><thead><tr><th>Person</th><th>Hire type</th><th class="num">Cost rate</th>' +
+      '<th>Employer burden</th><th>Onboarding</th><th>Year end</th></tr></thead><tbody>' +
+      (who || '<tr><td colspan="6" class="empty">Nobody on the roster yet.</td></tr>') + '</tbody></table>';
+
+    function track(title, sub, steps, cls) {
+      return '<div class="card sub ' + cls + '"><div class="t-main">' + title + '</div>' +
+        '<div class="card-sub" style="margin-bottom:9px">' + sub + '</div>' +
+        steps.map(function (st, i) {
+          return '<div class="ml-step"><span class="ml-n">' + (i + 1) + '</span>' +
+            '<div><div class="t-main" style="font-size:13px">' + st[0] + '</div>' +
+            '<div class="t-sub">' + st[1] + '</div></div></div>';
+        }).join("") + '</div>';
+    }
+    document.getElementById("forkTracks").innerHTML =
+      track("Employee &middot; W-2", "On the payroll, on the utilization denominator, and carrying employer burden.", W2_STEPS, "w2") +
+      track("Contractor &middot; 1099", "Invoices the firm. No burden, no withholding, and not the firm\'s utilization.", C_STEPS, "c99");
+
+    document.getElementById("forkFlow").innerHTML =
+      '<div class="flowrow">' +
+      ["The HR record", "the fork — 1099 or W-2", "Time &amp; Payroll", "Books &amp; Multipliers", "year end — 1099-NEC or W-2"]
+        .map(function (x, i) { return (i ? '<span class="flowarrow">&rarr;</span>' : "") + '<span class="flowbox">' + x + '</span>'; })
+        .join("") + '</div>' +
+      '<div class="card-sub" style="margin-top:8px">A contractor\'s hours still land on the project &mdash; the work is real and the ' +
+      'client is billed for it. What changes is the other side of the entry: accounts payable instead of accrued payroll, and no ' +
+      'burden on top. And their hours stay out of the firm\'s utilization, because utilization asks what the practice does with the ' +
+      'people it is carrying.</div>';
+
+    document.getElementById("forkDocs").innerHTML =
+      '<table><thead><tr><th>Document</th><th>What it is for</th></tr></thead><tbody>' +
+      DOCS.map(function (x) {
+        return '<tr><td class="t-main" style="white-space:nowrap">' + x[0] + '</td><td class="small muted">' + x[1] + '</td></tr>';
+      }).join("") + '</tbody></table>';
+  }
 
   /* ------------------------------------------------- licensure + CE detail */
   c.appendChild(B.card(
@@ -338,6 +457,7 @@
     var d = B.db();
     renderStats(d);
     renderRoster(d);
+    renderFork(d);
     renderLic(d);
     renderAxp(d);
     renderPickers(d);

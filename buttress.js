@@ -43,6 +43,7 @@
       permits:     clone(SEED.permits),
       pursuits:    clone(SEED.pursuits),
       labor:       clone(SEED.labor),
+      onboarding:  clone(SEED.onboarding),
       timesheet:   clone(SEED.timesheet),
       masterlist:  clone(SEED.masterlist),
       comply:      clone(SEED.comply),
@@ -400,13 +401,27 @@
 
     /* Labor — what drives utilization, net multiplier, realization. */
     labor: [
-      { id:"l1", name:"Dana Whitfield",  role:"Principal",         rate:215, cost:78,  hours:148, billable:78,  target:45 },
-      { id:"l2", name:"Marcus Lang",     role:"Project Architect", rate:165, cost:56,  hours:160, billable:112, target:65 },
-      { id:"l3", name:"Priya Anand",     role:"Project Architect", rate:165, cost:54,  hours:156, billable:118, target:65 },
-      { id:"l4", name:"Theo Barnes",     role:"Designer",          rate:120, cost:38,  hours:160, billable:126, target:70 },
-      { id:"l5", name:"Ines Okafor",     role:"Job Captain",       rate:135, cost:44,  hours:158, billable:121, target:70 },
-      { id:"l6", name:"Ray Mendel",      role:"Admin",             rate:0,   cost:29,  hours:150, billable:0,   target:0 }
+      /* `type` is the fork every hire goes down: w2 runs through payroll and
+         carries employer burden; 1099 is paid as an invoice and carries none.
+         It is not cosmetic — the payroll run, the burden, the year-end form and
+         the utilization denominator all read this field. A contractor's hours
+         are not the firm's utilization, because the firm is not carrying them. */
+      { id:"l1", name:"Dana Whitfield",  role:"Principal",         type:"w2",   rate:215, cost:78,  hours:148, billable:78,  target:45, seat:"principal" },
+      { id:"l2", name:"Marcus Lang",     role:"Project Architect", type:"w2",   rate:165, cost:56,  hours:160, billable:112, target:65, seat:"pa" },
+      { id:"l3", name:"Priya Anand",     role:"Project Architect", type:"w2",   rate:165, cost:54,  hours:156, billable:118, target:65, seat:"pa" },
+      { id:"l4", name:"Theo Barnes",     role:"Designer",          type:"w2",   rate:120, cost:38,  hours:160, billable:126, target:70, seat:"captain" },
+      { id:"l5", name:"Ines Okafor",     role:"Job Captain",       type:"w2",   rate:135, cost:44,  hours:158, billable:121, target:70, seat:"captain" },
+      { id:"l6", name:"Ray Mendel",      role:"Office Manager",    type:"w2",   rate:0,   cost:29,  hours:150, billable:0,   target:0,  seat:"officemgr" },
+      { id:"l7", name:"Wes Tanaka",      role:"Contract Drafter",  type:"1099", rate:95,  cost:62,  hours:64,  billable:64,  target:0,  seat:"captain" },
+      { id:"l8", name:"Nora Beckett",    role:"Bookkeeper",        type:"1099", rate:0,   cost:55,  hours:18,  billable:0,   target:0,  seat:"books" }
     ],
+
+    /* Onboarding state per person, so the fork is a live checklist and not a
+       diagram. Steps differ by type — that is the whole point of the fork. */
+    onboarding: {
+      l7: { agreement:true, w9:true, coi:true, playbook:true, login:true, comp:false },
+      l8: { agreement:true, w9:true, coi:false, playbook:true, login:true, comp:true }
+    },
 
     /* This week's timesheet, entry by entry. The month totals on `labor` above
        are what utilization and the multiplier already read; posting a week adds
@@ -426,7 +441,13 @@
       { id:"tm11",who:"l1", date:"2026-07-21", project:"Post Falls Community Center",phase:"PD",  hours:4,   billable:false, note:"Shortlist interview prep." },
       { id:"tm12",who:"l1", date:"2026-07-22", project:"Fernan Elementary Addition", phase:"CA",  hours:2.5, billable:true,  note:"Principal review — bulletin sign-off." },
       { id:"tm13",who:"l6", date:"2026-07-20", project:"—",                          phase:"OH",  hours:8,   billable:false, note:"Office administration." },
-      { id:"tm14",who:"l6", date:"2026-07-21", project:"—",                          phase:"OH",  hours:8,   billable:false, note:"Invoicing and filing." }
+      { id:"tm14",who:"l6", date:"2026-07-21", project:"—",                          phase:"OH",  hours:8,   billable:false, note:"Invoicing and filing." },
+      /* The contract drafter. Same week, same projects, billed to the client the
+         same way — and none of it goes through payroll. This is the fork showing
+         up in the one room where the difference costs money. */
+      { id:"tm15", who:"l7", date:"2026-07-20", project:"Riverside Branch Library",   phase:"CD",  hours:8,   billable:true,  note:"Enlarged stair plans and sections, brought on for the deadline." },
+      { id:"tm16", who:"l7", date:"2026-07-21", project:"Riverside Branch Library",   phase:"CD",  hours:8,   billable:true,  note:"Interior elevations, A-500 series." },
+      { id:"tm17", who:"l7", date:"2026-07-22", project:"Fernan Elementary Addition", phase:"CD",  hours:6,   billable:true,  note:"Door and hardware schedule cleanup." }
     ],
 
     /* AE Comply — the readiness checks it actually runs, and what came back on
@@ -801,23 +822,33 @@
      `rooms:"*"` means every room. Fences are never delegated: a fence always
      lands on the principal, whatever the seat. */
   var ROLES = [
-    { key:"principal", name:"Principal · Architect of Record", rank:5, rooms:"*", signs:true,
+    { key:"principal", name:"Principal · Architect of Record", short:"Principal", rank:5, rooms:"*", signs:true,
       line:"The stamp and the signature. The only seat a fence can land on." },
-    { key:"associate", name:"Associate / Office Admin", rank:4, signs:false,
+    { key:"associate", name:"Associate / Senior Architect", short:"Associate", rank:4, signs:false,
       rooms:["dashboard","calendar","contacts","connect","records","approvals","pursuits","proposal","commissions",
              "ca","sheets","details","specs","coord","time","billing","books","hr","ops","law","it","org","comply","skins"],
-      line:"Runs the office. Sees everything except the principal's own list." },
-    { key:"pa", name:"Project Architect", rank:3, signs:false,
+      line:"Licensed. Runs several projects and stands in for the principal on most of them." },
+    { key:"pa", name:"Project Architect", short:"Project Arch", rank:3, signs:false,
       rooms:["dashboard","calendar","contacts","connect","records","approvals","pursuits","proposal","commissions",
              "ca","sheets","details","specs","coord","time","skins"],
       line:"Runs projects. Own time, not the firm's money." },
-    { key:"captain", name:"Job Captain / Designer", rank:2, signs:false,
+    { key:"captain", name:"Job Captain / Designer", short:"Job Captain", rank:2, signs:false,
       rooms:["dashboard","calendar","contacts","connect","records","commissions","ca","sheets","details","specs","time","skins"],
       line:"Draws and documents. Logs time, sees no rates but their own work." },
-    { key:"books", name:"Bookkeeper / Accountant", rank:2, signs:false,
+    /* The front desk. In a five-to-fifteen person practice this seat runs the
+       office: contracts and certificates of insurance, permit paperwork, invoice
+       prep and the AR chase, filing, proposal assembly, scheduling. It was folded
+       into the Associate until Sep 6 2026, which gave the office manager an
+       associate's reach and gave a licensed architect a front-desk job title.
+       It opens the paperwork rooms and never the money board or anybody's rate. */
+    { key:"officemgr", name:"Office Manager / Admin Executive", short:"Office Mgr", rank:2, signs:false,
+      rooms:["dashboard","calendar","contacts","connect","records","pursuits","proposal","commissions",
+             "coord","billing","hr","ops","law","skins"],
+      line:"Runs the office. Paperwork, filing and invoice prep — never a rate, never the board." },
+    { key:"books", name:"Bookkeeper / Accountant", short:"Bookkeeper", rank:2, signs:false,
       rooms:["dashboard","calendar","contacts","records","approvals","time","billing","books","commissions","skins"],
       line:"The money rooms and the timesheet that feeds them. Not the drawings." },
-    { key:"consultant", name:"Consultant · outside the office", rank:1, signs:false,
+    { key:"consultant", name:"Consultant · outside the office", short:"Consultant", rank:1, signs:false,
       rooms:["connect","coord","records"],
       line:"An outside engineer sees the coordination room and nothing else." }
   ];

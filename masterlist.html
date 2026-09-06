@@ -17,7 +17,12 @@
   display:grid;place-items:center;font-size:11px;background:var(--field,#fff)}
 .ml-item.done .ml-box{background:var(--brass);border-color:var(--brass);color:var(--on-brass)}
 .privgrid{overflow-x:auto}
-.privgrid table{min-width:760px}
+.privgrid table{width:100%;table-layout:fixed}
+.privgrid th,.privgrid td{padding:7px 3px;font-size:11px;line-height:1.25}
+.privgrid th{white-space:normal;letter-spacing:.01em;text-transform:none;font-size:10.5px;font-weight:700;vertical-align:bottom}
+.privgrid th:first-child,.privgrid td:first-child{width:27%;text-align:left;padding-left:10px}
+.privgrid .t-sub{font-size:10px}
+.privgrid table{min-width:0}
 .privgrid td.y{text-align:center;color:var(--good);font-weight:700}
 .privgrid td.n{text-align:center;color:var(--mut);opacity:.55}
 </style>
@@ -135,8 +140,7 @@
 
     privCard.querySelector("#pvGrid").innerHTML =
       '<table><thead><tr><th>Room</th>' + B.ROLES.map(function (r) {
-        return '<th style="text-align:center">' + B.esc(r.name.split(" ")[0]) +
-          '<div class="t-sub" style="font-weight:400">' + B.esc(r.name.replace(/^\S+\s*/, "") || "&nbsp;") + '</div></th>';
+        return '<th style="text-align:center">' + B.esc(r.short || r.name.split(" ")[0]) + '</th>';
       }).join("") + '</tr></thead><tbody>' + rows +
       '<tr><td class="k">Signs behind a fence<div class="t-sub">Approval Desk</div></td>' +
       B.ROLES.map(function (r) { return '<td class="' + (r.signs ? "y" : "n") + '">' + (r.signs ? "&#9679;" : "&#8212;") + '</td>'; }).join("") +

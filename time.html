@@ -305,17 +305,24 @@
     var by = {};
     rows.forEach(function (r) {
       var s = seat(r.who);
-      if (!by[r.who]) by[r.who] = { name:s.name, role:s.role, cost:Number(s.cost) || 0, hours:0, billable:0 };
+      if (!by[r.who]) by[r.who] = { name:s.name, role:s.role, type:s.type || "w2",
+                                    cost:Number(s.cost) || 0, hours:0, billable:0 };
       by[r.who].hours += Number(r.hours) || 0;
       if (r.billable) by[r.who].billable += Number(r.hours) || 0;
     });
-    var keys = Object.keys(by), gross = 0, hours = 0;
+    /* A payroll run is W-2 only. A 1099 contractor invoices the firm: no
+       withholding, no employer burden, no payroll liability — it is an accounts
+       payable line and a 1099-NEC at year end. Mixing the two is how a practice
+       ends up over-reporting its own labor cost and under-reporting its risk. */
+    var keys = Object.keys(by).filter(function (k) { return by[k].type !== "1099"; });
+    var ckeys = Object.keys(by).filter(function (k) { return by[k].type === "1099"; });
+    var gross = 0, hours = 0;
     var lines = keys.map(function (k) {
       var x = by[k], g = x.hours * x.cost;
       gross += g; hours += x.hours;
       var pct = x.hours ? Math.round((x.billable / x.hours) * 100) : 0;
       return '<tr>' +
-        '<td><div class="t-main">' + B.esc(x.name) + '</div><div class="t-sub">' + B.esc(x.role) + '</div></td>' +
+        '<td><div class="t-main">' + B.esc(x.name) + '</div><div class="t-sub">' + B.esc(x.role) + ' &middot; W-2</div></td>' +
         '<td class="hr num">' + h1(x.hours) + '</td>' +
         '<td class="num">' + B.money(x.cost) + '<div class="t-sub">per hour, cost</div></td>' +
         '<td class="num"><b>' + B.money(Math.round(g)) + '</b></td>' +
@@ -323,6 +330,22 @@
       '</tr>';
     }).join("");
     var load = Math.round(gross * burden / 100);
+
+    /* The other side of the fork, on screen next to payroll so nobody has to
+       remember which people are which. No burden, no withholding, no payroll
+       liability — an invoice the firm pays, and a 1099-NEC at year end. */
+    var cGross = 0, cHours = 0;
+    var clines = ckeys.map(function (k) {
+      var x = by[k], g = x.hours * x.cost;
+      cGross += g; cHours += x.hours;
+      return '<tr>' +
+        '<td><div class="t-main">' + B.esc(x.name) + '</div><div class="t-sub">' + B.esc(x.role) + ' &middot; 1099</div></td>' +
+        '<td class="hr num">' + h1(x.hours) + '</td>' +
+        '<td class="num">' + B.money(x.cost) + '<div class="t-sub">per hour, invoiced</div></td>' +
+        '<td class="num"><b>' + B.money(Math.round(g)) + '</b></td>' +
+        '<td>' + B.tag("No burden", "ghost") + '</td>' +
+      '</tr>';
+    }).join("");
 
     var prior = (d.payrolls || []).map(function (p) {
       return '<tr><td class="k">' + B.esc(p.period) + '<div class="t-sub">Paid ' + B.esc(p.paid) + '</div></td>' +
@@ -337,6 +360,16 @@
       (lines ? '<tr><td><b>Total</b></td><td class="hr num"><b>' + h1(hours) + '</b></td><td></td>' +
         '<td class="num"><b>' + B.money(Math.round(gross)) + '</b></td><td></td></tr>' : '') +
       '</tbody></table>' +
+      (clines ? '<div class="divider"></div>' +
+        '<div class="t-main" style="margin-bottom:4px">Paid as invoices &mdash; not payroll</div>' +
+        '<div class="card-sub" style="margin-bottom:8px">A contractor bills the firm. There is no withholding and no employer ' +
+        'burden on these hours, and they never enter a payroll run. They are an accounts-payable line, and a 1099-NEC at year end ' +
+        'once the firm has paid them six hundred dollars or more.</div>' +
+        '<table><thead><tr><th>Seat</th><th class="num">Hours</th><th class="num">Rate</th>' +
+        '<th class="num">Invoiced</th><th>Burden</th></tr></thead><tbody>' + clines +
+        '<tr><td><b>Total</b></td><td class="hr num"><b>' + h1(cHours) + '</b></td><td></td>' +
+        '<td class="num"><b>' + B.money(Math.round(cGross)) + '</b></td><td></td></tr>' +
+        '</tbody></table>' : '') +
       '<div class="divider"></div>' +
       '<div class="row" style="align-items:flex-end">' +
         '<div style="min-width:230px"><label class="f">Employer burden <span class="mono" id="bOut" style="text-transform:none;color:var(--brass-2)">' + burden + '%</span></label>' +
@@ -377,7 +410,7 @@
     var load = Math.round(gross * burden / 100);
     B.stage("money", "Run payroll — " + h1(hours) + " hours",
       "Gross " + B.money(Math.round(gross)) + " across " + Object.keys(ts().reduce(function (a, r) { a[r.who] = 1; return a; }, {})).length +
-      " seats, plus " + burden + "% employer burden " + B.money(load) + ". Fully loaded " + B.money(Math.round(gross) + load) + ".",
+      " W-2 seats, plus " + burden + "% employer burden " + B.money(load) + ". Fully loaded " + B.money(Math.round(gross) + load) + ".",
       "Payroll moves money out of the firm. That is the principal's signature and a payroll provider's filing — never the org's, and never this OS's.",
       "Sterling (Money · Accounting)");
     B.toast("Staged at the Approval Desk. Nothing has been paid, filed or transmitted.", "ok");
@@ -386,10 +419,14 @@
   /* --------------------------------------------- the accountant's handoff */
   function journalLines() {
     var d = B.db(), rows = ts(), burden = Number(d.burden) || B.BURDEN_DEFAULT;
-    var byProj = {}, gross = 0;
+    /* The fork reaches the ledger too. W-2 labor accrues as payroll and carries
+       the employer burden; a 1099 contractor's hours are still work in progress
+       on the project, but the other side is accounts payable, not payroll — and
+       the burden is not applied to them, because the firm does not pay it. */
+    var byProj = {}, gross = 0, cGross = 0;
     rows.forEach(function (r) {
       var s = seat(r.who), amt = (Number(r.hours) || 0) * (Number(s.cost) || 0);
-      gross += amt;
+      if ((s.type || "w2") === "1099") { cGross += amt; } else { gross += amt; }
       var key = r.billable ? r.project : (r.phase === "OH" ? "Overhead — office" : "Non-billable — " + r.project);
       byProj[key] = (byProj[key] || 0) + amt;
     });
@@ -398,9 +435,12 @@
       return { account: byProj[k] && k.indexOf("Overhead") === 0 ? "Overhead — indirect labor" : "Direct labor — work in progress",
                memo: k, debit: Math.round(byProj[k]), credit: 0 };
     });
-    out.push({ account:"Payroll tax & benefits — employer burden", memo:"At " + burden + "% of gross", debit: Math.round(load), credit: 0 });
-    out.push({ account:"Accrued payroll — liability", memo:"Gross wages for the period", debit: 0, credit: Math.round(gross) });
+    out.push({ account:"Payroll tax & benefits — employer burden", memo:"At " + burden + "% of W-2 gross", debit: Math.round(load), credit: 0 });
+    out.push({ account:"Accrued payroll — liability", memo:"Gross wages for the period, W-2 seats", debit: 0, credit: Math.round(gross) });
     out.push({ account:"Payroll liabilities — employer burden", memo:"Taxes and benefits payable", debit: 0, credit: Math.round(load) });
+    if (cGross > 0) {
+      out.push({ account:"Accounts payable — contract labor", memo:"1099 seats, invoiced. No burden, no withholding.", debit: 0, credit: Math.round(cGross) });
+    }
     return out;
   }
 
