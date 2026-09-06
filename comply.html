@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Comply · Trust Center · Buttress OS V2.0</title>
+<meta name="description" content="Buttress OS — the architecture practice operating system. Powered by Accelerated Experiences LLC.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="buttress.css">
+<style>
+.ring{display:flex;align-items:center;gap:16px}
+.chk{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
+.chk:last-child{border-bottom:0}
+.chk .kk{width:74px;font-family:IBM Plex Mono,ui-monospace,monospace;font-size:12px;font-weight:600}
+</style>
+</head>
+<body>
+<script src="buttress.js"></script>
+<script>
+(function () {
+  var B = window.Buttress;
+  var c = B.mount({ active: "comply.html", crumb: "Comply · Trust Center" });
+
+  function css(v, fb) { try { var x = getComputedStyle(document.documentElement).getPropertyValue(v).trim(); return x || fb; } catch (e) { return fb; } }
+  function domains() { return B.db().comply || []; }
+  function packs() { return B.db().evidencePacks || []; }
+
+  c.appendChild(B.page(
+    "Comply · Trust Center",
+    "AE Comply watching the practice's own front door — the domains, the mail records and the headers a client's security " +
+    "questionnaire asks about — and keeping a dated, hash-chained record you can hand over. It reports readiness. It does not " +
+    "certify anything, and it never will.",
+    '<button class="btn brass sm" id="jumpPack">The evidence packs</button>'
+  ));
+
+  /* ------------------------------------------------------------- the score */
+  var scoreCard = B.card(
+    '<h2>Where the practice stands right now</h2>' +
+    '<div class="card-sub">Five checks per domain, run daily against the authoritative nameservers and the live TLS handshake — ' +
+    'not a questionnaire somebody filled in from memory last year.</div>' +
+    '<div id="scoreOut"></div>'
+  );
+  c.appendChild(scoreCard);
+
+  function ringSVG(score, of) {
+    var good = css("--good", "#6bbd85"), watch = css("--watch", "#e0b06a"), bad = css("--bad", "#e08b86");
+    var trk = css("--sunk", "rgba(128,128,128,.22)"), ink = css("--ink", "#e7edf3"), mut = css("--mut", "#8b8175");
+    var col = score === of ? good : (score >= of - 1 ? watch : bad);
+    var R = 46, C = 2 * Math.PI * R, on = (score / of) * C;
+    return '<svg viewBox="0 0 120 120" width="118" height="118" style="display:block">' +
+      '<circle cx="60" cy="60" r="' + R + '" fill="none" stroke="' + trk + '" stroke-width="12"/>' +
+      '<circle cx="60" cy="60" r="' + R + '" fill="none" stroke="' + col + '" stroke-width="12" stroke-linecap="round" ' +
+      'stroke-dasharray="' + on.toFixed(1) + ' ' + (C - on).toFixed(1) + '" transform="rotate(-90 60 60)"/>' +
+      '<text x="60" y="60" text-anchor="middle" font-size="27" font-weight="700" fill="' + ink +
+      '" font-family="IBM Plex Mono,ui-monospace,monospace">' + score + '</text>' +
+      '<text x="60" y="78" text-anchor="middle" font-size="10" fill="' + mut +
+      '" font-family="Inter,system-ui,sans-serif">OF ' + of + '</text></svg>';
+  }
+
+  function renderScore() {
+    scoreCard.querySelector("#scoreOut").innerHTML = domains().map(function (d) {
+      return '<div style="padding:14px 0;border-bottom:1px solid var(--line)">' +
+        '<div class="row" style="align-items:flex-start;gap:22px">' +
+          '<div>' + ringSVG(d.score, d.of) + '</div>' +
+          '<div style="flex:1;min-width:280px">' +
+            '<div class="t-main mono" style="font-size:15px">' + B.esc(d.domain) + '</div>' +
+            '<div class="t-sub" style="margin-bottom:8px">' + B.esc(d.role) + ' · last run ' + B.esc(d.ran) + '</div>' +
+            d.checks.map(function (k) {
+              var pass = k.state === "PASS";
+              return '<div class="chk"><span class="kk">' + B.esc(k.k) + '</span>' +
+                B.tag(k.state, pass ? "good" : "bad") +
+                '<span class="t-sub" style="flex:1">' + B.esc(k.detail) + '</span></div>';
+            }).join("") +
+          '</div>' +
+        '</div></div>';
+    }).join("") +
+    '<div class="fence" style="margin-top:14px"><b>A failing row stays on the screen.</b> The one open item here is a ' +
+    'Content-Security-Policy that has not been shipped yet, on purpose — a wrong policy blanks a website, so it goes out in ' +
+    'report-only first. Software that hides its own red row is worth less than no software.</div>';
+  }
+
+  /* ------------------------------------------------------ the evidence pack */
+  var packCard = B.card(
+    '<h2>The evidence pack</h2>' +
+    '<div class="card-sub">Every run writes a dated pack, and each pack carries the hash of the one before it. That chain is what ' +
+    'makes a record you can hand to an insurer or a client without either of you having to take the other\'s word for it.</div>' +
+    '<div id="packOut"></div>' +
+    '<div class="fence" style="margin-top:12px"><b>What this is not.</b> It is not SOC 2, it is not ISO 27001, and it is not a ' +
+    'certificate. Nobody is audited here. It is a dated record of checks that were actually run, which is exactly what most of the ' +
+    'questions on a client security questionnaire are asking for.</div>'
+  );
+  c.appendChild(packCard);
+
+  function renderPacks() {
+    packCard.querySelector("#packOut").innerHTML =
+      '<table><thead><tr><th>Pack</th><th class="num">Domains</th><th class="num">Open findings</th>' +
+      '<th>Chain</th><th>What the run said</th></tr></thead><tbody>' +
+      packs().map(function (p) {
+        return '<tr><td class="k">' + B.esc(p.num) + '<div class="t-sub">' + B.esc(p.ran) + '</div></td>' +
+          '<td class="num">' + p.domains + '</td>' +
+          '<td class="num">' + B.tag(String(p.findings), p.findings === 0 ? "good" : (p.findings <= 1 ? "watch" : "bad")) + '</td>' +
+          '<td class="k mono">' + B.esc(p.hash) + '</td>' +
+          '<td class="t-sub">' + B.esc(p.note) + '</td></tr>';
+      }).join("") + '</tbody></table>' +
+      '<div class="divider"></div>' +
+      '<div class="row"><button class="btn brass sm" id="epDl">Download the current pack</button>' +
+      '<span class="muted small">A local file. Handing it to a client is a send, and a send is the principal\'s.</span></div>';
+    var b = packCard.querySelector("#epDl");
+    if (b) b.addEventListener("click", function () {
+      var lines = ["AE Comply — evidence pack", "Practice: Buttress OS showroom", ""];
+      domains().forEach(function (d) {
+        lines.push(d.domain + "  (" + d.role + ")  " + d.score + " of " + d.of + "  run " + d.ran);
+        d.checks.forEach(function (k) { lines.push("  " + k.k + "  " + k.state + "  " + k.detail); });
+        lines.push("");
+      });
+      lines.push("AE Comply reports readiness. It does not certify, and this pack is not an audit.");
+      var a = document.createElement("a");
+      a.href = "data:text/plain;charset=utf-8," + encodeURIComponent(lines.join("\n"));
+      a.download = "ae-comply-evidence-pack.txt"; a.style.display = "none";
+      document.body.appendChild(a); try { a.click(); } catch (e) {} a.parentNode.removeChild(a);
+      B.toast("Evidence pack written to your machine — a local save, not a send.", "ok");
+    });
+  }
+
+  /* ------------------------------------------------------ why an architect */
+  c.appendChild(B.card(
+    '<h2>Why an architecture practice ends up needing this</h2>' +
+    '<div class="card-sub">Not because anyone wants a compliance product. Because of who the clients are.</div>' +
+    '<div class="grid g3">' +
+      '<div><div class="t-main">Public work asks</div><div class="t-sub">A school district, a city, a hospital — their procurement ' +
+        'sends a security questionnaire with the contract, and somebody in a five-person firm has to answer it.</div></div>' +
+      '<div><div class="t-main">You are holding the drawings</div><div class="t-sub">The practice holds the plans of buildings the ' +
+        'public walks into, plus every consultant\'s file. That is the reason the question gets asked at all.</div></div>' +
+      '<div><div class="t-main">The insurer asks the same things</div><div class="t-sub">Professional liability renewals now ask ' +
+        'about mail authentication and backups. A dated record beats a best recollection.</div></div>' +
+    '</div>' +
+    '<div class="divider"></div>' +
+    '<div class="row">' +
+      B.tag("Runs on DNS, TLS and public catalogs", "ghost") +
+      B.tag("Daily, not annually", "good") +
+      B.tag("Hash-chained record", "good") +
+      B.tag("Reports readiness — never certifies", "watch") +
+    '</div>' +
+    B.srcNote("AE Comply is an Accelerated Experiences LLC product. It checks SPF, DMARC, MX, TLS and HTTP security headers against the domain's own authoritative nameservers and live responses. It is not an audit, a certification, or a substitute for one.")
+  ));
+
+  /* -------------------------------------------------------- how you get it */
+  c.appendChild(B.card(
+    '<h2>How it gets into this practice</h2>' +
+    '<div class="card-sub">It is a room in this OS, and it is also a product that stands on its own.</div>' +
+    '<table><thead><tr><th>Build</th><th>Comply</th></tr></thead><tbody>' +
+      '<tr><td><div class="t-main">' + B.esc(B.TIERS.grandsuite.name) + '</div>' +
+        '<div class="t-sub">' + B.esc(B.TIERS.grandsuite.base) + '</div></td>' +
+        '<td>' + B.tag("Included", "good") + '<div class="t-sub">Nothing to add. It is on the day the practice opens the OS.</div></td></tr>' +
+      '<tr><td><div class="t-main">' + B.esc(B.TIERS.standard.name) + '</div>' +
+        '<div class="t-sub">' + B.esc(B.TIERS.standard.base) + '</div></td>' +
+        '<td>' + B.tag("Add it — " + B.money(B.ROOMS.comply.mo) + "/mo", "watch") +
+        '<div class="t-sub">A single department added on top, at its own price. Click the price at the top of any room to see it.</div></td></tr>' +
+      '<tr><td><div class="t-main">' + B.esc(B.TIERS.lite.name) + '</div>' +
+        '<div class="t-sub">' + B.esc(B.TIERS.lite.base) + '</div></td>' +
+        '<td>' + B.tag("Add it — " + B.money(B.ROOMS.comply.mo) + "/mo", "watch") +
+        '<div class="t-sub">Same room, same price, whatever build it is bolted to.</div></td></tr>' +
+    '</tbody></table>' +
+    '<div class="fence" style="margin-top:12px">There is <b>no build fee on a licensed product</b>. The room is already written; ' +
+    'adding it is a line on the monthly, not a project.</div>'
+  ));
+
+  renderScore();
+  renderPacks();
+  document.addEventListener("buttress:skin", function () { renderScore(); });
+  var j = document.getElementById("jumpPack");
+  if (j) j.addEventListener("click", function () { try { packCard.scrollIntoView(); } catch (e) {} });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Master List · Buttress OS V2.0</title>
+<meta name="description" content="Buttress OS — the architecture practice operating system. Powered by Accelerated Experiences LLC.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="buttress.css">
+<style>
+.ml-item{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--line)}
+.ml-item:last-child{border-bottom:0}
+.ml-item.done .ml-t{opacity:.5;text-decoration:line-through}
+.ml-box{width:19px;height:19px;border-radius:6px;border:1.5px solid var(--line);flex:none;margin-top:2px;cursor:pointer;
+  display:grid;place-items:center;font-size:11px;background:var(--field,#fff)}
+.ml-item.done .ml-box{background:var(--brass);border-color:var(--brass);color:var(--on-brass)}
+.privgrid{overflow-x:auto}
+.privgrid table{min-width:760px}
+.privgrid td.y{text-align:center;color:var(--good);font-weight:700}
+.privgrid td.n{text-align:center;color:var(--mut);opacity:.55}
+</style>
+</head>
+<body>
+<script src="buttress.js"></script>
+<script>
+(function () {
+  var B = window.Buttress;
+  var c = B.mount({ active: "masterlist.html", crumb: "The Master List" });
+
+  c.appendChild(B.page(
+    "The Master List",
+    "The principal's own running list — the things that are not a task on anyone's project and never make it into a meeting. " +
+    "No other seat in the practice can open this room, and the seat privileges that decide that are set below.",
+    '<button class="btn brass sm" id="jumpPriv">Who can open what</button>'
+  ));
+
+  /* ---------------------------------------------------------------- the list */
+  var listCard = B.card(
+    '<h2>What is actually on your mind</h2>' +
+    '<div class="card-sub">It stays in this browser and it stays in this room. Nothing here routes to a department, nothing here ' +
+    'reaches a client, and no agent reads it.</div>' +
+    '<div id="mlBody"></div>' +
+    '<div class="divider"></div>' +
+    '<div class="row" style="align-items:flex-end">' +
+      '<div style="flex:1;min-width:280px"><label class="f">Add to the list</label>' +
+        '<input id="mlNew" placeholder="The thing you keep meaning to decide"></div>' +
+      '<button class="btn brass" id="mlAdd">Put it on the list</button>' +
+    '</div>'
+  );
+  c.appendChild(listCard);
+
+  function list() { return B.db().masterlist || []; }
+  function renderList() {
+    var rows = list();
+    var open = rows.filter(function (r) { return !r.done; }).length;
+    listCard.querySelector("#mlBody").innerHTML = rows.length
+      ? rows.map(function (r) {
+          return '<div class="ml-item' + (r.done ? " done" : "") + '">' +
+            '<div class="ml-box" data-id="' + B.esc(r.id) + '" role="checkbox" aria-checked="' + (r.done ? "true" : "false") +
+              '" title="' + (r.done ? "Done" : "Not done yet") + '">' + (r.done ? "&#10003;" : "") + '</div>' +
+            '<div style="flex:1"><div class="ml-t">' + B.esc(r.text) + '</div>' +
+            '<div class="t-sub">' + B.esc(r.at) + (r.done ? ' · done' : '') + '</div></div>' +
+          '</div>';
+        }).join("") + '<div class="srcnote" style="margin-top:12px">' + open + ' open · ' + (rows.length - open) + ' done.</div>'
+      : '<div class="empty">Nothing on the list. That is either a good week or a missing habit.</div>';
+    Array.prototype.forEach.call(listCard.querySelectorAll(".ml-box"), function (b) {
+      b.addEventListener("click", function () {
+        var id = this.getAttribute("data-id");
+        B.save(function (d) { (d.masterlist || []).forEach(function (r) { if (r.id === id) r.done = !r.done; }); });
+        renderList();
+      });
+    });
+  }
+  listCard.querySelector("#mlAdd").addEventListener("click", function () {
+    var t = (listCard.querySelector("#mlNew").value || "").trim();
+    if (!t) { B.toast("Write it down first.", ""); return; }
+    var now = new Date();
+    B.save(function (d) {
+      (d.masterlist = d.masterlist || []).unshift({ id:"ml" + Date.now(), text:t, done:false,
+        at: now.getFullYear() + "-" + ("0" + (now.getMonth() + 1)).slice(-2) + "-" + ("0" + now.getDate()).slice(-2) });
+    });
+    listCard.querySelector("#mlNew").value = "";
+    renderList();
+  });
+
+  /* ------------------------------------------------------------ privileges */
+  var privCard = B.card(
+    '<h2>Seat privileges — who can open what</h2>' +
+    '<div class="card-sub">A job captain should not be able to open payroll. A bookkeeper should not be able to issue a drawing set. ' +
+    'An outside consultant should see the coordination room and nothing else. The seat decides the rail; it does not decide the ' +
+    'signature — that is a separate question, and the answer to it is always the principal.</div>' +
+    '<div class="row" style="align-items:flex-end;margin-bottom:14px">' +
+      '<div style="min-width:280px"><label class="f">Look at the OS as</label><select id="pvRole"></select></div>' +
+      '<div id="pvLine" class="muted small" style="flex:1;min-width:240px"></div>' +
+      '<button class="btn ghost sm" id="pvReset">Back to the principal</button>' +
+    '</div>' +
+    '<div class="fence" style="margin-bottom:14px" id="pvNote"></div>' +
+    '<div class="privgrid" id="pvGrid"></div>' +
+    B.srcNote("The seats and their room lists are this OS's own privilege model (B.ROLES). A firm sets its own; these are the divisions an architecture practice actually runs on.")
+  );
+  c.appendChild(privCard);
+
+  function allNavItems() {
+    var out = [];
+    B.DEPTS.forEach(function (g) { g.items.forEach(function (it) { out.push({ g:g.group, it:it }); }); });
+    return out;
+  }
+
+  function renderPriv() {
+    var cur = B.viewRole();
+    var sel = privCard.querySelector("#pvRole");
+    sel.innerHTML = B.ROLES.map(function (r) {
+      return '<option value="' + B.esc(r.key) + '"' + (r.key === cur.key ? " selected" : "") + '>' + B.esc(r.name) + '</option>';
+    }).join("");
+    privCard.querySelector("#pvLine").textContent = cur.line;
+
+    var items = allNavItems();
+    var visible = items.filter(function (x) { return B.roleCan(x.it); }).length;
+    privCard.querySelector("#pvNote").innerHTML = cur.key === "principal"
+      ? '<b>You are looking at it as the principal.</b> Every door is open, and every fence lands here. ' +
+        'Switch the seat above and watch the rail on the left change while you read.'
+      : '<b>The rail on the left just changed.</b> The ' + B.esc(cur.name) + ' seat opens ' + visible + ' of ' + items.length +
+        ' doors; the rest are marked <span class="mono">seat</span> and will not open. ' +
+        (cur.signs ? '' : 'This seat signs nothing behind a fence — an approval still goes to the principal.');
+
+    var rows = items.map(function (x) {
+      return '<tr><td class="k">' + B.esc(x.it.label) + '<div class="t-sub">' + B.esc(x.g) + '</div></td>' +
+        B.ROLES.map(function (r) {
+          var can = r.rooms === "*" || r.rooms.indexOf(B.navKey(x.it)) >= 0;
+          return '<td class="' + (can ? "y" : "n") + '">' + (can ? "&#9679;" : "&#8212;") + '</td>';
+        }).join("") + '</tr>';
+    }).join("");
+
+    privCard.querySelector("#pvGrid").innerHTML =
+      '<table><thead><tr><th>Room</th>' + B.ROLES.map(function (r) {
+        return '<th style="text-align:center">' + B.esc(r.name.split(" ")[0]) +
+          '<div class="t-sub" style="font-weight:400">' + B.esc(r.name.replace(/^\S+\s*/, "") || "&nbsp;") + '</div></th>';
+      }).join("") + '</tr></thead><tbody>' + rows +
+      '<tr><td class="k">Signs behind a fence<div class="t-sub">Approval Desk</div></td>' +
+      B.ROLES.map(function (r) { return '<td class="' + (r.signs ? "y" : "n") + '">' + (r.signs ? "&#9679;" : "&#8212;") + '</td>'; }).join("") +
+      '</tr></tbody></table>';
+  }
+  privCard.querySelector("#pvRole").addEventListener("change", function () {
+    B.setViewRole(this.value);
+    B.toast("Now looking at the OS as the " + B.roleByKey(this.value).name + " seat.", "ok");
+    setTimeout(function () { location.reload(); }, 450);
+  });
+  privCard.querySelector("#pvReset").addEventListener("click", function () {
+    B.setViewRole("principal");
+    setTimeout(function () { location.reload(); }, 300);
+  });
+
+  /* ------------------------------------------------------- fences vs seats */
+  c.appendChild(B.card(
+    '<h2>A seat is not a signature</h2>' +
+    '<div class="card-sub">These get confused in most software, and confusing them is how a practice ends up with an office manager ' +
+    'who can issue a permit set because somebody needed her to be able to print one.</div>' +
+    '<div class="grid g2">' +
+      '<div><div class="t-main">The seat decides what opens</div>' +
+        '<div class="t-sub">Rooms, and the data inside them. It is a convenience and a privacy line: a designer does not need the ' +
+        'multiplier board, and the firm does not need the designer looking at it.</div></div>' +
+      '<div><div class="t-main">The fence decides what leaves</div>' +
+        '<div class="t-sub">Anything that reaches a client, a bidder, an authority or a bank account stages at the Approval Desk ' +
+        'with its reasons attached — no matter which seat started it, and no matter how confident the agent was.</div></div>' +
+    '</div>' +
+    '<div class="divider"></div>' +
+    '<div class="row">' +
+      B.tag("Seats change the rail", "good") +
+      B.tag("Fences never delegate", "watch") +
+      B.tag("The principal is the only signature", "watch") +
+      B.tag("This room is the principal's alone", "ghost") +
+    '</div>'
+  ));
+
+  renderList();
+  renderPriv();
+  var j = document.getElementById("jumpPriv");
+  if (j) j.addEventListener("click", function () { try { privCard.scrollIntoView(); } catch (e) {} });
+})();
+</script>
+</body>
+</html>

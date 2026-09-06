@@ -43,6 +43,13 @@
       permits:     clone(SEED.permits),
       pursuits:    clone(SEED.pursuits),
       labor:       clone(SEED.labor),
+      timesheet:   clone(SEED.timesheet),
+      masterlist:  clone(SEED.masterlist),
+      comply:      clone(SEED.comply),
+      evidencePacks: clone(SEED.evidencePacks),
+      viewRole:    "principal",
+      payrolls:    clone(SEED.payrolls),
+      burden:      BURDEN_DEFAULT,
       invoices:    clone(SEED.invoices),
       team:        clone(SEED.team),
       systems:     clone(SEED.systems),
@@ -210,6 +217,16 @@
     { sec:"32 13 13", title:"Concrete Paving",               div:"32", subs:["Mix designs","Joint layout"] },
     { sec:"32 92 00", title:"Turf & Grasses",                div:"32", subs:["Product data","Seed certifications"] }
   ];
+
+
+  /* Employer burden — the load on top of a paycheck before overhead. Payroll
+     taxes, insurance and benefits. Shown as a rate you set, because it is the
+     firm's own number; the default sits inside the range published for
+     professional-services employers. */
+  var BURDEN_DEFAULT = 22;
+
+  /* The phases time gets charged to are the same AIA B101 phases the fee is
+     split across (above) — that is what makes a timesheet reconcile to a fee. */
 
   /* A/E financial benchmarks. EVERY number here is sourced and tagged — the
      honesty rule means we show where it came from, never assert it. */
@@ -391,6 +408,63 @@
       { id:"l6", name:"Ray Mendel",      role:"Admin",             rate:0,   cost:29,  hours:150, billable:0,   target:0 }
     ],
 
+    /* This week's timesheet, entry by entry. The month totals on `labor` above
+       are what utilization and the multiplier already read; posting a week adds
+       these hours to them, which is the whole point — one entry, and it moves
+       the project, the invoice and the board at the same time. */
+    timesheet: [
+      { id:"tm1", who:"l2", date:"2026-07-20", project:"Riverside Branch Library",   phase:"CA",  hours:7.5, billable:true,  note:"RFI-014 curtain wall head; site visit follow-up." },
+      { id:"tm2", who:"l2", date:"2026-07-21", project:"Riverside Branch Library",   phase:"CA",  hours:6,   billable:true,  note:"Submittal review — storefront samples." },
+      { id:"tm3", who:"l2", date:"2026-07-22", project:"Hayden Medical Office",      phase:"DD",  hours:8,   billable:true,  note:"Ceiling coordination with Cascade MEP." },
+      { id:"tm4", who:"l3", date:"2026-07-20", project:"Fernan Elementary Addition", phase:"CA",  hours:8,   billable:true,  note:"Bulletin 3 — roof and parapet details." },
+      { id:"tm5", who:"l3", date:"2026-07-21", project:"Hayden Medical Office",      phase:"DD",  hours:7,   billable:true,  note:"Enlarged plans, exam rooms." },
+      { id:"tm6", who:"l3", date:"2026-07-22", project:"Post Falls Community Center",phase:"PD",  hours:3,   billable:false, note:"RFQ response — pursuit time, not billable." },
+      { id:"tm7", who:"l4", date:"2026-07-20", project:"Lakeside Residence",         phase:"SD",  hours:8,   billable:true,  note:"Site plan and massing studies." },
+      { id:"tm8", who:"l4", date:"2026-07-21", project:"Lakeside Residence",         phase:"SD",  hours:7.5, billable:true,  note:"Shoreline setback options." },
+      { id:"tm9", who:"l5", date:"2026-07-20", project:"Riverside Branch Library",   phase:"CD",  hours:8,   billable:true,  note:"Wall sections, A-501 addendum sheets." },
+      { id:"tm10",who:"l5", date:"2026-07-22", project:"Riverside Branch Library",   phase:"CD",  hours:6.5, billable:true,  note:"Door and window schedule cleanup." },
+      { id:"tm11",who:"l1", date:"2026-07-21", project:"Post Falls Community Center",phase:"PD",  hours:4,   billable:false, note:"Shortlist interview prep." },
+      { id:"tm12",who:"l1", date:"2026-07-22", project:"Fernan Elementary Addition", phase:"CA",  hours:2.5, billable:true,  note:"Principal review — bulletin sign-off." },
+      { id:"tm13",who:"l6", date:"2026-07-20", project:"—",                          phase:"OH",  hours:8,   billable:false, note:"Office administration." },
+      { id:"tm14",who:"l6", date:"2026-07-21", project:"—",                          phase:"OH",  hours:8,   billable:false, note:"Invoicing and filing." }
+    ],
+
+    /* AE Comply — the readiness checks it actually runs, and what came back on
+       this practice's own domains. Monitors readiness; it does not certify. */
+    comply: [
+      { id:"cd1", domain:"whitfield-arch.com", role:"Practice website & email", score:4, of:5, ran:"2026-07-22 04:10",
+        checks:[ {k:"SPF",    state:"PASS", detail:"v=spf1 include:_spf.google.com ~all — resolved at the authoritative nameserver."},
+                 {k:"DMARC",  state:"PASS", detail:"p=quarantine with aggregate reporting on."},
+                 {k:"MX",     state:"PASS", detail:"Two records, both reachable, both on TLS."},
+                 {k:"TLS",    state:"PASS", detail:"TLS 1.3 · certificate auto-renewing · 61 days to expiry."},
+                 {k:"Headers",state:"FAIL", detail:"No Content-Security-Policy. A wrong policy blanks a site, so it is a report-only pass first — staged, not skipped."} ] },
+      { id:"cd2", domain:"portal.whitfield-arch.com", role:"Client drawing portal", score:5, of:5, ran:"2026-07-22 04:11",
+        checks:[ {k:"SPF",    state:"PASS", detail:"Inherits the practice record."},
+                 {k:"DMARC",  state:"PASS", detail:"p=quarantine."},
+                 {k:"MX",     state:"PASS", detail:"No mail on this host by design."},
+                 {k:"TLS",    state:"PASS", detail:"TLS 1.3 · HSTS on."},
+                 {k:"Headers",state:"PASS", detail:"nosniff · SAMEORIGIN · referrer-policy · CSP present."} ] }
+    ],
+    evidencePacks: [
+      { id:"ep1", num:"PACK-003", ran:"2026-07-22", domains:2, findings:1, hash:"9f2c…a71b", note:"Fleet at 4 of 5 and 5 of 5. One open item, named and dated." },
+      { id:"ep2", num:"PACK-002", ran:"2026-06-24", domains:2, findings:3, hash:"41ae…0c92", note:"DMARC tightened to quarantine; portal headers added." },
+      { id:"ep3", num:"PACK-001", ran:"2026-05-27", domains:2, findings:5, hash:"c803…5d14", note:"First run. The baseline everything since is measured against." }
+    ],
+
+    /* The principal's own list. Nobody else's seat opens this room. */
+    masterlist: [
+      { id:"ml1", text:"Decide the Hayden Self-Storage teaming question before the 20th — design-build sub or pass.", done:false, at:"2026-07-18" },
+      { id:"ml2", text:"Marcus is at 70% utilization three months running. Raise or he is gone by spring.", done:false, at:"2026-07-16" },
+      { id:"ml3", text:"Cascade MEP is late twice on the same project. One more and the C401 gets a deliverable-date clause.", done:false, at:"2026-07-14" },
+      { id:"ml4", text:"Ask the CPA whether the multiplier target should move now that the Fernan CA phase is over.", done:true,  at:"2026-07-09" }
+    ],
+
+    /* Payroll periods already run. A run is money leaving the firm, so running
+       one stages at the Approval Desk — Buttress never moves money itself. */
+    payrolls: [
+      { id:"pr1", period:"2026-07-01 → 2026-07-15", paid:"2026-07-20", seats:6, hours:486.5, gross:31842, burden:22, status:"Paid" }
+    ],
+
     invoices: [
       { id:"i1", num:"24-018-07", project:"Riverside Branch Library", phase:"CD", amount:48000, reimb:2140, consultant:9200, issued:"2026-06-30", status:"Open", age:24 },
       { id:"i2", num:"24-022-07", project:"Fernan Elementary Addition", phase:"CA", amount:22000, reimb:860,  consultant:0,    issued:"2026-06-30", status:"Open", age:24 },
@@ -476,12 +550,16 @@
                    why:"NCS sheet index, revision history, and the permit-set vs bid-set vs addendum distinction." },
     coord:       { label:"Consultants & AHJ",       mo:85,  build:600,
                    why:"C401 scopes and deliverable dates, plus permit comment and resubmittal cycles. Nothing at this size tracks this." },
+    time:        { label:"Time & Payroll",          mo:70,  build:450,
+                   why:"Timesheets by project and phase, the payroll run off those same hours, and a journal-ready handoff to the accountant." },
     books:       { label:"Books & Multipliers",     mo:95,  build:700,
                    why:"Utilization, net multiplier, realization, backlog, AR and WIP — computed, not reconstructed." },
     hr:          { label:"HR · People Ops",         mo:70,  build:450,
                    why:"Roster, onboarding, and licensure/CE tracking. A lapsed stamp is a stop-work event." },
     it:          { label:"IT · System Health",      mo:60,  build:400,
                    why:"CLEAR / WATCH / INTERVENE on the model store, plot queue, portal and backups." },
+    comply:      { label:"Comply · Trust Center",   mo:149, build:0,
+                   why:"AE Comply watching the practice's own domains and headers, with a dated evidence pack for the client security questionnaire. Included with Multi-office; an add-on below it." },
     org:         { label:"Agent Org · Bus",         mo:145, build:1200,
                    why:"The ten department chains, the event bus, and the confidence gates. This is the engine." },
     specs:       { label:"Specs · MasterFormat",    mo:120, build:900,
@@ -654,17 +732,17 @@
     lite: { key:"lite", name:"Studio", rank:1, mo:550, build:3500,
       desc:"Core practice. Pursuits, fees, the commission spine, the CA desk, details and billing.",
       base:"Single office · up to 5 seats",
-      includes:["pursuits","proposal","commissions","ca","details","billing"] },
+      includes:["pursuits","proposal","commissions","ca","details","billing","time"] },
     standard: { key:"standard", name:"Firm", rank:2, mo:1200, build:8400,
       desc:"The working firm. Adds sheet control, consultant & AHJ coordination, the multiplier board, HR, IT — and the agent org.",
       base:"Single office · up to 15 seats",
-      includes:["pursuits","proposal","commissions","ca","details","billing",
+      includes:["pursuits","proposal","commissions","ca","details","billing","time",
                 "sheets","coord","books","hr","it","org"] },
     grandsuite: { key:"grandsuite", name:"Multi-office", rank:3, mo:2800, build:14500,
       desc:"The whole practice, nothing held back. Every department, the full ten-chain agent org, specs, contracts and operations.",
       base:"Multi-office · unlimited seats · dedicated environment · data migration",
-      includes:["pursuits","proposal","commissions","ca","details","billing",
-                "sheets","coord","books","hr","it","org","specs","law","ops"] }
+      includes:["pursuits","proposal","commissions","ca","details","billing","time",
+                "sheets","coord","books","hr","it","org","specs","law","ops","comply"] }
   };
 
   /* Departments (nav). `room` links a nav item to its price-book entry.
@@ -692,6 +770,7 @@
       { href:"coord.html",       label:"Consultants & AHJ",   ic:"⇋", room:"coord",       accent:"coord", icon:"icons/coord.svg" }
     ]},
     { group:"Money", items:[
+      { href:"time.html",        label:"Time & Payroll",      ic:"◷", room:"time",       accent:"money", icon:"icons/time.svg" },
       { href:"billing.html",     label:"Billing",             ic:"◧", room:"billing",     accent:"money", icon:"icons/billing.svg" },
       { href:"books.html",       label:"Books & Multipliers", ic:"◭", room:"books",       accent:"money", icon:"icons/books.svg" }
     ]},
@@ -700,16 +779,58 @@
       { href:"ops.html",         label:"Operations",          ic:"⛭", room:"ops",         accent:"ops", icon:"icons/ops.svg" }
     ]},
     { group:"Governance", items:[
+      { href:"comply.html",      label:"Comply · Trust Center",ic:"◈", room:"comply",     accent:"ops",  icon:"icons/comply.svg" },
       { href:"law.html",         label:"Law · Contracts",     ic:"⚖", room:"law",         accent:"law", icon:"icons/law-contracts.svg" },
       { href:"it.html",          label:"IT · System Health",  ic:"♥", room:"it",          accent:"it", icon:"icons/it.svg" }
     ]},
     { group:"The House", items:[
+      { href:"masterlist.html",  label:"The Master List",     ic:"✦", icon:"icons/master-list.svg" },
       { href:"skins.html",       label:"Skin Machine",        ic:"◐", icon:"icons/skins.svg" }
     ]},
     { group:"The Org", items:[
       { href:"org.html",         label:"Agent Org · Bus",     ic:"❖", room:"org",         accent:"ops", icon:"icons/org.svg" }
     ]}
   ];
+
+
+  /* ============================================================= PRIVILEGES
+     Who can open what, and who can sign. A job captain should not be able to
+     open payroll; a bookkeeper should not be able to issue a drawing set. The
+     seat decides the rail, and the FENCE decides the signature — those are two
+     different questions and this OS answers them separately.
+     `rooms:"*"` means every room. Fences are never delegated: a fence always
+     lands on the principal, whatever the seat. */
+  var ROLES = [
+    { key:"principal", name:"Principal · Architect of Record", rank:5, rooms:"*", signs:true,
+      line:"The stamp and the signature. The only seat a fence can land on." },
+    { key:"associate", name:"Associate / Office Admin", rank:4, signs:false,
+      rooms:["dashboard","calendar","contacts","connect","records","approvals","pursuits","proposal","commissions",
+             "ca","sheets","details","specs","coord","time","billing","books","hr","ops","law","it","org","comply","skins"],
+      line:"Runs the office. Sees everything except the principal's own list." },
+    { key:"pa", name:"Project Architect", rank:3, signs:false,
+      rooms:["dashboard","calendar","contacts","connect","records","approvals","pursuits","proposal","commissions",
+             "ca","sheets","details","specs","coord","time","skins"],
+      line:"Runs projects. Own time, not the firm's money." },
+    { key:"captain", name:"Job Captain / Designer", rank:2, signs:false,
+      rooms:["dashboard","calendar","contacts","connect","records","commissions","ca","sheets","details","specs","time","skins"],
+      line:"Draws and documents. Logs time, sees no rates but their own work." },
+    { key:"books", name:"Bookkeeper / Accountant", rank:2, signs:false,
+      rooms:["dashboard","calendar","contacts","records","approvals","time","billing","books","commissions","skins"],
+      line:"The money rooms and the timesheet that feeds them. Not the drawings." },
+    { key:"consultant", name:"Consultant · outside the office", rank:1, signs:false,
+      rooms:["connect","coord","records"],
+      line:"An outside engineer sees the coordination room and nothing else." }
+  ];
+  function roleByKey(k) { return ROLES.filter(function (r) { return r.key === k; })[0] || ROLES[0]; }
+  function viewRole() { var d = db(); return roleByKey(d.viewRole || "principal"); }
+  function setViewRole(k) { save(function (d) { d.viewRole = k; }); }
+  /* The room key a nav item gates on: its priced `room`, or its page stem. */
+  function navKey(it) { return it.room || String(it.href || "").replace(/\.html$/, ""); }
+  function roleCan(it) {
+    var r = viewRole();
+    if (r.rooms === "*") return true;
+    return r.rooms.indexOf(navKey(it)) >= 0;
+  }
 
   /* ----------------------------------------------------------- the agent org
      Faithful to AEHub canon: each department is a chain
@@ -1304,12 +1425,20 @@
       nav.appendChild(el('<div class="nav-group">' + esc(grp.group) + '</div>'));
       grp.items.forEach(function (it) {
         var off = it.room && on.indexOf(it.room) < 0;
-        var a = el('<a href="' + (off ? "javascript:void(0)" : it.href) + '" class="navlink ' +
-          (it.href === active ? "active" : "") + (off ? " locked" : "") + '"' +
+        var barred = !off && !roleCan(it);        /* in the build, outside this seat's privileges */
+        var a = el('<a href="' + (off || barred ? "javascript:void(0)" : it.href) + '" class="navlink ' +
+          (it.href === active ? "active" : "") + (off || barred ? " locked" : "") + '"' +
           (it.accent ? ' data-accent="' + it.accent + '"' : "") + '>' +
           (it.icon ? '<img class="ic ic-img" src="' + it.icon + '" alt="">' : '<span class="ic">' + it.ic + '</span>') +
           '<span class="lb">' + esc(it.label) + '</span>' +
-          (off ? '<span class="tier-tag">+' + money(ROOMS[it.room].mo) + '</span>' : '') + '</a>');
+          (off ? '<span class="tier-tag">+' + money(ROOMS[it.room].mo) + '</span>' : '') +
+          (barred ? '<span class="tier-tag">seat</span>' : '') + '</a>');
+        if (barred) {
+          a.title = "Outside the " + viewRole().name + " seat's privileges";
+          a.addEventListener("click", function () {
+            toast(it.label + " is outside the " + viewRole().name + " seat. The Master List sets who opens what.", "");
+          });
+        }
         if (off) {
           a.title = "Not in this build — add " + ROOMS[it.room].label +
                     " for " + money(ROOMS[it.room].mo) + "/mo";
@@ -1534,7 +1663,7 @@
     db:db, save:save, resetFloor:resetFloor, fresh:fresh, SEED:SEED,
     /* industry canon */
     PHASES:PHASES, CA_TYPES:CA_TYPES, CA_STATUS:CA_STATUS, BALL:BALL,
-    SUBMITTAL_ACTIONS:SUBMITTAL_ACTIONS, DISCIPLINES:DISCIPLINES, SHEET_TYPES:SHEET_TYPES, STANDARD_SET:STANDARD_SET, MF_SECTIONS:MF_SECTIONS,
+    SUBMITTAL_ACTIONS:SUBMITTAL_ACTIONS, DISCIPLINES:DISCIPLINES, SHEET_TYPES:SHEET_TYPES, STANDARD_SET:STANDARD_SET, MF_SECTIONS:MF_SECTIONS, BURDEN_DEFAULT:BURDEN_DEFAULT, ROLES:ROLES, roleByKey:roleByKey, viewRole:viewRole, setViewRole:setViewRole, roleCan:roleCan, navKey:navKey,
     ISSUE_SETS:ISSUE_SETS, MF_DIVISIONS:MF_DIVISIONS, BENCH:BENCH, PAIN:PAIN, REPLACES:REPLACES,
     /* tiers, the price book, the configurator + org */
     TIERS:TIERS, ROOMS:ROOMS, DEPTS:DEPTS, SEATS:SEATS, BRAIN:BRAIN,

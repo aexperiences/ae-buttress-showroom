@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Time &amp; Payroll · Buttress OS V2.0</title>
+<meta name="description" content="Buttress OS — the architecture practice operating system. Powered by Accelerated Experiences LLC.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="buttress.css">
+<style>
+.tsheet td.hr{font-family:IBM Plex Mono,ui-monospace,monospace;text-align:right}
+.chartwrap{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+@media (max-width:900px){.chartwrap{grid-template-columns:1fr}}
+.legrow{display:flex;align-items:center;gap:8px;font-size:12.5px;margin:5px 0}
+.legdot{width:11px;height:11px;border-radius:3px;flex:none}
+</style>
+</head>
+<body>
+<script src="buttress.js"></script>
+<script>
+(function () {
+  var B = window.Buttress;
+  var c = B.mount({ active: "time.html", crumb: "Time & Payroll" });
+
+  var PHASE_ORDER = ["PD","SD","DD","CD","BID","CA","OH"];
+  function phaseName(k) {
+    if (k === "OH") return "Overhead — not chargeable to a project";
+    var p = B.PHASES.filter(function (x) { return x.k === k; })[0];
+    return p ? p.name : k;
+  }
+  function seat(id) { return (B.db().labor || []).filter(function (l) { return l.id === id; })[0] || { name:"—", role:"—", rate:0, cost:0 }; }
+  function ts() { return B.db().timesheet || []; }
+  function h1(n) { return (Math.round(Number(n) * 10) / 10).toFixed(1); }
+  function today() {
+    var t = new Date();
+    return t.getFullYear() + "-" + ("0" + (t.getMonth() + 1)).slice(-2) + "-" + ("0" + t.getDate()).slice(-2);
+  }
+  function css(v, fb) {
+    try { var x = getComputedStyle(document.documentElement).getPropertyValue(v).trim(); return x || fb; }
+    catch (e) { return fb; }
+  }
+  /* The palette rides the skin, so the charts recolor with the rest of the OS. */
+  function palette() {
+    return [css("--a-money","#c9a25c"), css("--a-studio","#5b7f96"), css("--a-ca","#c7865a"),
+            css("--a-coord","#7ba0a0"), css("--a-standards","#9a84a3"), css("--a-pursuits","#8fa58b"),
+            css("--mut","#8b8175")];
+  }
+
+  /* ------------------------------------------------------------- page head */
+  c.appendChild(B.page(
+    "Time & Payroll",
+    "The hours, by project and by phase — and the payroll that runs off those same hours. A timesheet entry here moves the project's " +
+    "percent complete, the utilization on the board, and what Billing is allowed to invoice. One entry, three places, no re-keying.",
+    '<button class="btn brass sm" id="jumpRun">Run payroll</button>'
+  ));
+
+  /* ----------------------------------------------------------------- stats */
+  var statCard = B.card(
+    '<h2>The week, at a glance</h2>' +
+    '<div class="card-sub">Counted off the entries below — not a report someone rebuilt on Friday afternoon.</div>' +
+    '<div class="statrow" id="statRow"></div>'
+  );
+  c.appendChild(statCard);
+
+  function weekTotals() {
+    var rows = ts(), t = { hours:0, billable:0, value:0, cost:0, people:{} };
+    rows.forEach(function (r) {
+      var s = seat(r.who), h = Number(r.hours) || 0;
+      t.hours += h; t.people[r.who] = 1;
+      if (r.billable) { t.billable += h; t.value += h * (Number(s.rate) || 0); }
+      t.cost += h * (Number(s.cost) || 0);
+    });
+    return t;
+  }
+  function renderStats() {
+    var t = weekTotals();
+    var pct = t.hours ? Math.round((t.billable / t.hours) * 100) : 0;
+    var bench = B.BENCH.utilization;
+    statCard.querySelector("#statRow").innerHTML =
+      B.stat("Hours logged", h1(t.hours), Object.keys(t.people).length + " seats this week") +
+      B.stat("Billable", h1(t.billable), pct + "% of the week", pct >= bench.target[0] ? "good" : (pct >= bench.target[0] * 0.9 ? "watch" : "bad")) +
+      B.stat("Value of the billable hours", B.money(Math.round(t.value)), "At each seat's billing rate") +
+      B.stat("Direct labor cost", B.money(Math.round(t.cost)), "Hours × cost rate, before burden") +
+      B.stat("Target band", bench.target[0] + "–" + bench.target[1] + "%", "Utilization, per the benchmark");
+  }
+
+  /* ------------------------------------------------------------- the week */
+  var weekCard = B.card(
+    '<h2>The week</h2>' +
+    '<div class="card-sub">Every entry carries a project and a phase, because a timesheet that does not name the phase cannot reconcile ' +
+    'to a fee. Non-billable is a first-class answer — pursuit time and office time are real hours, and pretending otherwise is how ' +
+    'utilization gets flattered.</div>' +
+    '<div id="weekBody"></div>'
+  );
+  c.appendChild(weekCard);
+
+  function projOpts(sel) {
+    var d = B.db();
+    return d.commissions.map(function (p) {
+      return '<option value="' + B.esc(p.name) + '"' + (p.name === sel ? " selected" : "") + '>' + B.esc(p.name) + '</option>';
+    }).join("") +
+    d.pursuits.map(function (p) {
+      return '<option value="' + B.esc(p.name) + '"' + (p.name === sel ? " selected" : "") + '>' + B.esc(p.name) + ' — pursuit</option>';
+    }).join("") +
+    '<option value="—"' + (sel === "—" ? " selected" : "") + '>— office / overhead</option>';
+  }
+
+  function renderWeek() {
+    var d = B.db();
+    var rows = ts().slice().sort(function (a, b) { return (a.who + a.date) < (b.who + b.date) ? -1 : 1; });
+    var groups = [];
+    rows.forEach(function (r) {
+      var g = groups.filter(function (x) { return x.who === r.who; })[0];
+      if (!g) { g = { who:r.who, rows:[] }; groups.push(g); }
+      g.rows.push(r);
+    });
+
+    var body = groups.map(function (g) {
+      var s = seat(g.who);
+      var hrs = g.rows.reduce(function (a, r) { return a + (Number(r.hours) || 0); }, 0);
+      var bil = g.rows.reduce(function (a, r) { return a + (r.billable ? (Number(r.hours) || 0) : 0); }, 0);
+      var pct = hrs ? Math.round((bil / hrs) * 100) : 0;
+      return '<tr><td colspan="5" style="background:var(--sunk);font-weight:640">' + B.esc(s.name) +
+        ' <span class="muted small">· ' + B.esc(s.role) + ' · ' + h1(hrs) + ' h, ' + pct + '% billable' +
+        (s.target ? ' against a ' + s.target + '% target' : '') + '</span></td></tr>' +
+        g.rows.map(function (r) {
+          return '<tr>' +
+            '<td class="k">' + B.esc(r.date) + '</td>' +
+            '<td><div class="t-main">' + B.esc(r.project) + '</div>' +
+              '<div class="t-sub">' + B.esc(r.note) + '</div></td>' +
+            '<td>' + B.tag(r.phase, r.phase === "OH" ? "ghost" : "") +
+              '<div class="t-sub">' + B.esc(phaseName(r.phase)) + '</div></td>' +
+            '<td class="hr num">' + h1(r.hours) + '</td>' +
+            '<td>' + (r.billable ? B.tag("Billable", "good") : B.tag("Not billable", "ghost")) + '</td>' +
+          '</tr>';
+        }).join("");
+    }).join("");
+
+    var seatOpts = (d.labor || []).map(function (l) {
+      return '<option value="' + B.esc(l.id) + '">' + B.esc(l.name) + ' · ' + B.esc(l.role) + '</option>';
+    }).join("");
+    var phaseOpts = PHASE_ORDER.map(function (k) {
+      return '<option value="' + k + '"' + (k === "CD" ? " selected" : "") + '>' + k + ' — ' + B.esc(phaseName(k)) + '</option>';
+    }).join("");
+
+    weekCard.querySelector("#weekBody").innerHTML =
+      '<table class="tsheet"><thead><tr><th>Date</th><th>Project</th><th>Phase</th>' +
+      '<th class="num">Hours</th><th>Billable</th></tr></thead><tbody>' +
+      (body || '<tr><td colspan="5" class="empty">No hours logged this week yet.</td></tr>') +
+      '</tbody></table>' +
+      '<div class="divider"></div>' +
+      '<div class="row" style="align-items:flex-end">' +
+        '<div style="min-width:190px"><label class="f">Who</label><select id="tWho">' + seatOpts + '</select></div>' +
+        '<div style="min-width:210px"><label class="f">Project</label><select id="tProj">' + projOpts() + '</select></div>' +
+        '<div style="min-width:210px"><label class="f">Phase</label><select id="tPhase">' + phaseOpts + '</select></div>' +
+        '<div style="min-width:120px"><label class="f">Hours</label><input id="tHrs" type="number" min="0.5" max="16" step="0.5" value="8"></div>' +
+        '<div style="min-width:150px"><label class="f">Date</label><input id="tDate" type="date" value="' + today() + '"></div>' +
+        '<div style="flex:1;min-width:200px"><label class="f">What you did</label><input id="tNote" placeholder="The line that answers a question three months from now"></div>' +
+        '<button class="btn brass" id="tAdd">Log the hours</button>' +
+      '</div>' +
+      '<div class="divider"></div>' +
+      '<div class="row" style="align-items:center">' +
+        '<button class="btn brass" id="tPost">Post the week to the book</button>' +
+        '<span class="muted small">Adds these hours to the month on the Books board — utilization, the multiplier and percent complete all move at once.</span>' +
+      '</div>' +
+      '<div class="fence" style="margin-top:12px">A phase entered as <b>OH</b> is overhead: real hours, no project, never billable. ' +
+      'That is the honest denominator utilization is supposed to have.</div>';
+
+    weekCard.querySelector("#tAdd").addEventListener("click", addEntry);
+    weekCard.querySelector("#tPost").addEventListener("click", postWeek);
+    weekCard.querySelector("#tPhase").addEventListener("change", function () {
+      var oh = this.value === "OH";
+      var p = weekCard.querySelector("#tProj");
+      if (oh) p.value = "—";
+    });
+  }
+
+  function addEntry() {
+    var who = weekCard.querySelector("#tWho").value;
+    var proj = weekCard.querySelector("#tProj").value;
+    var phase = weekCard.querySelector("#tPhase").value;
+    var hrs = Number(weekCard.querySelector("#tHrs").value) || 0;
+    var date = weekCard.querySelector("#tDate").value || today();
+    var note = (weekCard.querySelector("#tNote").value || "").trim();
+    if (hrs <= 0) { B.toast("Put some hours on it first.", ""); return; }
+    var pursuit = B.db().pursuits.filter(function (p) { return p.name === proj; }).length > 0;
+    var billable = phase !== "OH" && proj !== "—" && !pursuit;
+    B.save(function (d) {
+      (d.timesheet = d.timesheet || []).push({ id:"tm" + Date.now(), who:who, date:date, project:proj,
+        phase:phase, hours:hrs, billable:billable, note:note || "—" });
+    });
+    weekCard.querySelector("#tNote").value = "";
+    B.toast(h1(hrs) + " h logged to " + proj + " at " + phase +
+      (billable ? " — billable." : " — not billable, and the board will say so."), "ok");
+    paintAll();
+  }
+
+  function postWeek() {
+    var rows = ts();
+    if (!rows.length) { B.toast("Nothing to post — the week is empty.", ""); return; }
+    var before = Math.round(B.kpis().filter(function (k) { return k.k === "utilization"; })[0].value);
+    var moved = 0;
+    B.save(function (d) {
+      rows.forEach(function (r) {
+        var l = (d.labor || []).filter(function (x) { return x.id === r.who; })[0];
+        if (!l) return;
+        l.hours = (Number(l.hours) || 0) + (Number(r.hours) || 0);
+        if (r.billable) l.billable = (Number(l.billable) || 0) + (Number(r.hours) || 0);
+        moved += Number(r.hours) || 0;
+      });
+      d.timesheet = [];
+    });
+    var after = Math.round(B.kpis().filter(function (k) { return k.k === "utilization"; })[0].value);
+    B.toast(h1(moved) + " hours posted to the month. Utilization moved from " + before + "% to " + after +
+            "% — the same numbers the Books board reads.", "ok");
+    paintAll();
+  }
+
+  /* ------------------------------------------------------- where it went */
+  var chartCard = B.card(
+    '<h2>Where the hours went</h2>' +
+    '<div class="card-sub">The same entries, read two ways: which project carried the week, and which phase the firm is actually ' +
+    'living in. A practice that thinks it is in Design Development and is really in Construction Administration is a practice ' +
+    'burning a phase it already spent.</div>' +
+    '<div class="chartwrap" id="chartOut"></div>'
+  );
+  c.appendChild(chartCard);
+
+  function renderCharts() {
+    var rows = ts(), PAL = palette();
+    var ink = css("--ink", "#e7edf3"), mut = css("--mut", "#8b8175"), trk = css("--sunk", "rgba(128,128,128,.2)");
+
+    /* --- by project: horizontal bars, billable and not, stacked --- */
+    var byP = {}, order = [];
+    rows.forEach(function (r) {
+      if (!byP[r.project]) { byP[r.project] = { b:0, n:0 }; order.push(r.project); }
+      byP[r.project][r.billable ? "b" : "n"] += Number(r.hours) || 0;
+    });
+    order.sort(function (a, b) { return (byP[b].b + byP[b].n) - (byP[a].b + byP[a].n); });
+    var max = Math.max.apply(null, order.map(function (k) { return byP[k].b + byP[k].n; }).concat([1]));
+    var W = 460, labW = 168, valW = 52, barW = W - labW - valW, rowH = 34;
+    var g1 = "";
+    order.forEach(function (k, i) {
+      var y = i * rowH + 6, v = byP[k], tot = v.b + v.n;
+      var wb = (v.b / max) * barW, wn = (v.n / max) * barW;
+      var nm = (k === "—" ? "Office · overhead" : k);
+      var lab = nm.length > 22 ? nm.slice(0, 21) + "…" : nm;
+      g1 += '<text x="0" y="' + (y + 15) + '" font-size="11.5" fill="' + mut + '" font-family="Inter,system-ui,sans-serif">' + B.esc(lab) + '</text>' +
+        '<rect x="' + labW + '" y="' + (y + 3) + '" width="' + barW + '" height="16" rx="5" fill="' + trk + '"/>' +
+        (wb > 0 ? '<rect x="' + labW + '" y="' + (y + 3) + '" width="' + Math.max(2, wb) + '" height="16" rx="5" fill="' + PAL[0] + '"/>' : '') +
+        (wn > 0 ? '<rect x="' + (labW + wb) + '" y="' + (y + 3) + '" width="' + Math.max(2, wn) + '" height="16" rx="5" fill="' + PAL[6] + '" opacity=".55"/>' : '') +
+        '<text x="' + W + '" y="' + (y + 15) + '" text-anchor="end" font-size="11.5" font-weight="600" fill="' + ink +
+        '" font-family="IBM Plex Mono,ui-monospace,monospace">' + h1(tot) + '</text>';
+    });
+    var svg1 = '<svg viewBox="0 0 ' + W + ' ' + (order.length * rowH + 12) + '" width="100%" style="display:block">' + g1 + '</svg>';
+
+    /* --- by phase: a donut, because a phase mix is a share of one week --- */
+    var byPh = {}, tot = 0;
+    rows.forEach(function (r) { byPh[r.phase] = (byPh[r.phase] || 0) + (Number(r.hours) || 0); tot += Number(r.hours) || 0; });
+    var keys = PHASE_ORDER.filter(function (k) { return byPh[k]; });
+    var cx = 118, cy = 118, R = 100, r0 = 62, a0 = -Math.PI / 2, g2 = "", leg = "";
+    keys.forEach(function (k, i) {
+      var frac = byPh[k] / (tot || 1), a1 = a0 + frac * Math.PI * 2, col = PAL[i % PAL.length];
+      var big = (a1 - a0) > Math.PI ? 1 : 0;
+      var x0 = cx + R * Math.cos(a0), y0 = cy + R * Math.sin(a0), x1 = cx + R * Math.cos(a1), y1 = cy + R * Math.sin(a1);
+      var xi = cx + r0 * Math.cos(a1), yi = cy + r0 * Math.sin(a1), xj = cx + r0 * Math.cos(a0), yj = cy + r0 * Math.sin(a0);
+      g2 += '<path d="M ' + x0 + ' ' + y0 + ' A ' + R + ' ' + R + ' 0 ' + big + ' 1 ' + x1 + ' ' + y1 +
+            ' L ' + xi + ' ' + yi + ' A ' + r0 + ' ' + r0 + ' 0 ' + big + ' 0 ' + xj + ' ' + yj + ' Z" fill="' + col + '"/>';
+      leg += '<div class="legrow"><span class="legdot" style="background:' + col + '"></span>' +
+             '<b class="mono">' + B.esc(k) + '</b> <span class="muted">' + B.esc(phaseName(k)) + '</span>' +
+             '<span style="margin-left:auto" class="mono">' + h1(byPh[k]) + ' h · ' + Math.round(frac * 100) + '%</span></div>';
+      a0 = a1;
+    });
+    var svg2 = '<svg viewBox="0 0 236 236" width="236" height="236" style="display:block">' + g2 +
+      '<text x="118" y="112" text-anchor="middle" font-size="26" font-weight="700" fill="' + ink +
+      '" font-family="IBM Plex Mono,ui-monospace,monospace">' + h1(tot) + '</text>' +
+      '<text x="118" y="132" text-anchor="middle" font-size="10.5" fill="' + mut +
+      '" font-family="Inter,system-ui,sans-serif">HOURS THIS WEEK</text></svg>';
+
+    chartCard.querySelector("#chartOut").innerHTML =
+      '<div><div class="t-main" style="margin-bottom:10px">By project — billable and not</div>' + svg1 +
+        '<div class="row" style="gap:16px;margin-top:10px">' +
+          '<span class="legrow"><span class="legdot" style="background:' + PAL[0] + '"></span>Billable</span>' +
+          '<span class="legrow"><span class="legdot" style="background:' + PAL[6] + ';opacity:.55"></span>Not billable</span>' +
+        '</div></div>' +
+      '<div><div class="t-main" style="margin-bottom:10px">By phase</div>' +
+        '<div class="row" style="gap:20px;align-items:flex-start"><div>' + svg2 + '</div>' +
+        '<div style="flex:1;min-width:200px">' + leg + '</div></div></div>';
+  }
+
+  /* ------------------------------------------------------------- payroll */
+  var runCard = B.card(
+    '<h2>The payroll run</h2>' +
+    '<div class="card-sub">Gross comes off the same hours the projects were charged — there is no second place to type them. ' +
+    'Burden is the load on top of a paycheck before overhead: payroll taxes, insurance, benefits. It is the firm\'s own number, ' +
+    'so it is a field, not an assumption.</div>' +
+    '<div id="runBody"></div>'
+  );
+  c.appendChild(runCard);
+
+  function renderRun() {
+    var d = B.db(), rows = ts(), burden = Number(d.burden) || B.BURDEN_DEFAULT;
+    var by = {};
+    rows.forEach(function (r) {
+      var s = seat(r.who);
+      if (!by[r.who]) by[r.who] = { name:s.name, role:s.role, cost:Number(s.cost) || 0, hours:0, billable:0 };
+      by[r.who].hours += Number(r.hours) || 0;
+      if (r.billable) by[r.who].billable += Number(r.hours) || 0;
+    });
+    var keys = Object.keys(by), gross = 0, hours = 0;
+    var lines = keys.map(function (k) {
+      var x = by[k], g = x.hours * x.cost;
+      gross += g; hours += x.hours;
+      var pct = x.hours ? Math.round((x.billable / x.hours) * 100) : 0;
+      return '<tr>' +
+        '<td><div class="t-main">' + B.esc(x.name) + '</div><div class="t-sub">' + B.esc(x.role) + '</div></td>' +
+        '<td class="hr num">' + h1(x.hours) + '</td>' +
+        '<td class="num">' + B.money(x.cost) + '<div class="t-sub">per hour, cost</div></td>' +
+        '<td class="num"><b>' + B.money(Math.round(g)) + '</b></td>' +
+        '<td>' + B.tag(pct + "% billable", pct >= 60 ? "good" : (pct > 0 ? "watch" : "ghost")) + '</td>' +
+      '</tr>';
+    }).join("");
+    var load = Math.round(gross * burden / 100);
+
+    var prior = (d.payrolls || []).map(function (p) {
+      return '<tr><td class="k">' + B.esc(p.period) + '<div class="t-sub">Paid ' + B.esc(p.paid) + '</div></td>' +
+        '<td class="hr num">' + h1(p.hours) + '</td><td class="num">' + B.money(p.gross) + '</td>' +
+        '<td class="num">' + p.burden + '%</td><td>' + B.tag(p.status, p.status === "Paid" ? "good" : "watch") + '</td></tr>';
+    }).join("");
+
+    runCard.querySelector("#runBody").innerHTML =
+      '<table><thead><tr><th>Seat</th><th class="num">Hours</th><th class="num">Cost rate</th>' +
+      '<th class="num">Gross</th><th>Of which billable</th></tr></thead><tbody>' +
+      (lines || '<tr><td colspan="5" class="empty">No hours in the period — nothing to run.</td></tr>') +
+      (lines ? '<tr><td><b>Total</b></td><td class="hr num"><b>' + h1(hours) + '</b></td><td></td>' +
+        '<td class="num"><b>' + B.money(Math.round(gross)) + '</b></td><td></td></tr>' : '') +
+      '</tbody></table>' +
+      '<div class="divider"></div>' +
+      '<div class="row" style="align-items:flex-end">' +
+        '<div style="min-width:230px"><label class="f">Employer burden <span class="mono" id="bOut" style="text-transform:none;color:var(--brass-2)">' + burden + '%</span></label>' +
+          '<input id="bRange" type="range" min="10" max="40" step="1" value="' + burden + '"></div>' +
+        '<div class="stack" style="gap:2px;min-width:220px">' +
+          '<div class="muted small">Gross ' + B.money(Math.round(gross)) + ' + burden ' + B.money(load) + '</div>' +
+          '<div style="font-size:22px;font-weight:700" class="mono" id="totOut">' + B.money(Math.round(gross) + load) + '</div>' +
+          '<div class="muted small">Fully loaded cost of this period</div>' +
+        '</div>' +
+        '<button class="btn brass" id="runBtn">Run this payroll</button>' +
+        '<button class="btn ghost sm" id="jrnBtn">Download the journal</button>' +
+      '</div>' +
+      '<div class="fence" style="margin-top:13px"><b>Running payroll moves money.</b> Buttress stages it at the Approval Desk with the ' +
+      'hours, the gross and the burden attached, and it stops there. It does not touch a bank, it does not file a tax deposit, and it ' +
+      'will never tell you it did. The firm\'s payroll provider does that, on the principal\'s signature.</div>' +
+      (prior ? '<div class="divider"></div><div class="t-main" style="margin-bottom:8px">Periods already run</div>' +
+        '<table><thead><tr><th>Period</th><th class="num">Hours</th><th class="num">Gross</th><th class="num">Burden</th><th>Status</th></tr></thead><tbody>' +
+        prior + '</tbody></table>' : '') +
+      B.srcNote("Gross is hours × each seat's cost rate as carried on this OS's own labor record. Employer burden is a rate the firm sets; " +
+        "the default shown is a starting point, not a published figure for any particular firm. Tax filing, deposits and pay delivery are the payroll provider's.");
+
+    var rng = runCard.querySelector("#bRange");
+    if (rng) rng.addEventListener("input", function () {
+      var v = Number(this.value);
+      B.save(function (dd) { dd.burden = v; });
+      runCard.querySelector("#bOut").textContent = v + "%";
+      runCard.querySelector("#totOut").textContent = B.money(Math.round(gross) + Math.round(gross * v / 100));
+    });
+    var rb = runCard.querySelector("#runBtn");
+    if (rb) rb.addEventListener("click", function () { runPayroll(gross, hours); });
+    var jb = runCard.querySelector("#jrnBtn");
+    if (jb) jb.addEventListener("click", downloadJournal);
+  }
+
+  function runPayroll(gross, hours) {
+    if (!hours) { B.toast("No hours in the period — there is nothing to run.", ""); return; }
+    var d = B.db(), burden = Number(d.burden) || B.BURDEN_DEFAULT;
+    var load = Math.round(gross * burden / 100);
+    B.stage("money", "Run payroll — " + h1(hours) + " hours",
+      "Gross " + B.money(Math.round(gross)) + " across " + Object.keys(ts().reduce(function (a, r) { a[r.who] = 1; return a; }, {})).length +
+      " seats, plus " + burden + "% employer burden " + B.money(load) + ". Fully loaded " + B.money(Math.round(gross) + load) + ".",
+      "Payroll moves money out of the firm. That is the principal's signature and a payroll provider's filing — never the org's, and never this OS's.",
+      "Sterling (Money · Accounting)");
+    B.toast("Staged at the Approval Desk. Nothing has been paid, filed or transmitted.", "ok");
+  }
+
+  /* --------------------------------------------- the accountant's handoff */
+  function journalLines() {
+    var d = B.db(), rows = ts(), burden = Number(d.burden) || B.BURDEN_DEFAULT;
+    var byProj = {}, gross = 0;
+    rows.forEach(function (r) {
+      var s = seat(r.who), amt = (Number(r.hours) || 0) * (Number(s.cost) || 0);
+      gross += amt;
+      var key = r.billable ? r.project : (r.phase === "OH" ? "Overhead — office" : "Non-billable — " + r.project);
+      byProj[key] = (byProj[key] || 0) + amt;
+    });
+    var load = gross * burden / 100;
+    var out = Object.keys(byProj).sort().map(function (k) {
+      return { account: byProj[k] && k.indexOf("Overhead") === 0 ? "Overhead — indirect labor" : "Direct labor — work in progress",
+               memo: k, debit: Math.round(byProj[k]), credit: 0 };
+    });
+    out.push({ account:"Payroll tax & benefits — employer burden", memo:"At " + burden + "% of gross", debit: Math.round(load), credit: 0 });
+    out.push({ account:"Accrued payroll — liability", memo:"Gross wages for the period", debit: 0, credit: Math.round(gross) });
+    out.push({ account:"Payroll liabilities — employer burden", memo:"Taxes and benefits payable", debit: 0, credit: Math.round(load) });
+    return out;
+  }
+
+  var jrnCard = B.card(
+    '<h2>What the accountant gets</h2>' +
+    '<div class="card-sub">The same period as a journal: labor to work in progress by project, the employer burden, and the payroll ' +
+    'liability. It exports as a file your bookkeeper imports into QuickBooks, Xero or whatever the firm keeps its books in.</div>' +
+    '<div id="jrnBody"></div>' +
+    '<div class="fence" style="margin-top:12px"><b>An export, not a live sync.</b> Buttress does not hold a connection to the firm\'s ' +
+    'accounting file, and it does not post entries into it. It hands over a journal a human reviews and imports — which is also the ' +
+    'answer to "what happens if the software is wrong."</div>' +
+    B.srcNote("Account names are the conventional ones a project-accounting journal uses; a firm's chart of accounts is its own, and the CPA maps to it once.")
+  );
+  c.appendChild(jrnCard);
+
+  function renderJournal() {
+    var lines = journalLines();
+    var dr = lines.reduce(function (a, l) { return a + l.debit; }, 0);
+    var cr = lines.reduce(function (a, l) { return a + l.credit; }, 0);
+    jrnCard.querySelector("#jrnBody").innerHTML =
+      '<table><thead><tr><th>Account</th><th>Memo</th><th class="num">Debit</th><th class="num">Credit</th></tr></thead><tbody>' +
+      lines.map(function (l) {
+        return '<tr><td><div class="t-main">' + B.esc(l.account) + '</div></td>' +
+          '<td class="t-sub">' + B.esc(l.memo) + '</td>' +
+          '<td class="num">' + (l.debit ? B.money(l.debit) : '<span class="muted">—</span>') + '</td>' +
+          '<td class="num">' + (l.credit ? B.money(l.credit) : '<span class="muted">—</span>') + '</td></tr>';
+      }).join("") +
+      '<tr><td><b>Balance</b></td><td class="t-sub">Debits equal credits, or it is not a journal</td>' +
+      '<td class="num"><b>' + B.money(dr) + '</b></td><td class="num"><b>' + B.money(cr) + '</b></td></tr>' +
+      '</tbody></table>' +
+      (Math.abs(dr - cr) > 1 ? '<div class="fence" style="margin-top:10px">Rounding leaves ' + B.money(Math.abs(dr - cr)) +
+        ' between the two columns. Shown, not hidden.</div>' : '');
+  }
+
+  function downloadJournal() {
+    var lines = journalLines();
+    var out = ["Account,Memo,Debit,Credit"];
+    lines.forEach(function (l) {
+      out.push([l.account, l.memo, l.debit || "", l.credit || ""].map(function (v) {
+        return '"' + String(v).replace(/"/g, '""') + '"';
+      }).join(","));
+    });
+    var a = document.createElement("a");
+    a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(out.join("\n"));
+    a.download = "payroll-journal.csv"; a.style.display = "none";
+    document.body.appendChild(a); try { a.click(); } catch (e) {} a.parentNode.removeChild(a);
+    B.toast("payroll-journal.csv written to your machine — a local save, not a send.", "ok");
+  }
+
+  /* ----------------------------------------------------- what time drives */
+  c.appendChild(B.card(
+    '<h2>One entry, and it lands in four places</h2>' +
+    '<div class="card-sub">This is the whole argument for holding time inside the operating system instead of beside it.</div>' +
+    '<div class="grid g4">' +
+      '<div><div class="t-main">The project</div><div class="t-sub">Hours land on the commission at the phase they were worked, ' +
+        'so percent complete is measured, not estimated in a meeting.</div></div>' +
+      '<div><div class="t-main">The invoice</div><div class="t-sub">Billing reads what has been earned and not yet billed. ' +
+        'The WIP number stops being a surprise.</div></div>' +
+      '<div><div class="t-main">The board</div><div class="t-sub">Utilization, net multiplier and realization move the moment the ' +
+        'week is posted — the same figures, not a second set.</div></div>' +
+      '<div><div class="t-main">Payroll</div><div class="t-sub">Gross runs off the same hours. Nobody re-keys a timesheet into a ' +
+        'payroll system, which is where the two numbers usually start to differ.</div></div>' +
+    '</div>' +
+    '<div class="divider"></div>' +
+    '<div class="row">' +
+      B.tag("Time is the product", "good") +
+      B.tag("Phase-native, like the fee", "good") +
+      B.tag("Payroll stages, never sends", "watch") +
+      B.tag("The journal is an export a human imports", "ghost") +
+    '</div>'
+  ));
+
+  function paintAll() { renderStats(); renderWeek(); renderCharts(); renderRun(); renderJournal(); }
+  paintAll();
+  document.addEventListener("buttress:skin", function () { renderCharts(); });
+  var jr = document.getElementById("jumpRun");
+  if (jr) jr.addEventListener("click", function () { try { runCard.scrollIntoView(); } catch (e) {} });
+})();
+</script>
+</body>
+</html>
