@@ -555,39 +555,39 @@
      pricing in the editor — nothing here goes live without him. */
   var ROOMS = {
     /* key            room                              per-month   one-time build */
-    pursuits:    { label:"Pursuits · Go/No-Go",     mo:60,  build:400,
+    pursuits:    { label:"Pursuits · Go/No-Go",     mo:60, build:0,
                    why:"Replaces the pipeline spreadsheet and the go/no-go argument in the hallway." },
-    proposal:    { label:"Fee & Proposal",          mo:60,  build:400,
+    proposal:    { label:"Fee & Proposal",          mo:60, build:0,
                    why:"Phase-split fees, % of Cost of the Work, and the multiplier check before the letter goes out." },
-    commissions: { label:"Commissions",             mo:75,  build:500,
+    commissions: { label:"Commissions",             mo:75, build:0,
                    why:"The phase-native project spine. Percent-complete and phase profitability fall out of it." },
-    ca:          { label:"CA Desk",                 mo:85,  build:500,
+    ca:          { label:"CA Desk",                 mo:85, build:0,
                    why:"RFI · Submittal · ASI · PR · CCD · CO · Field Report, ball-in-court and aging. Replaces Newforma at this size." },
-    details:     { label:"Detail Studio",           mo:45,  build:300,
+    details:     { label:"Detail Studio",           mo:45, build:0,
                    why:"Parametric, dimensioned details you can drop straight into a set." },
-    billing:     { label:"Billing",                 mo:65,  build:300,
+    billing:     { label:"Billing",                 mo:65, build:0,
                    why:"Percent-complete invoices, reimbursables at cost+10%, consultant pass-throughs, AR chase." },
-    sheets:      { label:"Sheet Sets",              mo:70,  build:500,
+    sheets:      { label:"Sheet Sets",              mo:70, build:0,
                    why:"NCS sheet index, revision history, and the permit-set vs bid-set vs addendum distinction." },
-    coord:       { label:"Consultants & AHJ",       mo:85,  build:600,
+    coord:       { label:"Consultants & AHJ",       mo:85, build:0,
                    why:"C401 scopes and deliverable dates, plus permit comment and resubmittal cycles. Nothing at this size tracks this." },
-    time:        { label:"Time & Payroll",          mo:70,  build:450,
+    time:        { label:"Time & Payroll",          mo:70, build:0,
                    why:"Timesheets by project and phase, the payroll run off those same hours, and a journal-ready handoff to the accountant." },
-    books:       { label:"Books & Multipliers",     mo:95,  build:700,
+    books:       { label:"Books & Multipliers",     mo:95, build:0,
                    why:"Utilization, net multiplier, realization, backlog, AR and WIP — computed, not reconstructed." },
-    hr:          { label:"HR · People Ops",         mo:70,  build:450,
+    hr:          { label:"HR · People Ops",         mo:70, build:0,
                    why:"Roster, onboarding, and licensure/CE tracking. A lapsed stamp is a stop-work event." },
-    it:          { label:"IT · System Health",      mo:60,  build:400,
+    it:          { label:"IT · System Health",      mo:60, build:0,
                    why:"CLEAR / WATCH / INTERVENE on the model store, plot queue, portal and backups." },
     comply:      { label:"Comply · Trust Center",   mo:149, build:0,
                    why:"AE Comply watching the practice's own domains and headers, with a dated evidence pack for the client security questionnaire. Included with Multi-office; an add-on below it." },
-    org:         { label:"Agent Org · Bus",         mo:145, build:1200,
+    org:         { label:"Agent Org · Bus",         mo:145, build:0,
                    why:"The ten department chains, the event bus, and the confidence gates. This is the engine." },
-    specs:       { label:"Specs · MasterFormat",    mo:120, build:900,
+    specs:       { label:"Specs · MasterFormat",    mo:120, build:0,
                    why:"50-division sections whose Part 1 requirements auto-build the submittal log." },
-    law:         { label:"Law · Contracts",         mo:110, build:800,
+    law:         { label:"Law · Contracts",         mo:110, build:0,
                    why:"B101 / C401 / G-series read, advisory only, with a hard fence to a real attorney." },
-    ops:         { label:"Operations",              mo:90,  build:650,
+    ops:         { label:"Operations",              mo:90, build:0,
                    why:"The project filing cabinet and the follow-up calendar for the whole office." }
   };
 
@@ -750,16 +750,16 @@
   try{ applySkin(); }catch(e){}
 
   var TIERS = {
-    lite: { key:"lite", name:"Studio", rank:1, mo:550, build:3500,
+    lite: { key:"lite", name:"Core", rank:1, mo:550, build:0,
       desc:"Core practice. Pursuits, fees, the commission spine, the CA desk, details and billing.",
       base:"Single office · up to 5 seats",
       includes:["pursuits","proposal","commissions","ca","details","billing","time"] },
-    standard: { key:"standard", name:"Firm", rank:2, mo:1200, build:8400,
+    standard: { key:"standard", name:"Elite", rank:2, mo:1200, build:0,
       desc:"The working firm. Adds sheet control, consultant & AHJ coordination, the multiplier board, HR, IT — and the agent org.",
       base:"Single office · up to 15 seats",
       includes:["pursuits","proposal","commissions","ca","details","billing","time",
                 "sheets","coord","books","hr","it","org"] },
-    grandsuite: { key:"grandsuite", name:"Multi-office", rank:3, mo:2800, build:14500,
+    grandsuite: { key:"grandsuite", name:"Mothership", rank:3, mo:2800, build:0,
       desc:"The whole practice, nothing held back. Every department, the full ten-chain agent org, specs, contracts and operations.",
       base:"Multi-office · unlimited seats · dedicated environment · data migration",
       includes:["pursuits","proposal","commissions","ca","details","billing","time",
@@ -1511,7 +1511,7 @@
     var p = priceNow(), hic = iconFor(active);
     var bar = document.createElement("div"); bar.className = "topbar";
     bar.innerHTML = (hic ? '<img class="crumb-ic" src="' + hic + '" alt="">' : '') +
-      '<div class="crumbs">Buttress OS <span class="mono" style="opacity:.62;font-size:11px">V2.0</span> · <b>' + esc(crumb) + '</b></div>' +
+      '<div class="crumbs">Buttress OS <span class="mono" style="opacity:.62;font-size:11px">V3.3</span> · <b>' + esc(crumb) + '</b></div>' +
       '<div class="spacer"></div>' +
       '<div class="tierpill" id="tierPillStatic">' +
         '<span class="dot"></span><div><b>' + esc(p.tier.name) + (p.changed ? ' <i class="cfg">configured</i>' : '') + '</b> ' +
