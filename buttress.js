@@ -1,6 +1,6 @@
 /* ============================================================================
    BUTTRESS OS — SHOWROOM ENGINE
-   Architecture Practice OS · Powered by Accelerated Experiences LLC
+   Architecture Practice OS · AETRIAD Powered · Accelerated Experiences LLC
 
    BROWSER-ONLY SHOWROOM. No backend, no network. Everything lives in this
    browser tab's sessionStorage and resets when the visitor leaves or idles.
@@ -1589,7 +1589,7 @@
       '<a href="javascript:void(0)" id="resetFloor">Reset the floor</a></div>');
   }
   function footer() {
-    return el('<div class="ae-credit">Powered by <b>Accelerated Experiences LLC</b> · Buttress OS is a white-label build. ' +
+    return el('<div class="ae-credit"><a href="https://www.aexperiences.com/" class="ae-triad" aria-label="AETRIAD Powered - Accelerated Experiences LLC"><img src="/marks/aetriad-powered.png" alt="AETRIAD Powered" style="height:30px;width:auto;vertical-align:middle"></a><br>Buttress OS is a white-label build. ' +
       'Demo data is illustrative; benchmark figures are sourced and tagged.</div>');
   }
   /* The fleet-wide Command Center polish layer. One file on the store, loaded by
