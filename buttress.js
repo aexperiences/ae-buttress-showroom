@@ -1511,7 +1511,7 @@
     var p = priceNow(), hic = iconFor(active);
     var bar = document.createElement("div"); bar.className = "topbar";
     bar.innerHTML = (hic ? '<img class="crumb-ic" src="' + hic + '" alt="">' : '') +
-      '<div class="crumbs">Buttress OS <span class="mono" style="opacity:.62;font-size:11px">V3.3</span> · <b>' + esc(crumb) + '</b></div>' +
+      '<div class="crumbs">Buttress OS <span class="mono" style="opacity:.62;font-size:11px">V4.0</span> · <b>' + esc(crumb) + '</b></div>' +
       '<div class="spacer"></div>' +
       '<div class="tierpill" id="tierPillStatic">' +
         '<span class="dot"></span><div><b>' + esc(p.tier.name) + (p.changed ? ' <i class="cfg">configured</i>' : '') + '</b> ' +
