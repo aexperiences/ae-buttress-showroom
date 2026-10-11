@@ -78,18 +78,16 @@
   var T=window.Buttress;
   var c=T.mount({active:"connect.html",crumb:"Connect"});
   var API=window.BUTTRESS_API+'/api/connect'; var NS='buttress';
-  var TEAM=[
-    {slug:"elena-cruz",name:"Elena Cruz",role:"Principal Architect",init:"EC"},
-    {slug:"sam-whitaker",name:"Sam Whitaker",role:"Project Architect",init:"SW"},
-    {slug:"maya-lindqvist",name:"Maya Lindqvist",role:"Job Captain",init:"ML"},
-    {slug:"owen-park",name:"Owen Park",role:"Designer",init:"OP"},
-    {slug:"rosa-delgado",name:"Rosa Delgado",role:"Office Manager",init:"RD"}
-  ];
-  var CHANNELS=[
-    {ch:"studio",name:"# studio",desc:"The whole studio"},
-    {ch:"civic-center",name:"# civic-center",desc:"The civic center project"},
-    {ch:"consultants",name:"# consultants",desc:"Structural, MEP, civil"}
-  ];
+  /* The team — read from this system's own seeded people, never typed in here. */
+  var TEAM=(function(){ var D={}; try{ D=T.db()||{}; }catch(e){} var out=[], seen={};
+    function add(n,r){ n=String(n||"").trim(); if(!n||seen[n]) return; seen[n]=1;
+      var w=n.replace(/^Coach\s+/,"").replace(/,.*$/,"").split(/\s+/);
+      out.push({slug:n.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,""),name:n,role:String(r||""),init:(((w[0]||"")[0]||"")+(w.length>1?w[w.length-1][0]:((w[0]||"")[1]||""))).toUpperCase()}); }
+    try{ (D.labor||[]).forEach(function(l){ add(l.name,l.role); }); }catch(e){}
+    return out; })();
+  var CHANNELS=(function(){ var D={}; try{ D=T.db()||{}; }catch(e){} var c=(D.commissions||[])[0], out=[{ch:"studio",name:"# studio",desc:"The whole studio"}];
+    if(c) out.push({ch:c.name.toLowerCase().replace(/[^a-z0-9]+/g,"-"),name:"# "+c.name.toLowerCase().replace(/[^a-z0-9]+/g,"-"),desc:c.name+" — "+(c.client||"")});
+    out.push({ch:"consultants",name:"# consultants",desc:"Structural, MEP, civil"}); return out; })();
   var ROOMS=[
     {key:"pin-up",label:"Pin-Up",sub:"Design review, drawings on screen"},
     {key:"consultant-coord",label:"Consultant Coordination",sub:"Structural + MEP + civil"},

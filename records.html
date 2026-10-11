@@ -44,7 +44,7 @@
 (function () {
   var T=window.Buttress;
   var c=T.mount({active:"records.html",crumb:"Records"});
-  var KEY="buttress_records_v1";
+  var KEY="buttress_records_v2";
 
   /* The filing plan — one cabinet per real thing the firm keeps. */
   var CABINETS=[
@@ -58,14 +58,19 @@
     {k:"firm",ic:"🏢",name:"The firm",desc:"Formation, insurance, licensure."}
   ];
 
-  /* Seeded records — real McArthur artifacts where they exist, honestly labeled. */
-  var SEED=[
-    {cab:"projects",name:"Civic Center — 75% CD set",kind:"pdf",tag:"sot",who:"Elena Cruz",when:"2026-07-22",note:"Current issued set."},
-    {cab:"clients",name:"Civic Center — AIA B101",kind:"pdf",tag:"sot",who:"Rosa Delgado",when:"2026-02-14",note:"Governs scope and fee."},
-    {cab:"agencies",name:"CdA Planning — design review submittal",kind:"pdf",tag:"wip",who:"Sam Whitaker",when:"2026-07-30",note:""},
-    {cab:"standards",name:"Harborline detail library",kind:"doc",tag:"sot",who:"Maya Lindqvist",when:"2026-03-02",note:""},
-    {cab:"firm",name:"Professional liability certificate",kind:"pdf",tag:"sot",who:"Rosa Delgado",when:"2026-01-01",note:""}
-  ];
+  /* Seeded records — built from this system's own book (its people, jobs and paperwork), never typed in. */
+  var SEED=(function(){ var D={}; try{ D=T.db()||{}; }catch(e){} var out=[], today=((T.TODAY instanceof Date)?T.TODAY:new Date()).toISOString().slice(0,10);
+    function add(cab,name,kind,tag,who,when,note){ if(name) out.push({cab:cab,name:String(name),kind:kind||"pdf",tag:tag||"",who:who||"",when:when||"",note:note||""}); }
+    function exp(d){ return !d||!/^\d{4}-/.test(d)?"":(d<today?"EXPIRED":"Expires "+d); }
+    try{ var P=((D.team||[]).filter(function(t){return /principal/i.test(t.role);})[0]||{}).name||"", OM=((D.labor||[]).filter(function(l){return /office/i.test(l.role);})[0]||{}).name||P;
+      (D.sheets||[]).forEach(function(s){ add(/permit|construction|ifc|bid/i.test(s.issued)?"sealed":"projects",s.num+" "+s.title+" — "+s.project+" (rev "+s.rev+")","pdf","sot",P,s.date,s.issued); });
+      (D.commissions||[]).forEach(function(c){ add("clients","Owner-architect agreement — "+c.name+" ("+c.client+")","pdf","sot",c.lead,"",c.feeBasis||""); });
+      (D.permits||[]).forEach(function(p){ add("agencies",p.ahj+" — "+p.project+", cycle "+p.cycle,"pdf","wip",P,p.submitted,p.status); });
+      (D.consultants||[]).forEach(function(k){ add("consultants",(k.agreement||"Agreement")+" — "+k.name+" ("+k.disc+")","pdf","sot",P,"",k.nextDue||k.status); });
+      (D.invoices||[]).forEach(function(i){ add("money","Invoice "+i.num+" — "+i.project,"pdf",i.status==="Paid"?"fin":"sot",OM,i.issued,i.status); });
+      (D.specs||[]).forEach(function(s){ add("standards",s.sec+" "+s.title+" — "+s.project,"doc","sot",P,"",s.status); });
+      (D.team||[]).filter(function(t){return t.type==="Human"&&t.license&&t.license!=="—";}).forEach(function(t){ add("firm","License — "+t.name+" · "+t.license,"pdf","sot",OM,"",t.ce||""); }); }catch(e){}
+    return out; })();
 
   function load(){ try{ var d=JSON.parse(sessionStorage.getItem(KEY)); if(d&&d.length) return d; }catch(e){} return SEED.slice(); }
   function persist(){ try{ sessionStorage.setItem(KEY,JSON.stringify(FILES)); }catch(e){} }
