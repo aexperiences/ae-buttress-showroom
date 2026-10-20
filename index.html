@@ -20,95 +20,121 @@
 <meta name="twitter:title" content="Buttress OS — Architecture practice OS">
 <meta name="twitter:description" content="Projects, drawing sets, consultants and clients in one studio OS — built around how a practice actually runs.">
 <meta name="twitter:image" content="https://www.aexperiences.com/Buttress_OS.png">
+<style>
+/* the front door: a hero beside the live Project Wall, the job as nine rooms, the set on the wall, then the door */
+.fd{max-width:1120px;margin:0 auto;padding:28px max(18px,env(safe-area-inset-left,0px)) 56px max(18px,env(safe-area-inset-right,0px));display:grid;gap:34px}
+.fd-top{display:flex;align-items:center;gap:12px}
+.fd-top img{width:42px;height:42px;border-radius:11px}
+.fd-top b{font-size:18px;letter-spacing:-.02em;display:block;line-height:1.1}
+.fd-top small{font:600 10px/1.2 var(--mono,monospace);letter-spacing:.14em;text-transform:uppercase;color:var(--mut)}
+.fd-top .tag{margin-left:auto}
+.fd-hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:34px;align-items:center}
+.fd-eyebrow{font:700 11px/1 var(--sans);letter-spacing:.2em;text-transform:uppercase;color:var(--brass)}
+.fd-hero h1{font-size:clamp(32px,4.4vw,50px);line-height:1.04;letter-spacing:-.035em;margin:12px 0 0;text-wrap:balance}
+.fd-hero p{font-size:15.5px;line-height:1.6;color:var(--ink-2,var(--ink));margin:16px 0 0;max-width:46ch}
+.fd-cta{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:24px}
+.fd-cta .btn{padding:13px 24px;font-size:15px}
+.fd-cta a.ghostlink{color:var(--ink);font-weight:600;font-size:14px;text-decoration:underline;text-underline-offset:4px;text-decoration-color:var(--brass)}
+.fd-note{margin-top:18px;font-size:12.5px;color:var(--mut);line-height:1.55;max-width:46ch}
+.fd-wall .pw-wall{grid-template-columns:1fr 1fr;margin-top:0}
+.fd h2{font-size:24px;letter-spacing:-.025em;margin:0}
+.fd-sub{color:var(--mut);font-size:14px;margin:6px 0 0;max-width:70ch}
+.fd-flow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-top:16px;counter-reset:step}
+.fd-step{display:grid;gap:8px;align-content:start;background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:14px;text-decoration:none;color:inherit;box-shadow:var(--sh);transition:transform .15s}
+.fd-step:hover,.fd-step:focus-visible{transform:translateY(-2px)}
+.fd-step img{width:46px;height:46px;border-radius:12px}
+.fd-step b{font-size:14.5px;letter-spacing:-.01em}
+.fd-step b::before{counter-increment:step;content:counter(step) "  ";color:var(--brass);font-variant-numeric:tabular-nums}
+.fd-step span{font-size:12.5px;color:var(--mut);line-height:1.45}
+.fd-depts{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.fd-door{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:26px;box-shadow:var(--sh-lg);display:grid;gap:14px}
+@media(max-width:860px){.fd-hero{grid-template-columns:1fr}.fd-flow{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(prefers-reduced-motion:reduce){.fd-step{transition:none}}
+</style>
 </head>
 <body>
+<div class="fd">
 
-<div style="position:relative;z-index:1;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:44px 20px">
-  <main style="width:100%;max-width:720px">
+  <header class="fd-top">
+    <img src="https://www.aexperiences.com/Buttress_OS.png" alt="" width="42" height="42">
+    <div><b>Buttress OS</b><small>Architecture Practice OS · V4.0</small></div>
+    <span class="tag mono ghost">SHOWROOM</span>
+  </header>
 
-    <section class="card" style="padding:34px 36px 0;border-radius:18px;box-shadow:var(--sh-lg);margin-bottom:0">
-
-      <!-- mark + wordmark -->
-      <div class="row" style="gap:13px;align-items:center">
-        <div class="bmark art" aria-hidden="true" style="width:44px;height:44px"><img src="https://www.aexperiences.com/Buttress_OS.png" alt="" width="44" height="44"></div>
-        <div>
-          <div style="font-size:19px;font-weight:680;letter-spacing:-.024em;line-height:1.15">Buttress OS</div>
-          <div class="muted mono" style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;margin-top:2px">Architecture Practice OS · V4.0</div>
-        </div>
-        <span class="spacer"></span>
-        <span class="tag mono ghost">SHOWROOM</span>
+  <section class="fd-hero">
+    <div>
+      <div class="fd-eyebrow">For architecture practices</div>
+      <h1>The whole practice, running as one system.</h1>
+      <p>From the first pursuit to the last invoice: fees, the phase-native commission spine, sheet sets and specs,
+        the CA desk, the books and multipliers, and a ten-department agent org doing the routing underneath.</p>
+      <div class="fd-cta">
+        <a class="btn brass enter" href="dashboard.html">Enter the OS &rarr;</a>
+        <a class="ghostlink" href="#flow">See how a job moves</a>
       </div>
+      <p class="fd-note"><b>This is the real OS, not a slideshow.</b> It runs in your browser on a sample firm. What you type
+        stays in this tab, nothing is uploaded, and nothing sends, spends or publishes. Anything that would is staged on the Approval Desk.</p>
+    </div>
+    <div class="fd-wall" id="fdWall" aria-label="The project wall, from the sample firm"></div>
+  </section>
 
-      <div class="divider" style="margin:22px 0 20px"></div>
+  <section id="flow">
+    <h2>It follows the job.</h2>
+    <p class="fd-sub">Ten rooms in the order a commission actually moves. Tap any one to walk straight in.</p>
+    <div class="fd-flow">
+      <a class="fd-step" href="pursuits.html"><img src="icons/pursuits.svg" alt=""><b>Pursuits</b><span>Replaces the pipeline spreadsheet and the go/no-go argument in the hallway.</span></a>
+      <a class="fd-step" href="proposal.html"><img src="icons/proposal.svg" alt=""><b>Fee &amp; Proposal</b><span>Phase-split fees, % of Cost of the Work, and the multiplier check before the letter goes out.</span></a>
+      <a class="fd-step" href="commissions.html"><img src="icons/commissions.svg" alt=""><b>Commissions</b><span>The phase-native project spine. Percent-complete and phase profitability fall out of it.</span></a>
+      <a class="fd-step" href="sheets.html"><img src="icons/sheets.svg" alt=""><b>Sheet Sets</b><span>NCS sheet index, revision history, and the permit-set vs bid-set vs addendum distinction.</span></a>
+      <a class="fd-step" href="details.html"><img src="icons/details.svg" alt=""><b>Detail Studio</b><span>Standard details, drawn once.</span></a>
+      <a class="fd-step" href="coord.html"><img src="icons/coord.svg" alt=""><b>Consultants &amp; AHJ</b><span>C401 scopes and deliverable dates, plus permit comment and resubmittal cycles.</span></a>
+      <a class="fd-step" href="ca.html"><img src="icons/ca.svg" alt=""><b>CA Desk</b><span>RFI, submittal, ASI, PR, CCD, CO and field report, with ball-in-court and aging.</span></a>
+      <a class="fd-step" href="time.html"><img src="icons/time.svg" alt=""><b>Time &amp; Payroll</b><span>Timesheets by project and phase, and the payroll run off those same hours.</span></a>
+      <a class="fd-step" href="billing.html"><img src="icons/billing.svg" alt=""><b>Billing</b><span>Percent-complete invoices, reimbursables at cost+10%, consultant pass-throughs, AR chase.</span></a>
+      <a class="fd-step" href="books.html"><img src="icons/books.svg" alt=""><b>Multipliers</b><span>Utilization, net multiplier, realization, backlog, AR and WIP, computed rather than reconstructed.</span></a>
+    </div>
+  </section>
 
-      <!-- the pitch -->
-      <h1 style="font-size:27px;letter-spacing:-.028em;line-height:1.2">The whole practice,<br>running as one system.</h1>
-      <p style="font-size:14.5px;color:var(--ink-2);line-height:1.65;margin-top:14px;max-width:60ch">
-        Buttress OS is the operating system for an architecture practice — pursuits and fees, the
-        phase-native commission spine, the CA desk, sheet sets and specifications, the books and
-        multipliers, and a ten-department agent org that does the routing underneath all of it.
-      </p>
+  <section>
+    <h2>The set, on the wall.</h2>
+    <p class="fd-sub">Every sheet drawn as the sheet it is, with its title block and a red delta for each revision.</p>
+    <div id="fdSheets"></div>
+  </section>
 
-      <!-- what this actually is -->
-      <div class="fence" style="margin-top:20px">
-        <b>This is the real OS, not a slideshow.</b> It runs entirely in your browser. Everything you
-        type stays in this tab, nothing is uploaded, and the floor resets when you leave. Nothing here
-        sends, spends or publishes — anything that would is staged on the Approval Desk instead.
-      </div>
+  <section class="fd-door">
+    <h2>Walk in.</h2>
+    <p class="fd-sub" style="margin:0">Ten departments inside, each a five-seat chain gated on a confidence bar before anything is released.
+      Nora, the COO, routes and packages; she does not do the work.</p>
+    <div class="fd-depts">
+      <span class="tag">New Business · Pursuits</span><span class="tag">Studio · Design Production</span>
+      <span class="tag">Construction Administration</span><span class="tag">Money · Accounting</span>
+      <span class="tag">Standards &amp; Specs</span><span class="tag">Consultants &amp; AHJ</span>
+      <span class="tag">HR · People Ops</span><span class="tag">IT · System Health</span>
+      <span class="tag">Law · Contracts</span><span class="tag">Operations</span>
+    </div>
+    <div class="fd-cta" style="margin-top:4px"><a class="btn brass enter" href="dashboard.html">Enter the OS &rarr;</a>
+      <span class="muted small" style="max-width:40ch;line-height:1.5">Opens on the full Grandsuite build with every department switched on.</span></div>
+    <div class="ae-credit" style="margin:6px 0 0;padding-top:14px">
+      <a href="https://www.aexperiences.com/" class="ae-triad" aria-label="AETRIAD Powered - Accelerated Experiences LLC"><img src="/marks/aetriad-powered.png" alt="AETRIAD Powered" style="height:30px;width:auto;vertical-align:middle"></a>
+      Buttress OS is a white-label build. Demo data is illustrative; benchmark figures are sourced and tagged.
+    </div>
+  </section>
 
-      <!-- what's inside -->
-      <div style="margin-top:24px">
-        <label class="f">The ten departments inside</label>
-        <div class="row" style="gap:6px">
-          <span class="tag">New Business · Pursuits</span>
-          <span class="tag">Studio · Design Production</span>
-          <span class="tag">Construction Administration</span>
-          <span class="tag">Money · Accounting</span>
-          <span class="tag">Standards &amp; Specs</span>
-          <span class="tag">Consultants &amp; AHJ</span>
-          <span class="tag">HR · People Ops</span>
-          <span class="tag">IT · System Health</span>
-          <span class="tag">Law · Contracts</span>
-          <span class="tag">Operations</span>
-        </div>
-        <p class="muted small" style="margin-top:10px;line-height:1.55">
-          Each one is a five-seat chain — department head, administrative executive, pacemaker, and two
-          opposing lenses — gated on a confidence bar before anything is released. Nora, the COO, routes
-          and packages; she does not do the work.
-        </p>
-      </div>
-
-      <!-- the door -->
-      <div class="divider" style="margin:24px 0 20px"></div>
-      <div class="row" style="gap:14px">
-        <a class="btn brass" href="dashboard.html" id="enter" style="padding:12px 22px;font-size:14px">
-          Enter the OS &rarr;
-        </a>
-        <span class="muted small" style="max-width:34ch;line-height:1.5">
-          Opens on the full Grandsuite build with every department switched on. Take any of them off
-          from the tier pill inside.
-        </span>
-      </div>
-
-      <!-- credit -->
-      <div class="ae-credit" style="margin:26px -36px 0;padding:16px 36px 22px">
-        <a href="https://www.aexperiences.com/" class="ae-triad" aria-label="AETRIAD Powered - Accelerated Experiences LLC"><img src="/marks/aetriad-powered.png" alt="AETRIAD Powered" style="height:30px;width:auto;vertical-align:middle"></a><br>Buttress OS is a white-label build.
-        Demo data is illustrative; benchmark figures are sourced and tagged.
-      </div>
-
-    </section>
-
-  </main>
 </div>
 
 <script src="buttress.js"></script>
+<script src="project-wall.js"></script>
+<script src="sheet-wall.js"></script>
 <script>
 (function () {
-  var B = window.Buttress;
-  var a = document.getElementById("enter");
-  if (!a || !B) return;
-  /* Walking in starts a clean floor — same promise the ribbon makes inside. */
-  a.addEventListener("click", function () { B.resetFloor(); });
+  var B = window.Buttress; if (!B) return;
+  /* walking in starts a clean floor — same promise the ribbon makes inside */
+  Array.prototype.forEach.call(document.querySelectorAll("a.enter"), function (a) { a.addEventListener("click", function () { B.resetFloor(); }); });
+  var d = B.db();
+  /* the four commissions furthest along the rail, so the wall shows sketch, drawings and construction side by side */
+  var pick = ["SD", "DD", "CD", "CA"].map(function (k) { return d.commissions.filter(function (x) { return x.phase === k; })[0]; }).filter(Boolean);
+  if (pick.length < 4) pick = d.commissions.slice(0, 4);
+  if (window.BProjectWall) window.BProjectWall.render(document.getElementById("fdWall"), pick, null, function () { location.href = "commissions.html"; });
+  if (window.BSheetWall) window.BSheetWall.render(document.getElementById("fdSheets"), d.sheets || [], { limit: 4, firm: "Your firm" });
 })();
 </script>
 </body>

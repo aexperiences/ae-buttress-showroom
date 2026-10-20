@@ -12,6 +12,7 @@
 </head>
 <body>
 <script src="buttress.js"></script>
+<script src="sheet-wall.js"></script>
 <script>
 (function () {
   var B = window.Buttress;
@@ -63,6 +64,20 @@
     "Issuing a set here bumps the revision on the record. Anything that leaves the office stages at the Approval Desk instead of being sent.",
     '<button class="btn brass sm" id="jumpDecode">Decode a sheet number</button>'
   ));
+
+  /* ------------------------------------------------------- the sheet wall — the set, drawn */
+  var wallCard = B.card(
+    '<h2>The set on the wall</h2>' +
+    '<div class="card-sub">Every sheet on the index, drawn as the sheet it is: the view its number calls for, the title block, ' +
+    'and a red delta for each revision. Read straight from the index below.</div>' +
+    '<div id="sheetWall"></div>'
+  );
+  c.appendChild(wallCard);
+  function renderWall() {
+    var d = B.db(), f = d.firm || d.studio || {};
+    if (window.BSheetWall) window.BSheetWall.render(document.getElementById("sheetWall"), d.sheets || [], { firm: f.name || "Your firm" });
+  }
+  renderWall();
 
   /* ----------------------------------------------------------------- stats */
   var statCard = B.card(
@@ -178,7 +193,7 @@
     });
     decCard.querySelector("#addTitle").value = "";
     B.toast(num + " added to the " + proj + " index at revision 0. It has never been issued — issue it below.", "ok");
-    renderStats(); renderDecode(); renderIndex(); renderStandard(); renderRevBlock(); renderCompare();
+    renderWall(); renderStats(); renderDecode(); renderIndex(); renderStandard(); renderRevBlock(); renderCompare();
   }
 
   /* ------------------------------------------------- the index + issuance */
@@ -349,6 +364,7 @@
       B.toast("Staged at the Approval Desk. Nothing has been sent.", "ok");
     }
 
+    renderWall();
     renderStats();
     renderIndex();
     renderStandard();
