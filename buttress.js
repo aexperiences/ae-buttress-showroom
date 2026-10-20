@@ -776,8 +776,7 @@
   var DEPTS = [
     { group:"Command", items:[
       { href:"dashboard.html",   label:"Command Center",      ic:"◎", icon:"icons/command-center.svg" }, { href:"calendar.html", label:"Calendar", ic:"▤", icon:"icons/calendar.svg" }, { href:"contacts.html", label:"Contacts", ic:"☎", icon:"icons/contacts.svg" }, { href:"connect.html", label:"Connect · Video", ic:"◉", icon:"icons/connect.svg" }, { href:"records.html", label:"Records · Filing", ic:"▤", icon:"icons/records.svg" },
-      { href:"approvals.html",   label:"Approval Desk",       ic:"✓", accent:"ops", icon:"icons/approvals.svg" }
-    ]},
+      { href:"approvals.html",   label:"Approval Desk",       ic:"✓", accent:"ops", icon:"icons/approvals.svg" }, { href:"mail.html", label:"Mail", ic:"✉" } ]},
     { group:"New Business", items:[
       { href:"pursuits.html",    label:"Pursuits · Go/No-Go", ic:"◆", room:"pursuits",    accent:"pursuits", icon:"icons/pursuits.svg" },
       { href:"proposal.html",    label:"Fee & Proposal",      ic:"∑", room:"proposal",    accent:"money", icon:"icons/proposal.svg" }
@@ -787,8 +786,7 @@
       { href:"ca.html",          label:"CA Desk",             ic:"⇄", room:"ca",          accent:"ca", icon:"icons/ca.svg" },
       { href:"sheets.html",      label:"Sheet Sets",          ic:"▤", room:"sheets",      accent:"studio", icon:"icons/sheets.svg" },
       { href:"details.html",     label:"Detail Studio",       ic:"◫", room:"details",     accent:"studio", icon:"icons/details.svg" },
-      { href:"specs.html",       label:"Specs · MasterFormat",ic:"§", room:"specs",       accent:"standards", icon:"icons/specs.svg" }
-    ]},
+      { href:"specs.html",       label:"Specs · MasterFormat",ic:"§", room:"specs",       accent:"standards", icon:"icons/specs.svg" }, { href:"aimos.html", label:"Material Room", ic:"▦" } ]},
     { group:"The Team Outside", items:[
       { href:"coord.html",       label:"Consultants & AHJ",   ic:"⇋", room:"coord",       accent:"coord", icon:"icons/coord.svg" }
     ]},
@@ -804,12 +802,10 @@
     { group:"Governance", items:[
       { href:"comply.html",      label:"Comply · Trust Center",ic:"◈", room:"comply",     accent:"ops",  icon:"icons/comply.svg" },
       { href:"law.html",         label:"Law · Contracts",     ic:"⚖", room:"law",         accent:"law", icon:"icons/law-contracts.svg" },
-      { href:"it.html",          label:"IT · System Health",  ic:"♥", room:"it",          accent:"it", icon:"icons/it.svg" }
-    ]},
+      { href:"it.html",          label:"IT · System Health",  ic:"♥", room:"it",          accent:"it", icon:"icons/it.svg" }, { href:"documents.html", label:"Documents", ic:"▤" }, { href:"sign.html", label:"e-Sign", ic:"✍" } ]},
     { group:"The House", items:[
       { href:"masterlist.html",  label:"The Master List",     ic:"✦", icon:"icons/master-list.svg" },
-      { href:"skins.html",       label:"Skin Machine",        ic:"◐", icon:"icons/skins.svg" }
-    ]},
+      { href:"skins.html",       label:"Skin Machine",        ic:"◐", icon:"icons/skins.svg" }, { href:"manual.html", label:"Owner's Manual", ic:"?" } ]},
     { group:"The Org", items:[
       { href:"org.html",         label:"Agent Org · Bus",     ic:"❖", room:"org",         accent:"ops", icon:"icons/org.svg" }
     ]}
