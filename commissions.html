@@ -12,6 +12,7 @@
 </head>
 <body>
 <script src="buttress.js"></script>
+<script src="project-wall.js"></script>
 <script>
 (function () {
   var B = window.Buttress;
@@ -25,6 +26,15 @@
     "being reconstructed at month end.",
     '<button class="btn brass sm" id="consultBtn">Consult Studio</button>'
   ));
+
+  /* ------------------------------------------------------------ the project wall — the buildings first */
+  var wallCard = B.card(
+    '<h2>The project wall</h2>' +
+    '<div class="card-sub">Every commission as the building it is, where it sits on the AIA phase rail, and how far ' +
+    'through the job it is. Tap a building to open it.</div>' +
+    '<div id="pwall"></div>'
+  );
+  c.appendChild(wallCard);
 
   /* ------------------------------------------------------------ containers */
   var boardCard = B.card(
@@ -347,6 +357,9 @@
 
   function render() {
     var d = B.db();
+    if (window.BProjectWall) window.BProjectWall.render(document.getElementById("pwall"), d.commissions, selId, function (id) {
+      selId = id; render(); bring(detailWrap);
+    });
     renderStats(d);
     renderMaster(d);
     renderDetail(d);
