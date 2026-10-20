@@ -12,6 +12,7 @@
 </head>
 <body>
 <script src="buttress.js"></script>
+<script src="visuals.js"></script>
 <script>
 (function () {
   var B = window.Buttress;
@@ -25,6 +26,12 @@
     "aging on every line. This is the room that replaces Newforma at this firm size.",
     '<button class="btn brass sm" id="consultBtn">Consult Construction Administration</button>'
   ));
+
+  /* the picture first (visuals.js, Oct 20 2026) — the same records, drawn */
+  var visCard = B.card('<div id="bvPic"></div>');
+  c.appendChild(visCard);
+  function drawVis() { if (window.BVis) window.BVis.ballBoard(document.getElementById("bvPic"), B.db()); }
+  drawVis();
 
   /* ---------------------------------------------------------------- boards */
   var boardCard = B.card(
@@ -230,6 +237,7 @@
   }
 
   function render() {
+    drawVis();
     var d = B.db();
     renderStats(d);
     renderLog(d);

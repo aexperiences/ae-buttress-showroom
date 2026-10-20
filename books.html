@@ -12,6 +12,7 @@
 </head>
 <body>
 <script src="buttress.js"></script>
+<script src="visuals.js"></script>
 <script>
 (function () {
   var B = window.Buttress;
@@ -69,6 +70,12 @@
     "plain terms, because a number a principal cannot explain is a number they will not act on.",
     '<button class="btn brass sm" id="consultBtn">Consult Money</button>'
   ));
+
+  /* the picture first (visuals.js, Oct 20 2026) — the same records, drawn */
+  var visCard = B.card('<div id="bvPic"></div>');
+  c.appendChild(visCard);
+  function drawVis() { if (window.BVis) window.BVis.dials(document.getElementById("bvPic"), B.db()); }
+  drawVis();
 
   /* -------------------------------------------------------------- the board */
   c.appendChild(B.card(
@@ -307,6 +314,7 @@
   }
 
   function render() {
+    drawVis();
     var d = B.db();
     renderBoard();
     renderLabor(d);

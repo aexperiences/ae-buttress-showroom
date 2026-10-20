@@ -12,6 +12,7 @@
 </head>
 <body>
 <script src="buttress.js"></script>
+<script src="visuals.js"></script>
 <script>
 (function () {
   var B = window.Buttress;
@@ -40,6 +41,12 @@
     "— the invoice is a read of the work, not a retyping of it.",
     '<button class="btn brass sm" id="toBuilder">Build an invoice</button>'
   ));
+
+  /* the picture first (visuals.js, Oct 20 2026) — the same records, drawn */
+  var visCard = B.card('<div id="bvPic"></div>');
+  c.appendChild(visCard);
+  function drawVis() { if (window.BVis) window.BVis.arAging(document.getElementById("bvPic"), B.db()); }
+  drawVis();
 
   /* ---------------------------------------------------------------- boards */
   c.appendChild(B.card(
@@ -358,6 +365,7 @@
   }
 
   function render() {
+    drawVis();
     var d = B.db();
     renderStats(d);
     renderInvoices(d);
