@@ -36,6 +36,10 @@ c.appendChild(B.el('<section class="card"><h2>Dark is the default</h2>'+
   'still here &mdash; <b>Bone</b> is the original trace-and-graphite sheet, unchanged &mdash; they are just '+
   'no longer the thing you have to opt out of.</p></section>'));
 
+/* ------------------------------- the Icon Skin Machine (Oct 20 2026): whole icon sets, one tap */
+var isec=B.el('<section class="card"><div id="arIconSets" class="ar-isets"></div></section>'); c.appendChild(isec);
+(function tryIcons(n){ var BS=window.BirdseyeShell; try { if (BS && BS.iconPicker && document.querySelector(".bs-dock")) { BS.iconPicker(isec.querySelector("#arIconSets")); return; } } catch (e) {} if (n < 60) setTimeout(function(){ tryIcons(n+1); }, 150); })(0);
+
 /* -------------------------------------------------------------- the shelf */
 var shelf=document.createElement("section"); shelf.className="card";
 shelf.appendChild(B.el('<h2>The shelf</h2><p class="sub">Tap one. It changes every floor, immediately, '+
