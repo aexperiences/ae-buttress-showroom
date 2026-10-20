@@ -109,8 +109,9 @@
     '.pw-key{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px;font-size:12px;color:var(--mut)}' +
     '@media(max-width:560px){.pw-wall{grid-template-columns:1fr 1fr;gap:10px}.pw-body{padding:8px 9px 10px}.pw-name{font-size:13.5px}.pw-sub{font-size:11.5px}.pw-rail{gap:2px}.pw-rail span{font-size:8.5px;padding:5px 0;letter-spacing:0}.pw-foot{flex-direction:column;gap:2px;font-size:11px}.pw-type{display:none}}';
 
+  function css() { if (!document.getElementById("pw-css")) { var st = document.createElement("style"); st.id = "pw-css"; st.textContent = CSS; document.head.appendChild(st); } }
   function render(el, list, selId, onPick) {
-    if (!document.getElementById("pw-css")) { var st = document.createElement("style"); st.id = "pw-css"; st.textContent = CSS; document.head.appendChild(st); }
+    css();
     el.innerHTML = '<div class="pw-wall">' + list.map(function (x) {
       var pct = Math.max(0, Math.min(100, Number(x.pctComplete) || 0));
       return '<button type="button" class="pw-card' + (x.id === selId ? " sel" : "") + '" data-id="' + esc(x.id) + '">' +
@@ -124,5 +125,5 @@
       b.addEventListener("click", function () { onPick && onPick(b.getAttribute("data-id")); });
     });
   }
-  window.BProjectWall = { render: render, drawing: drawing };
+  window.BProjectWall = { render: render, drawing: drawing, css: css };
 })();

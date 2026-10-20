@@ -12,6 +12,7 @@
 </head>
 <body>
 <script src="buttress.js"></script>
+<script src="project-wall.js"></script>
 <script>
 (function () {
   var B = window.Buttress;
@@ -59,6 +60,28 @@
              "Against " + B.money(totalCow) + " of cost of the work");
 
     board.innerHTML = "";
+    /* the pursuit wall — each pursuit as the building it would be, still a sketch until it is won */
+    if (window.BProjectWall) {
+      window.BProjectWall.css();
+      var esc = function (t) { return String(t == null ? "" : t).replace(/[&<>"]/g, function (ch) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]; }); };
+      if (!document.getElementById("pu-css")) { var st = document.createElement("style"); st.id = "pu-css";
+        st.textContent = ".pu-meter{height:6px;border-radius:6px;background:var(--sunk);margin-top:10px;overflow:hidden}.pu-meter i{display:block;height:100%;background:var(--brass)}" +
+          ".pu-row{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:8px;font-size:12px;color:var(--mut)}.pu-row b{color:var(--ink)}"; document.head.appendChild(st); }
+      board.appendChild(B.card(
+        '<h2>The pursuit wall</h2>' +
+        '<div class="card-sub">Every pursuit as the building it would be, drawn as a sketch until it is won, with its odds and the verdict.</div>' +
+        '<div class="pw-wall">' + P.map(function (g) {
+          var pr = Math.max(0, Math.min(100, Number(g.probability) || 0));
+          return '<div class="pw-card" style="cursor:default">' +
+            '<div class="pw-art">' + window.BProjectWall.drawing({ id: g.id, name: g.name, type: g.type, phase: "PD" }) +
+            '<span class="pw-type">' + esc(g.type) + '</span></div>' +
+            '<div class="pw-body"><div class="pw-name">' + esc(g.name) + '</div><div class="pw-sub">' + esc(g.client) + ' · ' + esc(g.owner) + '</div>' +
+            '<div class="pu-meter" aria-label="' + pr + '% probability"><i style="width:' + pr + '%"></i></div>' +
+            '<div class="pu-row"><span><b>' + pr + '%</b> odds · ' + esc(g.stage) + '</span>' + B.tag(g.decision, band(g.decision)) + '</div>' +
+            '<div class="pu-row"><span>Fee <b>' + B.money(g.value) + '</b></span><span>Due ' + esc(g.due) + '</span></div></div></div>';
+        }).join("") + '</div>'
+      ));
+    }
     board.appendChild(B.card(
       '<h2>The pipeline, weighted</h2>' +
       '<div class="card-sub">A raw pipeline total flatters everybody. The weighted number — fee value times the ' +
