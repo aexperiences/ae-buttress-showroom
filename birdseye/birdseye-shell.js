@@ -177,7 +177,7 @@
   };
   BS.SKINS = SKINS;
   /* the legacy chassis variables a skin also repaints, so a room's own body follows the skin */
-  var LEGACY = { paper: ["--paper", "--bg"], card: ["--card"], ink: ["--ink"], ink2: ["--ink-2", "--ink2"], mut: ["--mut"], rule: ["--line", "--rule"], rule2: ["--line-2", "--rule2", "--sunk"] };
+  var LEGACY = { paper: ["--paper", "--bg"], card: ["--card", "--field"], ink: ["--ink"], ink2: ["--ink-2", "--ink2"], mut: ["--mut"], rule: ["--line", "--rule"], rule2: ["--line-2", "--rule2", "--sunk"] };
   function skinKey() { var all = Object.assign({}, SKINS, C.skins || {}); var k = ls("birdseye:" + C.id + ":skin"); return k && all[k] ? k : (C.defaultSkin && all[C.defaultSkin] ? C.defaultSkin : "studio"); }
   function applySkin() {
     var all = Object.assign({}, SKINS, C.skins || {}), sk = all[skinKey()], root = document.documentElement;
