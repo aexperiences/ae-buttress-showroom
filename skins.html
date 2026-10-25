@@ -15,6 +15,7 @@
 .sk-live{font-size:10px;letter-spacing:.07em;text-transform:uppercase;padding:2px 8px;border-radius:999px}
 .sk-swatches label{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:600;
   border:1px solid var(--line);border-radius:10px;padding:6px 12px 6px 14px;background:var(--card)}
+#arIconSets h4{display:none}
 .sk-swatches label input{width:34px;height:30px;border:0;background:none;padding:0;cursor:pointer}
 </style>
 </head>
@@ -37,7 +38,8 @@ c.appendChild(B.el('<section class="card"><h2>Dark is the default</h2>'+
   'no longer the thing you have to opt out of.</p></section>'));
 
 /* ------------------------------- the Icon Skin Machine (Oct 20 2026): whole icon sets, one tap */
-var isec=B.el('<section class="card"><div id="arIconSets" class="ar-isets"></div></section>'); c.appendChild(isec);
+var isec=B.el('<section class="card"><h2>Icon Skins</h2><p class="sub">Swap every room icon in one tap. House is your drawn set.</p><div id="arIconSets" class="ar-isets"></div></section>');
+c.insertBefore(isec, c.children[1] || null); /* at the top of the room, right under the title (Anthony, Oct 24 2026: "put it at the top of the skins and title it") */
 (function tryIcons(n){ var BS=window.BirdseyeShell; try { if (BS && BS.iconPicker && document.querySelector(".bs-dock")) { BS.iconPicker(isec.querySelector("#arIconSets")); return; } } catch (e) {} if (n < 60) setTimeout(function(){ tryIcons(n+1); }, 150); })(0);
 
 /* -------------------------------------------------------------- the shelf */
