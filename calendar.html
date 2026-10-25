@@ -71,6 +71,11 @@
     { date:"2026-08-18", title:"Milestone — CA phase start", cat:"milestone" }
   ];
   var REF = new Date("2026-07-27T12:00:00"); /* the OS "today" */
+  /* Oct 24 2026: the sample calendar lives in THIS week — the seed (written in July) moves forward by whole weeks so
+     it never opens three months in the past. Weekdays stay weekdays. */
+  (function(){ var t=new Date(); t.setHours(12,0,0,0); var w=Math.max(0,Math.floor((t-REF)/86400000/7))*7; if(!w) return;
+    function mv(s){ var p=s.split("-"); var d=new Date(+p[0],+p[1]-1,+p[2]+w,12,0,0); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+    EVENTS.forEach(function(e){ e.date=mv(e.date); }); REF=new Date(REF.getTime()+w*86400000); })();
 
   /* ================= generic calendar (reusable across OSes) ================= */
   var esc = ENG.esc, MON=["January","February","March","April","May","June","July","August","September","October","November","December"], DOW=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];

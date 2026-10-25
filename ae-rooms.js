@@ -102,6 +102,8 @@
       (SEED.articles || []).forEach(function (a) { arts.push({ t: a[0], c: a[1], g: a[2] || "" }); });
       (SEED.limits || []).length && arts.push({ t: "What this system does not do", c: SEED.limits.join(" "), g: "Straight answers" });
       var B = cfg(), rooms = B ? B.rooms.filter(function (r) { return !r.hidden; }) : [];
+      /* the Birdseye config loads after this room on some systems, which printed "0 rooms" (Oct 24 2026): draw again once it is here */
+      if (!B && (ROOMS.manual._wait = (ROOMS.manual._wait || 0) + 1) < 30) setTimeout(function () { if (cfg()) ROOMS.manual.render(); }, 200);
       var wings = B ? B.wings : [];
       var q = (ROOMS.manual.q || "").toLowerCase().trim();
       var words = q.split(/\s+/).filter(function (w) { return w.length > 2; });

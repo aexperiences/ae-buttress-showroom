@@ -234,6 +234,9 @@ body::before{
 .pagehead h1{font-size:23px; letter-spacing:-.024em}
 .pagehead .sub{font-size:13.2px; color:var(--mut); margin-top:5px; max-width:78ch; line-height:1.55}
 .pagehead-actions{margin-left:auto; display:flex; gap:8px; align-items:center; flex:none}
+/* phone (Oct 24 2026): the room's button sat beside the title and squeezed the description into a narrow column.
+   On a phone the button goes under the description and the text keeps the full width. */
+@media (max-width:640px){ .pagehead{flex-direction:column; gap:10px} .pagehead-actions{margin-left:0; flex-wrap:wrap} }
 
 /* ------------------------------------------------------------------- cards */
 .card{

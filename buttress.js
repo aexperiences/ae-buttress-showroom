@@ -18,7 +18,7 @@
   "use strict";
 
   /* ------------------------------------------------------------------ store */
-  var KEY = "buttress_showroom_v1";
+  var KEY = "buttress_showroom_v2"; /* v2 Oct 24 2026: realistic labor costs (net multiplier 3.1x, inside the 2.75–3.25 band, was 4.00x) */
   /* Where the exit lands. The store, not the homepage. */
   var STORE_URL = "https://www.aexperiences.com/hubs/architecture.html";
   var SHOP_URL  = "https://www.aexperiences.com/shop.html";
@@ -31,7 +31,32 @@
   }
   function write(d) { d._t = now(); try { STORE.setItem(KEY, JSON.stringify(d)); } catch (e) {} }
 
-  function fresh() {
+  /* THE SAMPLE FIRM LIVES IN THIS WEEK (Oct 24 2026). The seed was written the week of Jul 23 2026, so by October
+     every due date, timesheet and issue date in the showroom read three months stale. Every ISO date in a fresh
+     floor is moved forward by whole weeks so the seed's "today" lands on this week (weekdays stay weekdays). */
+  var SEED_TODAY = "2026-07-23";
+  function shiftDates(o, days) {
+    if (!days) return o;
+    var rx = /^(\d{4})-(\d{2})-(\d{2})(.*)$/;
+    function mv(v) {
+      var m = rx.exec(v); if (!m) return v;
+      var d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3])); if (isNaN(d)) return v;
+      d.setUTCDate(d.getUTCDate() + days);
+      return d.toISOString().slice(0, 10) + m[4];
+    }
+    (function walk(x) {
+      if (Array.isArray(x)) { for (var i = 0; i < x.length; i++) { if (typeof x[i] === "string") x[i] = mv(x[i]); else if (x[i] && typeof x[i] === "object") walk(x[i]); } return; }
+      for (var k in x) if (Object.prototype.hasOwnProperty.call(x, k)) { var v = x[k]; if (typeof v === "string") x[k] = mv(v); else if (v && typeof v === "object") walk(v); }
+    })(o);
+    return o;
+  }
+  function seedShift() {
+    var t = new Date(); t = Date.UTC(t.getFullYear(), t.getMonth(), t.getDate());
+    var a = Date.UTC(2026, 6, 23);
+    return Math.max(0, Math.floor((t - a) / 86400000 / 7) * 7);
+  }
+  function fresh() { return shiftDates(freshRaw(), seedShift()); }
+  function freshRaw() {
     return {
       _t: now(), started: now(),
       tier: "grandsuite",   // the package they're standing in
@@ -271,22 +296,22 @@
         type:"Civic", phase:"CD", pctComplete:72, fee:480000, billed:320000, lead:"Dana Whitfield",
         construction:6400000, feeBasis:"7.5% of Cost of the Work", target:"2026-11-30",
         permit:"In review", consultants:["Summit Structural","Cascade MEP"],
-        laborCost:96400, writeOff:4200, note:"Waterfront civic. LEED Silver target." },
+        laborCost:124400, writeOff:4200, note:"Waterfront civic. LEED Silver target." },
       { id:"p2", name:"Hayden Medical Office", number:"25-004", client:"Panhandle Health",
         type:"Healthcare", phase:"DD", pctComplete:45, fee:260000, billed:96000, lead:"Marcus Lang",
         construction:3100000, feeBasis:"Stipulated sum", target:"2027-03-15",
         permit:"Not submitted", consultants:["Cascade MEP"],
-        laborCost:41200, writeOff:2600, note:"Two-story MOB. Owner wants a GMP early." },
+        laborCost:53100, writeOff:2600, note:"Two-story MOB. Owner wants a GMP early." },
       { id:"p3", name:"Lakeside Residence", number:"25-011", client:"The Abernathys",
         type:"Residential", phase:"SD", pctComplete:20, fee:88000, billed:12000, lead:"Dana Whitfield",
         construction:1150000, feeBasis:"Hourly, NTE $88,000", target:"2026-12-20",
         permit:"Not submitted", consultants:[],
-        laborCost:9800, writeOff:1900, note:"Custom lakefront. Shoreline setback variance likely." },
+        laborCost:12600, writeOff:1900, note:"Custom lakefront. Shoreline setback variance likely." },
       { id:"p4", name:"Fernan Elementary Addition", number:"24-022", client:"CDA School District",
         type:"Education", phase:"CA", pctComplete:95, fee:540000, billed:500000, lead:"Priya Anand",
         construction:7200000, feeBasis:"7.5% of Cost of the Work", target:"2026-08-30",
         permit:"Issued", consultants:["Summit Structural","Cascade MEP","Terra Civil"],
-        laborCost:118000, writeOff:1500, note:"6-classroom addition on an occupied campus. Phased occupancy." },
+        laborCost:152200, writeOff:1500, note:"6-classroom addition on an occupied campus. Phased occupancy." },
       { id:"p5", name:"Sherman Ave Mixed-Use", number:"25-019", client:"Northwest Development",
         type:"Commercial", phase:"PD", pctComplete:5, fee:0, billed:0, lead:"Marcus Lang",
         construction:9800000, feeBasis:"TBD — proposal out", target:"2027-06-01",
@@ -296,7 +321,7 @@
         type:"Civic", phase:"CA", pctComplete:100, fee:610000, billed:610000, lead:"Priya Anand",
         construction:8100000, feeBasis:"7.5% of Cost of the Work", target:"2026-05-15",
         permit:"Issued", consultants:["Summit Structural","Cascade MEP","Terra Civil"],
-        laborCost:131500, writeOff:0, note:"Complete and occupied. Warranty walk at 11 months." }
+        laborCost:169600, writeOff:0, note:"Complete and occupied. Warranty walk at 11 months." }
     ],
 
     /* The CA log — one engine for RFI / submittal / ASI / PR / CCD / CO / field

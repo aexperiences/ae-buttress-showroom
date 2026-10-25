@@ -249,7 +249,7 @@
   function isHomePage() { var f = (location.pathname.split("/").pop() || "index.html"); return f === C.home || (f === "" && C.home === "index.html"); }
 
   function paintHeader() {
-    var hn = document.getElementById("bsHouse"); if (hn) hn.textContent = houseName() + (C.brand.version && !C.brand.versionLine ? " · " + C.brand.version : "");
+    var hn = document.getElementById("bsHouse"); if (hn) hn.innerHTML = esc(houseName()) + (C.brand.version && !C.brand.versionLine ? '<span class="bs-hver"> · ' + esc(C.brand.version) + "</span>" : "");
     var sel = document.getElementById("bsSeat"); if (sel) sel.value = seatKey();
   }
 
