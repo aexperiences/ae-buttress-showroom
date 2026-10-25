@@ -76,6 +76,9 @@
   (function(){ var t=new Date(); t.setHours(12,0,0,0); var w=Math.max(0,Math.floor((t-REF)/86400000/7))*7; if(!w) return;
     function mv(s){ var p=s.split("-"); var d=new Date(+p[0],+p[1]-1,+p[2]+w,12,0,0); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
     EVENTS.forEach(function(e){ e.date=mv(e.date); }); REF=new Date(REF.getTime()+w*86400000); })();
+  /* A firm's own book (Oct 24 2026): no sample dates; its own events come from the book and save for the whole team. */
+  var OWNB = window.Buttress && window.Buttress.own && window.Buttress.own();
+  if (OWNB) { EVENTS = (window.Buttress.db().events || []).slice(); REF = new Date(); REF.setHours(12,0,0,0); }
 
   /* ================= generic calendar (reusable across OSes) ================= */
   var esc = ENG.esc, MON=["January","February","March","April","May","June","July","August","September","October","November","December"], DOW=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
@@ -190,6 +193,7 @@
     document.getElementById("neSave").onclick=function(){
       var t=document.getElementById("neTitle").value.trim(); if(!t){ ENG.toast("Give it a title first.",""); return; }
       EVENTS.push({ date:document.getElementById("neDate").value||ymd(state.cur), time:(document.getElementById("neTime").value||""), title:t, cat:document.getElementById("neCat").value });
+      if (OWNB) window.Buttress.save(function(x){ x.events = EVENTS.slice(); });
       closeModal(); ENG.toast("Event added to the calendar.","ok"); render();
     };
   }

@@ -99,7 +99,7 @@
 
   /* ------------------------------------------------------ the hierarchy rules */
   var LADDER = [
-    { rung:"Principal", seat:"Dana Whitfield · human · Architect of Record",
+    { rung:"Principal", seat:(B.own() ? B.esc((B.db().own || {}).me || "The principal") : "Dana Whitfield") + " · human · Architect of Record",
       rule:"The only seat that signs, seals, spends or sends. The org exists to keep this desk clear, not to fill it." },
     { rung:"COO", seat:B.esc(COO.name) + " · apex of the org",
       rule:"Single gate between the department heads and the principal. Routes, gates, packages. Defers upward only behind a Fence." },

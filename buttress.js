@@ -29,7 +29,7 @@
   function read() {
     try { var d = JSON.parse(STORE.getItem(KEY)); return d || null; } catch (e) { return null; }
   }
-  function write(d) { d._t = now(); try { STORE.setItem(KEY, JSON.stringify(d)); } catch (e) {} }
+  var write = function (d) { d._t = now(); try { STORE.setItem(KEY, JSON.stringify(d)); } catch (e) {} };
 
   /* THE SAMPLE FIRM LIVES IN THIS WEEK (Oct 24 2026). The seed was written the week of Jul 23 2026, so by October
      every due date, timesheet and issue date in the showroom read three months stale. Every ISO date in a fresh
@@ -89,14 +89,110 @@
     };
   }
   function clone(a){ return JSON.parse(JSON.stringify(a)); }
+  /* ------------------------------------------------------------ own book
+     A FIRM'S OWN BOOK (Oct 24 2026, overnight run — Anthony set "Setup helper" second on his list, then "I need you to
+     take the lead"). Opened with the firm's code (the team link from the welcome email, ?code=sub_…), this is no longer
+     the showroom: it starts empty, never resets, and saves to the hub (/api/os-book) so every phone on the team sees the
+     same firm. The code is remembered on this device; ?showroom=1 forgets it and opens the sample firm again. */
+  var OWN = (function () {
+    var q = location.search, m = /[?&]code=([^&#]+)/.exec(q), c = m ? decodeURIComponent(m[1]) : "";
+    var ok = /^(sub_[A-Za-z0-9]{6,80}|founder-[a-z0-9-]{1,40})$/i;
+    try {
+      if (/[?&]showroom=1/.test(q)) { localStorage.removeItem("buttress_own_code"); return ""; }
+      if (ok.test(c)) { localStorage.setItem("buttress_own_code", c); return c; }
+      var k = localStorage.getItem("buttress_own_code") || ""; return ok.test(k) ? k : "";
+    } catch (e) { return ok.test(c) ? c : ""; }
+  })();
+  var OWN_API = "https://aexperiences.studio/api/os-book";
+  if (OWN) {
+    KEY = "buttress_own_v1:" + OWN;
+    /* the book lives at the hub, so it opens on the hub's address (the .com and the build's own address forward here) */
+    if (location.hostname !== "aexperiences.studio" && !/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) {
+      location.replace("https://aexperiences.studio/apps/buttress/" + (location.pathname.split("/").pop() || "") + "?code=" + encodeURIComponent(OWN));
+    }
+    OWN_API = "/api/os-book";
+  }
+  /* An empty firm: every list the showroom fills with the sample practice starts empty. The agents (Nora, Codex,
+     Wescott) are the system's own staff, so they stay; the sample firm's people do not. */
+  function blank() {
+    var d = freshRaw();
+    ["commissions","ca","sheets","specs","consultants","permits","pursuits","labor","timesheet","masterlist","comply",
+     "evidencePacks","payrolls","invoices","systems","matters","approvals","substitutions","bus"].forEach(function (k) { d[k] = []; });
+    d.onboarding = {};
+    d.team = (d.team || []).filter(function (t) { return /agent/i.test(t.type || ""); });
+    d.tier = "grandsuite"; d.own = { firm: "", setup: 0, made: new Date().toISOString().slice(0, 10) };
+    d._rev = 0;
+    return d;
+  }
+  var ownTimer = null, ownBusy = false, ownAgain = false, ownLast = ["Checking…", ""], OWN_LAND = false;
+  function ownLand(b) { location.replace((b && b.own && b.own.setup >= 3 ? "dashboard.html" : "setup.html") + "?code=" + encodeURIComponent(OWN)); }
+  function ownSay(t, kind) {
+    ownLast = [t, kind || ""];
+    var e = document.getElementById("ownSave"); if (!e) return;
+    e.textContent = t; e.className = "ownsave " + (kind || "");
+  }
+  function ownPush(leaving) {
+    if (!OWN) return;
+    if (ownBusy) { ownAgain = true; return; }
+    var d = read(); if (!d) return;
+    ownBusy = true; ownSay("Saving…");
+    var send = JSON.parse(JSON.stringify(d)); var base = send._rev || 0; delete send._dirty;
+    var bodyTxt = JSON.stringify({ app: "buttress", code: OWN, book: send, baseRev: base });
+    fetch(OWN_API, { method: "PUT", headers: { "content-type": "application/json" }, credentials: "same-origin", body: bodyTxt,
+      keepalive: !!leaving && bodyTxt.length < 60000 })
+      .then(function (r) { return r.json().then(function (j) { return { s: r.status, j: j }; }); })
+      .then(function (x) {
+        ownBusy = false;
+        if (x.s === 200 && x.j.ok) {
+          var cur = read() || d; cur._rev = x.j.rev; if (!ownAgain) delete cur._dirty; STORE.setItem(KEY, JSON.stringify(cur));
+          ownSay("Saved for your team", "ok");
+        } else if (x.s === 409 && x.j.book) {
+          /* a teammate saved first: take theirs (it is the newest book) and redraw */
+          var b = x.j.book; b._rev = x.j.rev; STORE.setItem(KEY, JSON.stringify(b));
+          toast("A teammate saved a newer copy. Showing it now; redo your last change if it is missing.", "warn");
+          setTimeout(function () { location.reload(); }, 1600);
+          return;
+        } else { ownSay((x.j && x.j.message) || "Not saved. Kept on this phone.", "bad"); }
+        if (ownAgain) { ownAgain = false; ownPush(); }
+      })
+      .catch(function () { ownBusy = false; ownSay("Offline. Kept on this phone; it saves when you're back.", "bad"); });
+  }
+  function ownSoon() { clearTimeout(ownTimer); ownTimer = setTimeout(ownPush, 1500); }
+  function ownPull() {
+    if (!OWN) return;
+    fetch(OWN_API + "?app=buttress&code=" + encodeURIComponent(OWN), { credentials: "same-origin", cache: "no-store" })
+      .then(function (r) { return r.json().then(function (j) { return { s: r.status, j: j }; }); })
+      .then(function (x) {
+        if (x.s !== 200 || !x.j.ok) { ownSay((x.j && x.j.message) || "The hub did not answer.", "bad"); if (OWN_LAND) ownLand(read()); return; }
+        var cur = read();
+        if (OWN_LAND) { if (x.j.book && (!cur || x.j.rev > (cur._rev || 0))) { var nb = x.j.book; nb._rev = x.j.rev; STORE.setItem(KEY, JSON.stringify(nb)); cur = nb; } ownLand(cur); return; }
+        if (x.j.company && cur && cur.own && !cur.own.company) { cur.own.company = x.j.company; STORE.setItem(KEY, JSON.stringify(cur)); }
+        if (x.j.book && (!cur || (x.j.rev > (cur._rev || 0) && !cur._dirty))) {
+          var b = x.j.book; b._rev = x.j.rev; STORE.setItem(KEY, JSON.stringify(b));
+          try { if (sessionStorage.getItem("buttress_own_pulled") !== String(x.j.rev)) { sessionStorage.setItem("buttress_own_pulled", String(x.j.rev)); location.reload(); return; } } catch (e) {}
+        }
+        if (cur && cur._dirty) ownPush(); else ownSay("Saved for your team", "ok");
+      })
+      .catch(function () { ownSay("Offline. Working from this phone's copy.", "bad"); if (OWN_LAND) ownLand(read()); });
+  }
+
   function db() {
     var d = read();
+    if (OWN) { if (!d) { d = blank(); STORE.setItem(KEY, JSON.stringify(d)); } return d; }
     if (!d) { d = fresh(); write(d); return d; }
     if (now() - (d._t || 0) > IDLE_MS) { d = fresh(); write(d); }
     return d;
   }
+  if (OWN) {
+    var _w = write;
+    write = function (d) { _w(d); d._dirty = 1; try { STORE.setItem(KEY, JSON.stringify(d)); } catch (e) {} ownSoon(); };
+    window.addEventListener("pagehide", function () { var d = read(); if (d && d._dirty) { clearTimeout(ownTimer); ownPush(true); } });
+    setTimeout(ownPull, 0);
+    /* the landing page is the sales floor; a firm with its own book goes straight in (to the setup helper until it is done) */
+    if (/(^|\/)(index\.html)?$/.test(location.pathname)) OWN_LAND = true;   /* where to go is decided once the book is in (ownPull) */
+  }
   function save(mut) { var d = db(); mut(d); write(d); return d; }
-  function resetFloor() { var d = fresh(); write(d); return d; }
+  function resetFloor() { if (OWN) return db(); var d = fresh(); write(d); return d; }   /* never wipes a firm's own book */
 
   /* ====================================================================
      INDUSTRY CANON — the real vocabulary. Not invented.
@@ -1607,6 +1703,11 @@
   }
 
   function ribbon() {
+    if (OWN) {
+      var o = (read() || {}).own || {}, nm = o.firm || o.company || "Your firm";
+      return el('<div class="ribbon ownrib"><span class="live">YOUR FIRM</span> ' + esc(nm) + '\'s own system. It saves for your whole team. ' +
+        '<span id="ownSave" class="ownsave ' + ownLast[1] + '">' + esc(ownLast[0]) + '</span> · <a href="setup.html">Setup helper</a></div>');
+    }
     return el('<div class="ribbon"><span class="live">LIVE SHOWROOM</span>' +
       ' — this is the real OS, not a slideshow. Everything you type stays in your browser and resets when you leave. ' +
       '<a href="javascript:void(0)" id="resetFloor">Reset the floor</a></div>');
@@ -1714,7 +1815,7 @@
   /* -------------------------------------------------------------- public API */
   global.Buttress = {
     /* store */
-    db:db, save:save, resetFloor:resetFloor, fresh:fresh, SEED:SEED,
+    db:db, save:save, resetFloor:resetFloor, fresh:fresh, SEED:SEED, own:function(){ return OWN; }, blank:blank, ownPush:ownPush,
     /* industry canon */
     PHASES:PHASES, CA_TYPES:CA_TYPES, CA_STATUS:CA_STATUS, BALL:BALL,
     SUBMITTAL_ACTIONS:SUBMITTAL_ACTIONS, DISCIPLINES:DISCIPLINES, SHEET_TYPES:SHEET_TYPES, STANDARD_SET:STANDARD_SET, MF_SECTIONS:MF_SECTIONS, BURDEN_DEFAULT:BURDEN_DEFAULT, ROLES:ROLES, roleByKey:roleByKey, viewRole:viewRole, setViewRole:setViewRole, roleCan:roleCan, navKey:navKey,

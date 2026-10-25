@@ -141,11 +141,11 @@
     'and routes anything with real exposure to a licensed attorney. Terms argues for getting to a clean signature; ' +
     'Claim asks what claim could arise and whether the E&amp;O responds. Expect this one to escalate.</div>' +
     '<div class="row" style="margin-bottom:12px">' +
-      '<input id="q" placeholder="e.g. Can we sign the Riverside redline as written?" style="flex:1;min-width:260px">' +
+      '<input id="q" placeholder="e.g. ' + (B.own() ? 'Can we sign the owner redline as written?' : 'Can we sign the Riverside redline as written?') + '" style="flex:1;min-width:260px">' +
       '<button class="btn brass" id="go">Route it</button>' +
     '</div>' +
     '<div class="row" style="gap:6px;margin-bottom:4px">' +
-      ['Can we sign the Riverside redline as written?',
+      [(B.own() ? 'Can we sign the owner redline as written?' : 'Can we sign the Riverside redline as written?'),
        'What is our exposure on the unexecuted C401?',
        'How many G704 certificates does phased occupancy need?',
        'Where are we outside the standard of care?'].map(function (s) {

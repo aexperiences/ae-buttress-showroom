@@ -291,11 +291,11 @@
     'and escalates a discipline conflict. Sequence asks who needs what and when; Clash asks where the disciplines ' +
     'actually collide.</div>' +
     '<div class="row" style="margin-bottom:12px">' +
-      '<input id="q" placeholder="e.g. What is still open with the AHJ on Riverside?" style="flex:1;min-width:260px">' +
+      '<input id="q" placeholder="e.g. ' + (B.own() ? 'What is still open with the AHJ?' : 'What is still open with the AHJ on Riverside?') + '" style="flex:1;min-width:260px">' +
       '<button class="btn brass" id="go">Route it</button>' +
     '</div>' +
     '<div class="row" style="gap:6px;margin-bottom:4px">' +
-      ['What is still open with the AHJ on Riverside?',
+      [(B.own() ? 'What is still open with the AHJ?' : 'What is still open with the AHJ on Riverside?'),
        'Which consultant is producing without a C401?',
        'What has to close before the addendum goes out?'].map(function (s) {
         return '<button class="btn ghost sm ex" data-q="' + B.esc(s) + '">' + B.esc(s) + '</button>';

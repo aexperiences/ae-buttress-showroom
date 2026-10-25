@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Setup Helper · Buttress OS</title>
+<meta name="description" content="Three steps from a yes to your own firm in Buttress OS: the firm, your people, your projects.">
+<link rel="canonical" href="https://aexperiences.studio/apps/buttress/setup.html">
+<link rel="icon" href="https://www.aexperiences.com/Buttress_OS.png">
+<link rel="apple-touch-icon" href="https://www.aexperiences.com/Buttress_OS.png">
+<meta name="theme-color" content="#221f1b">
+<link rel="stylesheet" href="buttress.css">
+<style>
+/* Setup helper (Oct 24 2026, overnight run: "Setup helper — a yes becomes their own system the same day"). Phone first. */
+.su-steps{display:flex;gap:8px;margin:0 0 14px;flex-wrap:wrap}
+.su-steps b{display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:6px 10px;border-radius:999px;border:1px solid var(--line,#ddd);opacity:.6}
+.su-steps b.on{opacity:1;border-color:currentColor}
+.su-steps b.done{opacity:.9}
+.su-steps b.done::before{content:"✓"}
+.su-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;padding:12px 0;border-top:1px solid var(--line,#e5e0d6)}
+.su-row:first-of-type{border-top:0}
+.su-row .field{margin:0}
+.su-x{align-self:end;justify-self:start}
+.su-note{font-size:14px;line-height:1.5;margin:6px 0 0}
+.su-big{font-size:17px;line-height:1.5}
+.su-next a{display:block;padding:12px 0;border-top:1px solid var(--line,#e5e0d6);font-weight:700}
+.su-warn{border-left:4px solid var(--brass,#a8762c);padding:10px 12px;margin:0 0 14px;font-size:15px;line-height:1.5}
+.ownsave.ok{font-weight:700}.ownsave.bad{font-weight:700;text-decoration:underline}
+input,select{max-width:100%}
+</style>
+</head>
+<body>
+<script src="buttress.js"></script>
+<script>
+(function () {
+  var B = window.Buttress;
+  var c = B.mount({ active: "setup.html", crumb: "Setup Helper" });
+  var OWN = B.own();
+  var esc = function (s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (m) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]; }); };
+  var money = function (v) { return Math.max(0, Math.round(Number(String(v).replace(/[^0-9.]/g, "")) || 0)); };
+  var ROLE_OPTS = B.ROLES.filter(function (r) { return r.key !== "consultant"; });
+  var LABOR_ROLE = { principal: "Principal", associate: "Associate", pa: "Project Architect", captain: "Job Captain", officemgr: "Office Manager", books: "Bookkeeper" };
+  var step = 1;
+
+  function d() { return B.db(); }
+  function own() { return d().own || {}; }
+
+  function head() {
+    var o = own(), s = o.setup || 0;
+    var names = ["The firm", "Your people", "Your projects"];
+    return '<div class="su-steps">' + names.map(function (n, i) {
+      var k = i + 1; return '<b class="' + (k === step ? "on " : "") + (s >= k ? "done" : "") + '">' + k + ' · ' + n + '</b>';
+    }).join("") + '</div>';
+  }
+
+  function draw() {
+    c.innerHTML = "";
+    c.appendChild(B.page("Setup helper", "Three steps from your yes to your own firm in Buttress OS. About fifteen minutes. You can come back and change any of it."));
+    if (!OWN) {
+      c.appendChild(B.card('<div class="su-warn">This is the showroom, so nothing here saves to a firm. Your own firm opens from the <b>team link</b> in your welcome email. Open that link and this helper saves everything for your whole team.</div>' +
+        '<p class="su-big">Here is what it asks, so you can have it ready:</p>' +
+        '<p class="su-note"><b>1. The firm.</b> Its name and city, and who you are.</p>' +
+        '<p class="su-note"><b>2. Your people.</b> Each person, their seat, W-2 or 1099, what you bill for an hour of their time and what an hour of it costs you.</p>' +
+        '<p class="su-note"><b>3. Your projects.</b> Each active commission: name, number, client, phase, the fee and what you have billed so far.</p>' +
+        '<p class="su-note">Questions? Call or text Anthony at <a href="tel:+12086181989">208-618-1989</a>.</p>'));
+      return;
+    }
+    var box = document.createElement("div"); c.appendChild(box);
+    if (step === 1) one(box); else if (step === 2) two(box); else if (step === 3) three(box); else done(box);
+  }
+
+  /* ---------- 1 · the firm */
+  function one(box) {
+    var o = own(), me = (d().labor || [])[0] || {};
+    box.appendChild(B.card(head() +
+      '<h2>The firm</h2><div class="card-sub">This name shows on every room, for everyone on your team.</div>' +
+      '<div class="grid g2">' +
+        '<div class="field"><label class="f" for="sFirm">Firm name</label><input id="sFirm" autocomplete="organization" value="' + esc(o.firm || o.company || "") + '" placeholder="Whitfield Architecture"></div>' +
+        '<div class="field"><label class="f" for="sCity">City and state</label><input id="sCity" value="' + esc(o.city || "") + '" placeholder="Coeur d\'Alene, ID"></div>' +
+        '<div class="field"><label class="f" for="sMe">Your name</label><input id="sMe" autocomplete="name" value="' + esc(o.me || me.name || "") + '"></div>' +
+        '<div class="field"><label class="f" for="sRole">Your seat</label><select id="sRole">' + ROLE_OPTS.map(function (r) { return '<option value="' + r.key + '"' + ((o.meRole || "principal") === r.key ? " selected" : "") + '>' + esc(r.name) + '</option>'; }).join("") + '</select></div>' +
+      '</div>' +
+      '<div class="divider"></div><div class="row"><button class="btn brass" id="sNext1">Save and go to your people</button></div>'));
+    document.getElementById("sNext1").onclick = function () {
+      var firm = document.getElementById("sFirm").value.trim(), me2 = document.getElementById("sMe").value.trim();
+      if (!firm) { B.toast("Give the firm its name first.", "warn"); return; }
+      B.save(function (x) {
+        x.own = x.own || {}; x.own.firm = firm; x.own.city = document.getElementById("sCity").value.trim();
+        x.own.me = me2; x.own.meRole = document.getElementById("sRole").value; x.own.setup = Math.max(x.own.setup || 0, 1);
+      });
+      /* reload so the header and every room carry the firm's name from here on (the save goes out first) */
+      B.ownPush(true); setTimeout(function () { location.reload(); }, 250);
+    };
+  }
+
+  /* ---------- 2 · your people */
+  function personRow(p, i) {
+    return '<div class="su-row" data-i="' + i + '">' +
+      '<div class="field"><label class="f">Name</label><input data-k="name" value="' + esc(p.name || "") + '"></div>' +
+      '<div class="field"><label class="f">Seat</label><select data-k="seat">' + ROLE_OPTS.map(function (r) { return '<option value="' + r.key + '"' + ((p.seat || "captain") === r.key ? " selected" : "") + '>' + esc(r.short) + '</option>'; }).join("") + '</select></div>' +
+      '<div class="field"><label class="f">Paid as</label><select data-k="type"><option value="w2"' + (p.type !== "1099" ? " selected" : "") + '>W-2</option><option value="1099"' + (p.type === "1099" ? " selected" : "") + '>1099</option></select></div>' +
+      '<div class="field"><label class="f">Bill rate, $ an hour</label><input data-k="rate" inputmode="decimal" value="' + esc(p.rate || "") + '" placeholder="150"></div>' +
+      '<div class="field"><label class="f">Their cost, $ an hour</label><input data-k="cost" inputmode="decimal" value="' + esc(p.cost || "") + '" placeholder="what you pay them"></div>' +
+      '<button class="btn ghost sm su-x" data-x="' + i + '" type="button">Remove</button></div>';
+  }
+  var people = null;
+  function two(box) {
+    if (!people) {
+      people = (d().labor || []).map(function (l) { return { id: l.id, name: l.name, seat: l.seat, type: l.type, rate: l.rate, cost: l.cost }; });
+      if (!people.length) people = [{ name: own().me || "", seat: own().meRole || "principal", type: "w2" }];
+    }
+    box.appendChild(B.card(head() +
+      '<h2>Your people</h2><div class="card-sub">Everyone who bills time, you included. The bill rate is what a client pays for an hour of them; the cost is what that hour costs you (their pay divided by hours). The money rooms use both to work out your multiplier. Leave a rate blank if you do not know it yet.</div>' +
+      '<div id="sPeople">' + people.map(personRow).join("") + '</div>' +
+      '<div class="row"><button class="btn ghost sm" id="sAdd" type="button">Add a person</button></div>' +
+      '<div class="divider"></div><div class="row"><button class="btn brass" id="sNext2">Save and go to your projects</button><button class="btn ghost sm" id="sBack2" type="button">Back</button></div>'));
+    function pull() {
+      Array.prototype.forEach.call(document.querySelectorAll("#sPeople .su-row"), function (r) {
+        var p = people[+r.getAttribute("data-i")];
+        Array.prototype.forEach.call(r.querySelectorAll("[data-k]"), function (e) { p[e.getAttribute("data-k")] = e.value; });
+      });
+    }
+    document.getElementById("sAdd").onclick = function () { pull(); people.push({ seat: "captain", type: "w2" }); draw(); };
+    Array.prototype.forEach.call(document.querySelectorAll("#sPeople [data-x]"), function (b) {
+      b.onclick = function () { pull(); people.splice(+b.getAttribute("data-x"), 1); draw(); };
+    });
+    document.getElementById("sBack2").onclick = function () { pull(); step = 1; draw(); };
+    document.getElementById("sNext2").onclick = function () {
+      pull();
+      var keep = people.filter(function (p) { return String(p.name || "").trim(); });
+      if (!keep.length) { B.toast("Add at least one person, you included.", "warn"); return; }
+      B.save(function (x) {
+        var oldTeam = x.team || [];
+        x.labor = keep.map(function (p, i) {
+          return { id: p.id || ("l" + (i + 1) + "_" + Date.now().toString(36)), name: p.name.trim(), role: LABOR_ROLE[p.seat] || "Staff", type: p.type === "1099" ? "1099" : "w2",
+            rate: money(p.rate), cost: money(p.cost), hours: 0, billable: 0, target: p.seat === "principal" ? 45 : 80, seat: p.seat };
+        });
+        var agents = oldTeam.filter(function (t) { return /agent/i.test(t.type || ""); });
+        var humans = x.labor.map(function (l, i) {
+          var was = oldTeam.filter(function (t) { return t.name === l.name && !/agent/i.test(t.type || ""); })[0] || {};
+          var r = B.roleByKey ? B.roleByKey(l.seat) : null;
+          return { id: was.id || ("h" + (i + 1) + "_" + Date.now().toString(36)), name: l.name, role: (r && r.name) || l.role, type: "Human", status: "Active", dept: "Studio",
+            license: was.license || "—", ce: was.ce || "—", note: was.note || "" };
+        });
+        x.team = humans.concat(agents);
+        x.own = x.own || {}; x.own.setup = Math.max(x.own.setup || 0, 2);
+      });
+      people = null; step = 3; draw(); window.scrollTo(0, 0);
+    };
+  }
+
+  /* ---------- 3 · your projects */
+  var projects = null;
+  function projectRow(p, i) {
+    return '<div class="su-row" data-i="' + i + '">' +
+      '<div class="field"><label class="f">Project name</label><input data-k="name" value="' + esc(p.name || "") + '"></div>' +
+      '<div class="field"><label class="f">Number</label><input data-k="number" value="' + esc(p.number || "") + '" placeholder="26-004"></div>' +
+      '<div class="field"><label class="f">Client</label><input data-k="client" value="' + esc(p.client || "") + '"></div>' +
+      '<div class="field"><label class="f">Phase now</label><select data-k="phase">' + B.PHASES.map(function (ph) { return '<option value="' + ph.k + '"' + ((p.phase || "SD") === ph.k ? " selected" : "") + '>' + esc(ph.name) + '</option>'; }).join("") + '</select></div>' +
+      '<div class="field"><label class="f">Fee, $</label><input data-k="fee" inputmode="decimal" value="' + esc(p.fee || "") + '"></div>' +
+      '<div class="field"><label class="f">Billed so far, $</label><input data-k="billed" inputmode="decimal" value="' + esc(p.billed || "") + '" placeholder="0"></div>' +
+      '<div class="field"><label class="f">Percent done</label><input data-k="pctComplete" inputmode="numeric" value="' + esc(p.pctComplete || "") + '" placeholder="0–100"></div>' +
+      '<button class="btn ghost sm su-x" data-x="' + i + '" type="button">Remove</button></div>';
+  }
+  function three(box) {
+    if (!projects) {
+      projects = (d().commissions || []).map(function (p) { return JSON.parse(JSON.stringify(p)); });
+      if (!projects.length) projects = [{ phase: "SD" }];
+    }
+    box.appendChild(B.card(head() +
+      '<h2>Your projects</h2><div class="card-sub">Each active commission. Billing, the fee check and work-in-progress all start from these numbers. Add the rest later in the Commissions room.</div>' +
+      '<div id="sProj">' + projects.map(projectRow).join("") + '</div>' +
+      '<div class="row"><button class="btn ghost sm" id="sAddP" type="button">Add a project</button></div>' +
+      '<div class="divider"></div><div class="row"><button class="btn brass" id="sNext3">Save and finish</button><button class="btn ghost sm" id="sBack3" type="button">Back</button></div>'));
+    function pull() {
+      Array.prototype.forEach.call(document.querySelectorAll("#sProj .su-row"), function (r) {
+        var p = projects[+r.getAttribute("data-i")];
+        Array.prototype.forEach.call(r.querySelectorAll("[data-k]"), function (e) { p[e.getAttribute("data-k")] = e.value; });
+      });
+    }
+    document.getElementById("sAddP").onclick = function () { pull(); projects.push({ phase: "SD" }); draw(); };
+    Array.prototype.forEach.call(document.querySelectorAll("#sProj [data-x]"), function (b) {
+      b.onclick = function () { pull(); projects.splice(+b.getAttribute("data-x"), 1); draw(); };
+    });
+    document.getElementById("sBack3").onclick = function () { pull(); step = 2; draw(); };
+    document.getElementById("sNext3").onclick = function () {
+      pull();
+      var keep = projects.filter(function (p) { return String(p.name || "").trim(); });
+      var lead = own().me || ((d().labor || [])[0] || {}).name || "";
+      B.save(function (x) {
+        x.commissions = keep.map(function (p, i) {
+          var pct = Math.min(100, Math.max(0, Math.round(Number(p.pctComplete) || 0)));
+          return Object.assign({}, p, { id: p.id || ("p" + (i + 1) + "_" + Date.now().toString(36)), name: p.name.trim(), number: String(p.number || "").trim(),
+            client: String(p.client || "").trim(), type: p.type || "", phase: p.phase || "SD", pctComplete: pct, fee: money(p.fee), billed: money(p.billed),
+            lead: p.lead || lead, construction: Number(p.construction) || 0, feeBasis: p.feeBasis || "", target: p.target || "", permit: p.permit || "",
+            consultants: p.consultants || [], laborCost: Number(p.laborCost) || 0, writeOff: Number(p.writeOff) || 0, note: p.note || "" });
+        });
+        x.own = x.own || {}; x.own.setup = 3;
+      });
+      projects = null; step = 4; draw(); window.scrollTo(0, 0);
+    };
+  }
+
+  /* ---------- done */
+  function done(box) {
+    var x = d(), o = x.own || {};
+    box.appendChild(B.card(head() +
+      '<h2>' + esc(o.firm || "Your firm") + ' is set up</h2>' +
+      '<p class="su-big">' + (x.labor || []).length + ' ' + ((x.labor || []).length === 1 ? "person" : "people") + ' and ' + (x.commissions || []).length + ' ' + ((x.commissions || []).length === 1 ? "project" : "projects") + ' are in. Everything saves for your whole team. Send everyone the same team link from your welcome email.</p>' +
+      '<p class="su-note">Nothing here sends, bills or files anything by itself.</p>' +
+      '<div class="divider"></div><h2>Next, in their own rooms</h2>' +
+      '<div class="su-next">' +
+        '<a href="billing.html">Billing: put in the invoices that are out now</a>' +
+        '<a href="time.html">Time: everyone logs this week\'s hours</a>' +
+        '<a href="commissions.html">Commissions: add consultants, construction cost and the target date</a>' +
+        '<a href="pursuits.html">Pursuits: the work you are chasing</a>' +
+        '<a href="dashboard.html">Go to the dashboard</a>' +
+      '</div>' +
+      '<div class="divider"></div><div class="row"><button class="btn ghost sm" id="sAgain" type="button">Go through the steps again</button></div>'));
+    document.getElementById("sAgain").onclick = function () { step = 1; draw(); };
+  }
+
+  var s0 = own().setup || 0; step = s0 >= 3 ? 4 : s0 + 1;
+  draw();
+})();
+</script>
+</body>
+</html>

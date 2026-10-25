@@ -47,7 +47,7 @@
 
   /* --------------------------------------------------------------- the desk */
   var seedProject = d.commissions[0];
-  var seedInvoice = d.invoices[0];
+  var seedInvoice = d.invoices[0] || { reimb: 0 };   /* a firm's own book starts with no invoices */
 
   var commOpts = d.commissions.map(function (x) {
     return '<option value="' + B.esc(x.id) + '"' + (x.id === seedProject.id ? " selected" : "") + '>' +

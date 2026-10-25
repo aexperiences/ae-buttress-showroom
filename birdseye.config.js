@@ -8,7 +8,7 @@
     trade: "Architecture firm (pursuits, phases SD→CA, sheets, specs, construction administration)",
     brand: {"name": "Buttress OS", "short": "Buttress", "iconFile": "Buttress_OS.png", "version": "V. Birdseye 1.0", "line": "Mothership", "icon": "birdseye/os-icon.png", "aos": "birdseye/marks/aos-business.png", "aeMark": "birdseye/marks/ae-mark.png", "birdseyeIcon": "birdseye/marks/birdseye.png", "store": "https://aexperiences.studio/store.html"},
     houseNoun: "firm",
-    houseName: function(E,D,H,S){ return (''); },
+    houseName: function(E,D,H,S){ return ((D.own && (D.own.firm || D.own.company)) || ''); },
     today: function(E,D,H,S){ return (new Date(H.day(E) + 'T12:00:00')); },
     defaultSkin: "house",
     skins: {"house": {"name": "Buttress", "note": "this system's own colors", "twin": "house-night", "v": {"paper": "#d8e8dc", "card": "#f2f8f3", "ink": "#142418", "ink2": "#3f5043", "mut": "#6c7f71", "rule": "#c0d3c5", "rule2": "#cddfd2", "char": "#17301d", "red": "#27863f", "red2": "#1e6730", "gold": "#b08a3c", "gold2": "#caa457"}}, "house-night": {"name": "Buttress at Night", "note": "its own colors, dark", "twin": "house", "dark": 1, "v": {"paper": "#0d1610", "card": "#162219", "ink": "#eaf0ec", "ink2": "#b6c3b9", "mut": "#839588", "rule": "#2b3b2f", "rule2": "#1f2d23", "char": "#0a100b", "red": "#66cc80", "red2": "#40bf60", "gold": "#c9a24a", "gold2": "#e2b45c"}}},
