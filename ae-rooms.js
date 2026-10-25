@@ -456,11 +456,21 @@
   };
 
   /* ---------------- 8. MAIL ---------------- */
+  /* A FIRM'S OWN MAIL (Oct 24 2026): in a firm's own copy the Mail room is the real thing (ae-mail.js, the firm's own
+     mailbox through /api/os-mail). The showroom keeps the sample mailbox below. */
+  function ownMail() {
+    var go = function () { window.AEMail.mount(root, { E: E, os: OS, code: E.own(), toast: toast }); };
+    if (window.AEMail) return go();
+    var sc = document.createElement("script"); sc.src = "ae-mail.js?v=1"; sc.onload = go;
+    sc.onerror = function () { root.innerHTML = '<p class="ar-note">Mail did not load. Check your connection and reload.</p>'; };
+    document.head.appendChild(sc);
+  }
   ROOMS.mail = {
     make: function () {
       return { box: "Inbox", open: null, msgs: (SEED.mail || []).map(function (m, i) { return { id: uid(), box: m[5] || "Inbox", from: m[0], subj: m[1], body: m[2], ts: Date.now() - (m[3] || i * 2) * 3600000, tag: m[4] || "", read: i > 2, star: false }; }) };
     },
     render: function () {
+      if (OWNED) { if (!ROOMS.mail._own) { ROOMS.mail._own = 1; ownMail(); } return; }
       var BOX = ["Inbox", "Starred", "Sent", "Drafts", "Archive"];
       var unread = D.msgs.filter(function (m) { return m.box === "Inbox" && !m.read; }).length;
       var list = D.msgs.filter(function (m) { return D.box === "Starred" ? m.star : m.box === D.box; }).sort(function (a, b) { return b.ts - a.ts; });
@@ -477,6 +487,7 @@
       root.querySelector(".ar-mail").classList.toggle("reading", !!cur);
     },
     click: function (b) {
+      if (OWNED) return false;
       if (b.hasAttribute("data-box")) { D.box = b.getAttribute("data-box"); D.open = null; save(); render(); return true; }
       if (b.hasAttribute("data-msg")) { D.open = b.getAttribute("data-msg"); var m = D.msgs.filter(function (x) { return x.id === D.open; })[0]; if (m) m.read = true; save(); render(); var r = root.querySelector(".ar-read"); if (r && window.innerWidth <= 720) r.scrollIntoView({ block: "start" }); return true; }
       if (b.hasAttribute("data-msg-close")) { D.open = null; save(); render(); return true; }

@@ -43,12 +43,15 @@
   var c = T.mount({ active:"contacts.html", crumb:"Contacts" });
   var KEY="buttress_contacts_v1";
   var SEED=(window.BUTTRESS_CONTACTS||[]).slice();
-  function load(){ try{ var d=JSON.parse(sessionStorage.getItem(KEY)); if(d&&d.length) return d; }catch(e){} return SEED.slice(); }
-  function persist(){ try{ sessionStorage.setItem(KEY,JSON.stringify(ROWS)); }catch(e){} }
+  /* A firm's own book (Oct 24 2026): no sample contacts; the firm's contacts live in its book and save for the whole team
+     (Mail's "Add to contacts" writes here too). The showroom keeps its examples. */
+  var OWNC = T.own && T.own();
+  function load(){ if(OWNC){ var b=T.db(); return (b.contacts||[]).slice(); } try{ var d=JSON.parse(sessionStorage.getItem(KEY)); if(d&&d.length) return d; }catch(e){} return SEED.slice(); }
+  function persist(){ if(OWNC){ var copy=ROWS.map(function(r){ var x=Object.assign({},r); delete x._i; return x; }); T.save(function(b){ b.contacts=copy; }); return; } try{ sessionStorage.setItem(KEY,JSON.stringify(ROWS)); }catch(e){} }
   var ROWS=load(), Q="", FV="", FC="", SORT="n", OPEN=-1, SCOPE="all";
 
   c.appendChild(T.page("Contacts",
-    "Your book. Add anyone — clients, vendors, partners, agencies — with the + Add button, and it grows with the business. Loaded here with examples so you can see it working. Search it, filter it, call straight from it; CSV import and export any time."));
+    (OWNC ? "Your book. Add anyone (clients, consultants, contractors, agencies) with the + Add button, or import a CSV. It saves for your whole team. Search it, filter it, call straight from it." : "Your book. Add anyone — clients, vendors, partners, agencies — with the + Add button, and it grows with the business. Loaded here with examples so you can see it working. Search it, filter it, call straight from it; CSV import and export any time.")));
 
   var host=document.createElement("div"); c.appendChild(host);
 
