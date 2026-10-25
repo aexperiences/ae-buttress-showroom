@@ -284,3 +284,4 @@ html.bs-on .bs-lg.bs-lopen:not(.bs-lno) > :not(.bs-view){animation:bs-lin .55s v
 .bs-iset.on{border-color:var(--bs-red,#a8312a);box-shadow:0 0 0 3px rgba(168,49,42,.14)}
 .ar-isets h4{margin:0 0 8px;font:800 11px/1.2 var(--bs-sans,system-ui);letter-spacing:.14em;text-transform:uppercase;opacity:.75}
 @media(max-width:520px){.bs-isets{grid-template-columns:repeat(2,1fr)}.bs-iset img{width:56px;height:56px}}
+#arIconSets h4{display:none} /* the room titles it "Icon Skins" itself (Oct 24 2026) */
